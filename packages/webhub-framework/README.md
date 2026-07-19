@@ -12,7 +12,7 @@ This package is the browser-side runtime used by `webhub build --plugin=webhub`.
 
 If you are building webhub apps in this repo, this is the component model used by examples like `examples/app/todo-webhub`, `examples/app/commerce`, and `examples/app/contact-book-manager`.
 
-> 📖 **Full documentation at [microsoft.github.io/webhub](https://microsoft.github.io/webhub)**, see the [Interactivity Guide](https://microsoft.github.io/webhub/guide/concepts/interactivity) for component authoring patterns. For framework internals (hydration, path resolution, reactive update model), see [RENDERING.md](./RENDERING.md).
+> 📖 **Full documentation at [dcnsakthi.github.io/webhub](https://dcnsakthi.github.io/webhub)**, see the [Interactivity Guide](https://dcnsakthi.github.io/webhub/guide/concepts/interactivity) for component authoring patterns. For framework internals (hydration, path resolution, reactive update model), see [RENDERING.md](./RENDERING.md).
 
 ## Install
 
@@ -149,7 +149,7 @@ the SSR state, or assign them after `super.connectedCallback()`. The warning is
 development-only and is dead-code-eliminated from production bundles via the
 `__webhub_DEV__` compile-time flag (on by default; `webhub-press build` sets it to
 `false`). See the
-[Interactivity Guide](https://microsoft.github.io/webhub/guide/concepts/interactivity#setting-observable-state-during-setup).
+[Interactivity Guide](https://dcnsakthi.github.io/webhub/guide/concepts/interactivity#setting-observable-state-during-setup).
 
 ### DOM strategy (`--dom`)
 

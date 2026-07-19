@@ -26,7 +26,7 @@ webhub build [APP] --out <DIR> [--entry <FILE>] [--css <MODE>] [--plugin <NAME>]
 | `--out` | *(required)* | Output directory for protocol.bin + CSS, or a `.bin` file path to customize the protocol filename (e.g. `./dist/app1.bin`) |
 | `--entry` | `index.html` | Entry HTML file |
 | `--css` | `link` | CSS mode: `link` (external files) or `style` (inline) |
-| `--plugin` | *(none)* | Plugin identifier (see [Plugins](https://microsoft.github.io/webhub/guide/concepts/plugins/) for available identifiers) |
+| `--plugin` | *(none)* | Plugin identifier (see [Plugins](https://dcnsakthi.github.io/webhub/guide/concepts/plugins/) for available identifiers) |
 | `--asset-file-name-template` | `[name].[ext]` | Emitted asset filename template. Tokens: `[name]`, `[hash]`, `[ext]` |
 | `--css-public-base` | *(none)* | Optional base URL/path prepended to Link-mode stylesheet hrefs |
 
@@ -53,7 +53,7 @@ webhub serve [APP] [--state <FILE>] [--servedir <DIR>] [--port <PORT>] [--api-po
 | `--servedir` | *(none)* | Static assets directory served at `/*` |
 | `--port` | `3000` | Server port |
 | `--api-port` | *(none)* | Proxy API requests to this port |
-| `--plugin` | *(none)* | Plugin identifier (see [Plugins](https://microsoft.github.io/webhub/guide/concepts/plugins/) for available identifiers) |
+| `--plugin` | *(none)* | Plugin identifier (see [Plugins](https://dcnsakthi.github.io/webhub/guide/concepts/plugins/) for available identifiers) |
 | `--watch` | off | Enable file watching + HMR |
 | `--asset-file-name-template` | `[name].[ext]` | Emitted asset filename template. Tokens: `[name]`, `[hash]`, `[ext]` |
 | `--css-public-base` | *(none)* | Optional base URL/path prepended to Link-mode stylesheet hrefs |

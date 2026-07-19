@@ -4,7 +4,7 @@ Build-time compiled router for [webhub](https://github.com/microsoft/webhub) app
 
 Uses the [Navigation API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API) for client-side transitions. The server provides the matched route chain; the client does not perform route matching.
 
-> 📖 **Full documentation at [microsoft.github.io/webhub](https://microsoft.github.io/webhub)** — see the [Routing Guide](https://microsoft.github.io/webhub/guide/concepts/routing) for setup and usage.
+> 📖 **Full documentation at [dcnsakthi.github.io/webhub](https://dcnsakthi.github.io/webhub)** — see the [Routing Guide](https://dcnsakthi.github.io/webhub/guide/concepts/routing) for setup and usage.
 
 ## How It Works
 

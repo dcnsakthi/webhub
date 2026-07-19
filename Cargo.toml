@@ -17,7 +17,7 @@ rust-version = "1.93"
 authors = ["Microsoft Edge"]
 license = "MIT"
 repository = "https://github.com/microsoft/webhub"
-homepage = "https://microsoft.github.io/webhub"
+homepage = "https://dcnsakthi.github.io/webhub"
 
 [workspace.dependencies]
 serde = { version = "1.0.228", features = ["derive"] }

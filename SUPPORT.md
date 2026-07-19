@@ -5,7 +5,7 @@ webhub is in active development. Support is provided through GitHub Issues for a
 ## Before opening an issue
 
 - Search the [existing issues](https://github.com/microsoft/webhub/issues) to avoid duplicates.
-- Check the [documentation](https://microsoft.github.io/webhub) for current guidance.
+- Check the [documentation](https://dcnsakthi.github.io/webhub) for current guidance.
 - Include enough detail for maintainers to understand the need or reproduce the problem.
 
 ## Where to ask
@@ -20,7 +20,7 @@ webhub is in active development. Support is provided through GitHub Issues for a
 
 ## What to include
 
-For bugs, include a minimal reproduction, exact steps, expected behavior, actual behavior, environment details, and relevant logs. Prefer a webhub Playground share link from <https://microsoft.github.io/webhub/playground/> when the issue can be reproduced there. For feature or documentation requests, describe the need, who is affected, and what outcome would solve it.
+For bugs, include a minimal reproduction, exact steps, expected behavior, actual behavior, environment details, and relevant logs. Prefer a webhub Playground share link from <https://dcnsakthi.github.io/webhub/playground/> when the issue can be reproduced there. For feature or documentation requests, describe the need, who is affected, and what outcome would solve it.
 
 ## Microsoft Support Policy
 

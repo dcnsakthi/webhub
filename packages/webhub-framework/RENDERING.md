@@ -7,7 +7,7 @@ Licensed under the MIT license.
 
 How `@microsoft/webhub-framework` actually turns server-rendered HTML into a live, reactive DOM, and what it does on every keystroke after that.
 
-This document is for framework contributors, plugin authors, and anyone debugging hydration. **If you just want to author components, read [`README.md`](./README.md) and the [Interactivity guide](https://microsoft.github.io/webhub/guide/concepts/interactivity) instead.**
+This document is for framework contributors, plugin authors, and anyone debugging hydration. **If you just want to author components, read [`README.md`](./README.md) and the [Interactivity guide](https://dcnsakthi.github.io/webhub/guide/concepts/interactivity) instead.**
 
 ---
 
@@ -456,4 +456,4 @@ Everything else is internal and may change without notice.
 - `examples/app/todo-webhub` — minimal SSR + interactivity example
 - `examples/app/contact-book-manager` — repeat blocks, keyed reconciliation
 - `examples/app/commerce` — larger composition, multiple components per page
-- [Interactivity guide](https://microsoft.github.io/webhub/guide/concepts/interactivity) — component-author view of the same machinery
+- [Interactivity guide](https://dcnsakthi.github.io/webhub/guide/concepts/interactivity) — component-author view of the same machinery

@@ -2,7 +2,7 @@
 
 **webhub** is a high-performance, language-agnostic server-side rendering framework built in Rust. It compiles HTML templates into compact Protocol Buffer binaries at build time so runtime rendering applies state without reparsing templates. Interactive Web Components hydrate as islands on the client.
 
-**Documentation:** [microsoft.github.io/webhub](https://microsoft.github.io/webhub)
+**Documentation:** [dcnsakthi.github.io/webhub](https://dcnsakthi.github.io/webhub)
 
 ## Highlights
 
@@ -37,10 +37,10 @@ NuGet metadata uses `Authors=Microsoft`, the `Microsoft` package owner, a stable
 
 | Resource | Link |
 |----------|------|
-| Full documentation | <https://microsoft.github.io/webhub> |
-| Getting started | <https://microsoft.github.io/webhub/guide/> |
-| CLI reference | <https://microsoft.github.io/webhub/guide/cli/> |
-| Language integrations | <https://microsoft.github.io/webhub/guide/integrations> |
+| Full documentation | <https://dcnsakthi.github.io/webhub> |
+| Getting started | <https://dcnsakthi.github.io/webhub/guide/> |
+| CLI reference | <https://dcnsakthi.github.io/webhub/guide/cli/> |
+| Language integrations | <https://dcnsakthi.github.io/webhub/guide/integrations> |
 | Benchmarks | [`BENCHMARKS.md`](BENCHMARKS.md) |
 
 ## Development

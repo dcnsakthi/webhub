@@ -48,7 +48,7 @@ body:
     id: reproduction
     attributes:
       label: Minimal reproduction
-      description: If possible, reproduce the issue in the webhub Playground and paste the share link from https://microsoft.github.io/webhub/playground/. Otherwise, provide a sample repository, small code snippet, or minimal template.
+      description: If possible, reproduce the issue in the webhub Playground and paste the share link from https://dcnsakthi.github.io/webhub/playground/. Otherwise, provide a sample repository, small code snippet, or minimal template.
       placeholder: Paste a webhub Playground share link or the smallest example that reproduces the problem.
   - type: textarea
     id: steps

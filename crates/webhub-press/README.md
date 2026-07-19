@@ -4,7 +4,7 @@ A static site generator powered by the [webhub Framework](https://github.com/mic
 
 [![microsoft-webhub-press on crates.io](https://img.shields.io/badge/crate-microsoft--webhub--press-orange)](https://github.com/microsoft/webhub)
 
-`webhub-press` is what powers [microsoft.github.io/webhub](https://microsoft.github.io/webhub). It is the webhub Framework eating its own dog food: every page in the site is rendered server-side by the same protocol-compiled engine that the framework ships to consumers.
+`webhub-press` is what powers [dcnsakthi.github.io/webhub](https://dcnsakthi.github.io/webhub). It is the webhub Framework eating its own dog food: every page in the site is rendered server-side by the same protocol-compiled engine that the framework ships to consumers.
 
 ---
 
@@ -396,7 +396,7 @@ Components are:
 
 Markdown inside slots is rendered as markdown, so you can mix prose and components freely.
 
-See the [webhub Framework component guide](https://microsoft.github.io/webhub/guide/concepts/components) for authoring details.
+See the [webhub Framework component guide](https://dcnsakthi.github.io/webhub/guide/concepts/components) for authoring details.
 
 ### Per-page scripts
 
@@ -559,7 +559,7 @@ The output is fully renderable without JavaScript:
 
 When the browser loads the generated root/page scripts (deferred, after first paint), the framework finds existing DSD shadow roots and **upgrades** them in place, no re-render, no flash, no virtual DOM. Event handlers and observable state are bound to the already-painted DOM. Page scripts import only the local component scripts and explicit bundled scripts needed by that page, with shared dependencies split into reusable chunks.
 
-This is the webhub Framework's [`webhub` plugin](https://microsoft.github.io/webhub/guide/concepts/plugins/) at work, and it is what makes the site feel instant on slow connections.
+This is the webhub Framework's [`webhub` plugin](https://dcnsakthi.github.io/webhub/guide/concepts/plugins/) at work, and it is what makes the site feel instant on slow connections.
 
 ---
 

@@ -27,7 +27,7 @@ Start from the [GitHub issue template chooser](https://github.com/microsoft/webh
 When reporting a bug, include:
 
 - A short summary of the problem.
-- A minimal reproduction. Prefer a webhub Playground share link from <https://microsoft.github.io/webhub/playground/> when the issue can be reproduced there. Otherwise, include a sample repository or small code snippet.
+- A minimal reproduction. Prefer a webhub Playground share link from <https://dcnsakthi.github.io/webhub/playground/> when the issue can be reproduced there. Otherwise, include a sample repository or small code snippet.
 - Exact steps to reproduce the problem.
 - Expected behavior and actual behavior.
 - Environment details such as OS, Rust version, Node.js version, package version, and command used.
