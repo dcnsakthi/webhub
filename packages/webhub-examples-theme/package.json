@@ -1,8 +1,8 @@
 {
-  "name": "@microsoft/webui-examples-theme",
+  "name": "@microsoft/webhub-examples-theme",
   "version": "0.0.18",
   "type": "module",
-  "description": "Shared design token theme for WebUI example applications",
+  "description": "Shared design token theme for webhub example applications",
   "license": "MIT",
   "private": true,
   "exports": {

@@ -20,10 +20,10 @@ use std::process::ExitCode;
 enum UpdateStrategy {
     /// Replace `version = "..."` inside a TOML `[section]`.
     TomlSection(&'static str),
-    /// Replace `"version"` (and `@microsoft/webui-*` optional deps) in a
+    /// Replace `"version"` (and `@microsoft/webhub-*` optional deps) in a
     /// `package.json`.
     PackageJson,
-    /// Replace inline `version = "..."` on `microsoft-webui-*` dependency
+    /// Replace inline `version = "..."` on `microsoft-webhub-*` dependency
     /// lines in a crate `Cargo.toml`.
     CrateDeps,
     /// Replace `<Version>…</Version>` in a .NET `Directory.Build.props`.
@@ -244,7 +244,7 @@ fn update_crate_dep_versions(path: &Path, version: &str) -> Result<bool, String>
 
     for line in content.lines() {
         let trimmed = line.trim();
-        if trimmed.starts_with("microsoft-webui")
+        if trimmed.starts_with("microsoft-webhub")
             && trimmed.contains("path")
             && trimmed.contains("version")
         {
@@ -291,7 +291,7 @@ fn replace_first_json_field(content: &str, field: &str, new_value: &str) -> Opti
 }
 
 /// Update version in a package.json file. Also updates optionalDependencies
-/// that reference @microsoft/webui-* packages.
+/// that reference @microsoft/webhub-* packages.
 ///
 /// Uses serde_json to read the structure, then performs surgical string
 /// replacement so only the version values change — all formatting is preserved.
@@ -318,11 +318,11 @@ fn update_package_json(path: &Path, version: &str) -> Result<bool, String> {
         }
     }
 
-    // Replace @microsoft/webui-* version values in optionalDependencies.
+    // Replace @microsoft/webhub-* version values in optionalDependencies.
     // Skip workspace: protocol values (pnpm resolves them at publish time).
     if let Some(deps) = obj.get("optionalDependencies").and_then(|v| v.as_object()) {
         for (key, val) in deps {
-            if key.starts_with("@microsoft/webui") {
+            if key.starts_with("@microsoft/webhub") {
                 let current = val.as_str().unwrap_or_default();
                 if !current.starts_with("workspace:") {
                     if let Some(updated) = replace_first_json_field(&result, key, version) {
@@ -535,14 +535,14 @@ mod tests {
     fn test_update_root_package_json() {
         let dir = tempfile::TempDir::new().unwrap();
         let pkg = dir.path().join("package.json");
-        fs::write(&pkg, r#"{"name":"webui","version":"1.0.0","private":true}"#).unwrap();
+        fs::write(&pkg, r#"{"name":"webhub","version":"1.0.0","private":true}"#).unwrap();
 
         update_package_json(&pkg, "2.0.0").unwrap();
 
         let content = fs::read_to_string(&pkg).unwrap();
         let val: serde_json::Value = serde_json::from_str(&content).unwrap();
         assert_eq!(val["version"], "2.0.0");
-        assert_eq!(val["name"], "webui");
+        assert_eq!(val["name"], "webhub");
     }
 
     #[test]
@@ -551,7 +551,7 @@ mod tests {
         let pkg = dir.path().join("package.json");
         fs::write(
             &pkg,
-            r#"{"name":"test","version":"0.0.1","optionalDependencies":{"@microsoft/webui-darwin-arm64":"0.0.1","unrelated-pkg":"3.0.0"}}"#,
+            r#"{"name":"test","version":"0.0.1","optionalDependencies":{"@microsoft/webhub-darwin-arm64":"0.0.1","unrelated-pkg":"3.0.0"}}"#,
         )
         .unwrap();
 
@@ -561,10 +561,10 @@ mod tests {
         let val: serde_json::Value = serde_json::from_str(&content).unwrap();
         assert_eq!(val["version"], "2.0.0");
         assert_eq!(
-            val["optionalDependencies"]["@microsoft/webui-darwin-arm64"],
+            val["optionalDependencies"]["@microsoft/webhub-darwin-arm64"],
             "2.0.0"
         );
-        // Non-webui deps should be untouched
+        // Non-webhub deps should be untouched
         assert_eq!(val["optionalDependencies"]["unrelated-pkg"], "3.0.0");
     }
 
@@ -580,14 +580,14 @@ mod tests {
         let dir = tempfile::TempDir::new().unwrap();
         let pkg = dir.path().join("package.json");
         let original =
-            "{\n  \"name\": \"webui\",\n  \"version\": \"1.0.0\",\n  \"private\": true\n}\n";
+            "{\n  \"name\": \"webhub\",\n  \"version\": \"1.0.0\",\n  \"private\": true\n}\n";
         fs::write(&pkg, original).unwrap();
 
         update_package_json(&pkg, "2.0.0").unwrap();
 
         let content = fs::read_to_string(&pkg).unwrap();
         let expected =
-            "{\n  \"name\": \"webui\",\n  \"version\": \"2.0.0\",\n  \"private\": true\n}\n";
+            "{\n  \"name\": \"webhub\",\n  \"version\": \"2.0.0\",\n  \"private\": true\n}\n";
         assert_eq!(content, expected, "only version value should change");
     }
 
@@ -605,18 +605,18 @@ mod tests {
         let content = fs::read_to_string(dir.path().join("Cargo.toml")).unwrap();
         assert!(content.contains("version = \"3.0.0\""));
         assert!(content.contains("edition = \"2021\""));
-        // non-webui deps should be untouched
+        // non-webhub deps should be untouched
         assert!(content.contains("serde = \"1.0\""));
     }
 
     #[test]
     fn test_replace_inline_version() {
         let line =
-            r#"microsoft-webui-protocol = { path = "../webui-protocol", version = "0.0.1" }"#;
+            r#"microsoft-webhub-protocol = { path = "../webhub-protocol", version = "0.0.1" }"#;
         let result = replace_inline_version(line, "1.2.3").unwrap();
         assert_eq!(
             result,
-            r#"microsoft-webui-protocol = { path = "../webui-protocol", version = "1.2.3" }"#
+            r#"microsoft-webhub-protocol = { path = "../webhub-protocol", version = "1.2.3" }"#
         );
     }
 
@@ -631,12 +631,12 @@ name = "test"
 version = "0.0.1"
 
 [dependencies]
-microsoft-webui-protocol = { path = "../webui-protocol", version = "0.0.1" }
+microsoft-webhub-protocol = { path = "../webhub-protocol", version = "0.0.1" }
 serde = { workspace = true }
-microsoft-webui-handler = { path = "../webui-handler", version = "0.0.1" }
+microsoft-webhub-handler = { path = "../webhub-handler", version = "0.0.1" }
 
 [dev-dependencies]
-microsoft-webui-test-utils = { path = "../webui-test-utils", version = "0.0.1" }
+microsoft-webhub-test-utils = { path = "../webhub-test-utils", version = "0.0.1" }
 "#,
         )
         .unwrap();
@@ -647,18 +647,18 @@ microsoft-webui-test-utils = { path = "../webui-test-utils", version = "0.0.1" }
         let content = fs::read_to_string(&toml).unwrap();
         // Package-level version should be untouched
         assert!(content.contains("version = \"0.0.1\""));
-        // But all microsoft-webui dep versions should be updated
+        // But all microsoft-webhub dep versions should be updated
         assert!(!content.contains(
-            r#"microsoft-webui-protocol = { path = "../webui-protocol", version = "0.0.1" }"#
+            r#"microsoft-webhub-protocol = { path = "../webhub-protocol", version = "0.0.1" }"#
         ));
         assert!(content.contains(
-            r#"microsoft-webui-protocol = { path = "../webui-protocol", version = "2.0.0" }"#
+            r#"microsoft-webhub-protocol = { path = "../webhub-protocol", version = "2.0.0" }"#
         ));
         assert!(content.contains(
-            r#"microsoft-webui-handler = { path = "../webui-handler", version = "2.0.0" }"#
+            r#"microsoft-webhub-handler = { path = "../webhub-handler", version = "2.0.0" }"#
         ));
         assert!(content.contains(
-            r#"microsoft-webui-test-utils = { path = "../webui-test-utils", version = "2.0.0" }"#
+            r#"microsoft-webhub-test-utils = { path = "../webhub-test-utils", version = "2.0.0" }"#
         ));
         // workspace deps should be untouched
         assert!(content.contains("serde = { workspace = true }"));

@@ -5,15 +5,15 @@ Licensed under the MIT license.
 
 # Rendering & Hydration Internals
 
-How `@microsoft/webui-framework` actually turns server-rendered HTML into a live, reactive DOM, and what it does on every keystroke after that.
+How `@microsoft/webhub-framework` actually turns server-rendered HTML into a live, reactive DOM, and what it does on every keystroke after that.
 
-This document is for framework contributors, plugin authors, and anyone debugging hydration. **If you just want to author components, read [`README.md`](./README.md) and the [Interactivity guide](https://microsoft.github.io/webui/guide/concepts/interactivity) instead.**
+This document is for framework contributors, plugin authors, and anyone debugging hydration. **If you just want to author components, read [`README.md`](./README.md) and the [Interactivity guide](https://microsoft.github.io/webhub/guide/concepts/interactivity) instead.**
 
 ---
 
 ## Why a separate document
 
-WebUI is built on a hard rule: the server emits HTML, the browser parses HTML, and the framework adopts that HTML in place. Nothing is re-rendered. No virtual DOM, no diff against a fresh tree, no `innerHTML = ...` to swap content. To make that work without DOM annotations on every dynamic node, the framework leans on:
+webhub is built on a hard rule: the server emits HTML, the browser parses HTML, and the framework adopts that HTML in place. Nothing is re-rendered. No virtual DOM, no diff against a fresh tree, no `innerHTML = ...` to swap content. To make that work without DOM annotations on every dynamic node, the framework leans on:
 
 - compiled template metadata (path indices, not selectors),
 - five lightweight HTML comment markers around structural blocks,
@@ -33,14 +33,14 @@ Parse templates   →     Render with state    →     Framework adopts
 Compile metadata        Inject SSR markers         existing DOM,
                         Emit Declarative           wires bindings,
                         Shadow DOM                 strips markers
-                        Emit webui-data            O(affected) updates
+                        Emit webhub-data            O(affected) updates
 ```
 
-1. **Server renders HTML.** The handler walks compiled template metadata and application state and emits Declarative Shadow DOM (or light DOM) with five comment markers around structural blocks, plus an inert `#webui-data` block carrying state and per-component template metadata.
+1. **Server renders HTML.** The handler walks compiled template metadata and application state and emits Declarative Shadow DOM (or light DOM) with five comment markers around structural blocks, plus an inert `#webhub-data` block carrying state and per-component template metadata.
 2. **Browser parses HTML.** The parser creates shadow roots inline. The user sees a fully painted page before any framework code runs.
 3. **JavaScript loads.** The component class registers via `customElements.define`. The browser upgrades pre-existing tags and fires `connectedCallback`.
 4. **`$mount` decides client-or-SSR.** If a shadow root exists or the element already has children, the framework treats the DOM as SSR. Otherwise it parses the static template HTML (`meta.h`) into a detached staging root, upgrades custom elements, wires bindings, applies the first binding pass, and only then appends the nodes. Child `connectedCallback` methods see initial parent `:` property bindings.
-5. **`$applySSRState` seeds observables.** Backing fields (`_count`, `_title`, ...) are written directly from `window.__webui.state` so reactive bindings observe values that match the painted DOM.
+5. **`$applySSRState` seeds observables.** Backing fields (`_count`, `_title`, ...) are written directly from `window.__webhub.state` so reactive bindings observe values that match the painted DOM.
 6. **`$hydrate` walks the DOM once.** Text, attribute, conditional, repeat, and event bindings are resolved by a single in-order pass that uses path indices plus marker-aware ordinal traversal.
 7. **Stale markers are removed.** Item markers (`<!--wi-->`) and closing markers (`<!--/wc-->`, `<!--/wr-->`) are deleted; start markers (`<!--wc-->`, `<!--wr-->`) stay as anchors for runtime updates.
 8. **Path index is built lazily on the first reactive change.** Subsequent updates are O(affected bindings).
@@ -106,13 +106,13 @@ Notice that there are no markers on `<h1>`, `<button>`, or the text inside `<spa
 
 `<!--wc-->` and `<!--wr-->` start markers are kept after hydration as runtime anchors. They are the insertion points used when the condition flips or the repeat collection grows.
 
-Hydration assumes SSR DOM, marker comments, and compiled metadata come from the same trusted WebUI compiler/handler version. Hand-edited marker streams are unsupported; every `<!--wr-->` and `<!--wc-->` must have its matching closing marker.
+Hydration assumes SSR DOM, marker comments, and compiled metadata come from the same trusted webhub compiler/handler version. Hand-edited marker streams are unsupported; every `<!--wr-->` and `<!--wc-->` must have its matching closing marker.
 
 ---
 
 ## Compiled template metadata
 
-The compiler emits one JSON-safe `TemplateMeta` per component plus a small component-local condition closure array. During SSR, all non-executable metadata is delivered in `<script type="application/json" id="webui-data">`; during SPA partial navigation, the router registers the metadata object directly and executes only the closure arrays.
+The compiler emits one JSON-safe `TemplateMeta` per component plus a small component-local condition closure array. During SSR, all non-executable metadata is delivered in `<script type="application/json" id="webhub-data">`; during SPA partial navigation, the router registers the metadata object directly and executes only the closure arrays.
 
 ```json
 {
@@ -136,7 +136,7 @@ The compiler emits one JSON-safe `TemplateMeta` per component plus a small compo
 }
 ```
 
-The matching executable payload is stored under `window.__webui.templateFns['todo-app']`, for example `[function(v,s){return !!v("items.length",s)}]`. The framework normalizes `[functionIndex, paths]` condition references into direct `[fn, paths]` tuples once before hydration.
+The matching executable payload is stored under `window.__webhub.templateFns['todo-app']`, for example `[function(v,s){return !!v("items.length",s)}]`. The framework normalizes `[functionIndex, paths]` condition references into direct `[fn, paths]` tuples once before hydration.
 
 | Field | Purpose |
 |---|---|
@@ -159,7 +159,7 @@ The same metadata serves both paths:
 ### Condition references
 
 Conditions are stored in JSON as `[functionIndex, paths]`. `functionIndex`
-points into `window.__webui.templateFns[tagName]`, and `paths` drives the
+points into `window.__webhub.templateFns[tagName]`, and `paths` drives the
 reactive path index. The framework normalizes this once to `[fn, paths]`
 before hydration or client-created wiring.
 
@@ -218,7 +218,7 @@ When the server renders `<span>42</span>` for `@observable count = 0`, the JS cl
 
 `$applySSRState` runs **before** any binding is wired:
 
-1. Read `window.__webui.state` (loaded lazily from the handler-emitted `#webui-data` block).
+1. Read `window.__webhub.state` (loaded lazily from the handler-emitted `#webhub-data` block).
 2. Look up the component's `@observable` property names via the decorator registry.
 3. For each key in state that matches an observable name, write directly to the backing field: `this._count = 42`. **Not** through the setter, so no reactive update fires.
 
@@ -371,18 +371,18 @@ Set by the compiler via `--dom` flag, surfaced as `meta.sd`:
 
 | Mark | When |
 |---|---|
-| `webui:hydrate:total:start` | First component begins hydrating |
-| `webui:hydrate:total:end` | Last component finishes |
-| Measure `webui:hydrate:total` | Total wall-clock hydration time |
+| `webhub:hydrate:total:start` | First component begins hydrating |
+| `webhub:hydrate:total:end` | Last component finishes |
+| Measure `webhub:hydrate:total` | Total wall-clock hydration time |
 
 ```typescript
-window.addEventListener('webui:hydration-complete', () => {
-  const entry = performance.getEntriesByName('webui:hydrate:total', 'measure')[0];
+window.addEventListener('webhub:hydration-complete', () => {
+  const entry = performance.getEntriesByName('webhub:hydrate:total', 'measure')[0];
   if (entry) console.log(`Hydration: ${entry.duration.toFixed(1)}ms`);
 });
 ```
 
-The `webui:hydration-complete` event fires once after the last component on the page finishes. Use it to gate post-hydration logic or to ship a metric.
+The `webhub:hydration-complete` event fires once after the last component on the page finishes. Use it to gate post-hydration logic or to ship a metric.
 
 ---
 
@@ -431,7 +431,7 @@ src/
 Public exports:
 
 ```typescript
-export { WebUIElement } from './element.js';
+export { webhubElement } from './element.js';
 export { observable, attr } from './decorators.js';
 export { getTemplate, type TemplateMeta } from './template.js';
 export { hydrationStart, hydrationEnd } from './lifecycle.js';
@@ -443,17 +443,17 @@ Everything else is internal and may change without notice.
 
 ## Debugging
 
-- Performance: `performance.getEntriesByName('webui:hydrate:total', 'measure')` after `webui:hydration-complete`.
+- Performance: `performance.getEntriesByName('webhub:hydrate:total', 'measure')` after `webhub:hydration-complete`.
 - Per-component lifecycle: instrument `connectedCallback` / `disconnectedCallback` on a subclass.
 - Marker layout: View Source on the SSR HTML. The five comment markers should be balanced; mismatched pairs almost always indicate a handler-plugin bug.
-- "Template metadata not found": `window.__webui.templates` was not populated from `#webui-data` or partial-response template registration. Check the build output.
+- "Template metadata not found": `window.__webhub.templates` was not populated from `#webhub-data` or partial-response template registration. Check the build output.
 - A binding that does not update: confirm the property is `@observable` (not just a class field) and the path appears in the template. Check `$pathIndex` after the first update if you can attach a debugger.
 
 ---
 
 ## Where to look next
 
-- `examples/app/todo-webui` — minimal SSR + interactivity example
+- `examples/app/todo-webhub` — minimal SSR + interactivity example
 - `examples/app/contact-book-manager` — repeat blocks, keyed reconciliation
 - `examples/app/commerce` — larger composition, multiple components per page
-- [Interactivity guide](https://microsoft.github.io/webui/guide/concepts/interactivity) — component-author view of the same machinery
+- [Interactivity guide](https://microsoft.github.io/webhub/guide/concepts/interactivity) — component-author view of the same machinery

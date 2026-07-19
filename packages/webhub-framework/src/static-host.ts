@@ -25,9 +25,9 @@ let runtimeInstalled = false;
 /** Define the smallest client-rendering element for a compiler-owned template. */
 function defineTemplateHost(tag: string, meta: TemplateMeta): void {
   const w = window as Window;
-  if (!w.__webui) w.__webui = {};
-  if (!w.__webui.templates) w.__webui.templates = {};
-  if (!w.__webui.templates[tag]) w.__webui.templates[tag] = meta;
+  if (!w.__webhub) w.__webhub = {};
+  if (!w.__webhub.templates) w.__webhub.templates = {};
+  if (!w.__webhub.templates[tag]) w.__webhub.templates[tag] = meta;
 
   class StaticTemplateHost extends TemplateElement {
     protected $afterExternalStateWrite(applied: boolean): void {
@@ -50,7 +50,7 @@ function defineTemplateHost(tag: string, meta: TemplateMeta): void {
 function defineMissingTemplateHost(tag: string, meta: TemplateMeta): void {
   if (
     !templateNeedsStaticHost(meta) ||
-    window.__webui?.templateHostExclusions?.has(tag) ||
+    window.__webhub?.templateHostExclusions?.has(tag) ||
     customElements.get(tag)
   ) {
     return;

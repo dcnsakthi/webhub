@@ -1,21 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from "@microsoft/webui-framework";
+import { webhubElement, observable } from "@microsoft/webhub-framework";
 
-export class WebUIPressTabs extends WebUIElement {
+export class webhubPressTabs extends webhubElement {
   @observable activeIndex = 0;
 
   connectedCallback(): void {
     super.connectedCallback();
 
-    // Listen for tab-select events from child webui-press-tab components
+    // Listen for tab-select events from child webhub-press-tab components
     this.addEventListener("tab-select", ((e: CustomEvent) => {
       this.onTabSelect(e);
     }) as EventListener);
 
     // Find initially active tab
-    const tabs = [...this.querySelectorAll(":scope > webui-press-tab")];
+    const tabs = [...this.querySelectorAll(":scope > webhub-press-tab")];
     const activeIdx = tabs.findIndex((t) => t.hasAttribute("active"));
     this.activeIndex = activeIdx >= 0 ? activeIdx : 0;
     this.syncActive();
@@ -23,7 +23,7 @@ export class WebUIPressTabs extends WebUIElement {
 
   onTabSelect(e: CustomEvent): void {
     const tab = e.detail.tab as Element;
-    const tabs = [...this.querySelectorAll(":scope > webui-press-tab")];
+    const tabs = [...this.querySelectorAll(":scope > webhub-press-tab")];
     const idx = tabs.indexOf(tab);
     if (idx >= 0) {
       this.activeIndex = idx;
@@ -32,8 +32,8 @@ export class WebUIPressTabs extends WebUIElement {
   }
 
   private syncActive(): void {
-    const tabs = this.querySelectorAll(":scope > webui-press-tab");
-    const panels = this.querySelectorAll(":scope > webui-press-tab-panel");
+    const tabs = this.querySelectorAll(":scope > webhub-press-tab");
+    const panels = this.querySelectorAll(":scope > webhub-press-tab-panel");
     tabs.forEach((tab, i) => {
       if (i === this.activeIndex) tab.setAttribute("active", "");
       else tab.removeAttribute("active");
@@ -45,4 +45,4 @@ export class WebUIPressTabs extends WebUIElement {
   }
 }
 
-WebUIPressTabs.define("webui-press-tabs");
+webhubPressTabs.define("webhub-press-tabs");

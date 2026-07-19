@@ -6,12 +6,12 @@ description = "A CRUD contact manager"
 backend = "node"
 
 [server]
-type = "webui-cli"
-plugin = "webui"
+type = "webhub-cli"
+plugin = "webhub"
 source = "src"
 servedir = "dist"
 state = "data/state.json"
-theme = "@microsoft/webui-examples-theme"
+theme = "@microsoft/webhub-examples-theme"
 
 [api]
 type = "node"

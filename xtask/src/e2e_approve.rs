@@ -57,7 +57,7 @@ pub fn run(run_id: Option<&str>) -> ExitCode {
 
     // Create temp directory for download
     let tmp_dir = match std::env::temp_dir()
-        .join(format!("webui-e2e-approve-{resolved_run_id}"))
+        .join(format!("webhub-e2e-approve-{resolved_run_id}"))
         .to_str()
         .map(|s| s.to_string())
     {

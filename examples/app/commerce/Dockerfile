@@ -39,7 +39,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 
 COPY . .
 RUN pnpm install --frozen-lockfile --filter=commerce... && \
-    pnpm --filter=@microsoft/webui-framework --filter=@microsoft/webui-router run build && \
+    pnpm --filter=@microsoft/webhub-framework --filter=@microsoft/webhub-router run build && \
     cd examples/app/commerce && pnpm build
 
 RUN cargo build --release -p marketplace-api
@@ -47,8 +47,8 @@ RUN cargo build --release -p marketplace-api
 # ── Stage 3: Runtime ────────────────────────────────────────────────
 FROM debian:bookworm-slim
 
-LABEL org.opencontainers.image.source="https://github.com/microsoft/webui"
-LABEL org.opencontainers.image.description="Commerce Demo using Microsoft WebUI Framework"
+LABEL org.opencontainers.image.source="https://github.com/microsoft/webhub"
+LABEL org.opencontainers.image.description="Commerce Demo using Microsoft webhub Framework"
 LABEL org.opencontainers.image.licenses="MIT"
 
 RUN apt-get update && \

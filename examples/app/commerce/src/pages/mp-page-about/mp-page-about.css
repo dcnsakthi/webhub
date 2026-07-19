@@ -18,7 +18,7 @@
 .prose {
   font-size: 1rem;
   line-height: 1.85;
-  color: var(--webui-text-secondary);
+  color: var(--webhub-text-secondary);
 }
 
 .prose p {
@@ -28,7 +28,7 @@
 .prose h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--webui-text);
+  color: var(--webhub-text);
   margin-top: 2.5rem;
   margin-bottom: 1rem;
 }
@@ -44,17 +44,17 @@
 }
 
 .prose a {
-  color: var(--webui-text);
+  color: var(--webhub-text);
   text-decoration: underline;
   text-underline-offset: 3px;
   transition: color 150ms ease;
 }
 
 .prose a:hover {
-  color: var(--webui-accent);
+  color: var(--webhub-accent);
 }
 
 .prose strong {
-  color: var(--webui-text);
+  color: var(--webhub-text);
   font-weight: 600;
 }

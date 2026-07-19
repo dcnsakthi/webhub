@@ -5,7 +5,7 @@ import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { build, type BuildOptions } from 'esbuild';
-import { esbuildProjection } from '@microsoft/webui/projection.js';
+import { esbuildProjection } from '@microsoft/webhub/projection.js';
 
 export interface FixtureBuildOptions {
   fixturesRoot: string;
@@ -41,7 +41,7 @@ export async function buildFixtureEntries({
 
   rmSync(outDir, { recursive: true, force: true });
 
-  const projectionManifest = resolve(outDir, 'webui-projection.json');
+  const projectionManifest = resolve(outDir, 'webhub-projection.json');
   await build({
     entryPoints,
     bundle: true,

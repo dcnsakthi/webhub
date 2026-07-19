@@ -48,8 +48,8 @@
        so restored positions are what view transitions animate to,
        eliminating the end-of-transition jump. */
     (function () {
-      var SIDEBAR_KEY = 'webui-press:sidebar-scroll';
-      var MAIN_KEY_PREFIX = 'webui-press:main-scroll:';
+      var SIDEBAR_KEY = 'webhub-press:sidebar-scroll';
+      var MAIN_KEY_PREFIX = 'webhub-press:main-scroll:';
       function sidebar() { return document.querySelector('.sidebar'); }
       function main() { return document.querySelector('.main-content'); }
       function mainKey() { return MAIN_KEY_PREFIX + location.pathname + location.search; }

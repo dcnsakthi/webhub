@@ -1,43 +1,43 @@
 # Installation
 
-WebUI Framework can be installed and used with various environments and languages. This guide covers the most common installation methods.
+webhub Framework can be installed and used with various environments and languages. This guide covers the most common installation methods.
 
-There are two ways to install the WebUI build toolchain: as an **npm package** for JavaScript and TypeScript projects, or as a **Rust crate** for Rust projects. Both ship the same compiler and produce the same protocol output. Pick whichever fits your stack.
+There are two ways to install the webhub build toolchain: as an **npm package** for JavaScript and TypeScript projects, or as a **Rust crate** for Rust projects. Both ship the same compiler and produce the same protocol output. Pick whichever fits your stack.
 
 ## npm
 
-The `@microsoft/webui` npm package gives you:
+The `@microsoft/webhub` npm package gives you:
 
-- **`npx webui build`** - the CLI for building templates into protocols
-- **`import { build, Protocol } from '@microsoft/webui'`** - a programmatic API for Node.js
+- **`npx webhub build`** - the CLI for building templates into protocols
+- **`import { build, Protocol } from '@microsoft/webhub'`** - a programmatic API for Node.js
 - **Native performance** via platform-specific binaries (no compilation required)
 
-<webui-press-tabs>
-<webui-press-tab slot="tab" active>npm</webui-press-tab>
-<webui-press-tab slot="tab">yarn</webui-press-tab>
-<webui-press-tab slot="tab">pnpm</webui-press-tab>
-<webui-press-tab-panel active>
+<webhub-press-tabs>
+<webhub-press-tab slot="tab" active>npm</webhub-press-tab>
+<webhub-press-tab slot="tab">yarn</webhub-press-tab>
+<webhub-press-tab slot="tab">pnpm</webhub-press-tab>
+<webhub-press-tab-panel active>
 
 ```bash
-npm install @microsoft/webui
+npm install @microsoft/webhub
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```bash
-yarn add @microsoft/webui
+yarn add @microsoft/webhub
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```bash
-pnpm add @microsoft/webui
+pnpm add @microsoft/webhub
 ```
 
-</webui-press-tab-panel>
-</webui-press-tabs>
+</webhub-press-tab-panel>
+</webhub-press-tabs>
 
 ### Configure package.json
 
@@ -46,12 +46,12 @@ A typical project setup:
 ```json
 {
   "scripts": {
-    "build": "webui build ./src --out ./dist --plugin=webui",
-    "dev": "webui serve ./src --state ./data/state.json --plugin=webui --watch"
+    "build": "webhub build ./src --out ./dist --plugin=webhub",
+    "dev": "webhub serve ./src --state ./data/state.json --plugin=webhub --watch"
   },
   "dependencies": {
-    "@microsoft/webui": "latest",
-    "@microsoft/webui-framework": "latest"
+    "@microsoft/webhub": "latest",
+    "@microsoft/webhub-framework": "latest"
   }
 }
 ```
@@ -67,35 +67,35 @@ The npm package uses platform-specific optional dependencies to deliver native b
 Rust users can install the CLI directly from crates.io:
 
 ```bash
-cargo install microsoft-webui-cli
+cargo install microsoft-webhub-cli
 ```
 
 Then build your app:
 
 ```bash
-webui build ./my-app --out ./dist
+webhub build ./my-app --out ./dist
 ```
 
 See the [CLI Reference](/guide/cli/) for full usage details.
 
 ## .NET
 
-The managed .NET binding is packaged as `Microsoft.WebUI`:
+The managed .NET binding is packaged as `Microsoft.webhub`:
 
 ```bash
-dotnet add package Microsoft.WebUI
+dotnet add package Microsoft.webhub
 ```
 
-It targets .NET 8 and .NET 9. The package restores platform-specific `Microsoft.WebUI.Runtime.*` packages transitively, and .NET selects the matching native asset. Release builds stage `.nupkg` and `.snupkg` artifacts with Source Link and repository metadata; nuget.org publishing is manual until ESRP automation supports this project.
+It targets .NET 8 and .NET 9. The package restores platform-specific `Microsoft.webhub.Runtime.*` packages transitively, and .NET selects the matching native asset. Release builds stage `.nupkg` and `.snupkg` artifacts with Source Link and repository metadata; nuget.org publishing is manual until ESRP automation supports this project.
 
 Prepare `protocol.bin` once for repeated rendering:
 
 ```csharp
-using Microsoft.WebUI;
+using Microsoft.webhub;
 
 using var protocol = new Protocol(
     File.ReadAllBytes("dist/protocol.bin"));
-using var handler = new WebUIHandler("webui");
+using var handler = new webhubHandler("webhub");
 
 string html = handler.Render(
     protocol,
@@ -111,80 +111,80 @@ Keep it alive for the server lifetime and dispose it during shutdown.
 
 The packages below are client-side runtime libraries. They are installed from npm regardless of whether your build toolchain is npm or Rust, since they ship as JavaScript that runs in the browser.
 
-## WebUI Framework (Client-Side Interactivity)
+## webhub Framework (Client-Side Interactivity)
 
 For interactive Web Components with Islands Architecture, install the framework runtime:
 
-<webui-press-tabs>
-<webui-press-tab slot="tab" active>npm</webui-press-tab>
-<webui-press-tab slot="tab">yarn</webui-press-tab>
-<webui-press-tab slot="tab">pnpm</webui-press-tab>
-<webui-press-tab-panel active>
+<webhub-press-tabs>
+<webhub-press-tab slot="tab" active>npm</webhub-press-tab>
+<webhub-press-tab slot="tab">yarn</webhub-press-tab>
+<webhub-press-tab slot="tab">pnpm</webhub-press-tab>
+<webhub-press-tab-panel active>
 
 ```bash
-npm install @microsoft/webui-framework
+npm install @microsoft/webhub-framework
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```bash
-yarn add @microsoft/webui-framework
+yarn add @microsoft/webhub-framework
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```bash
-pnpm add @microsoft/webui-framework
+pnpm add @microsoft/webhub-framework
 ```
 
-</webui-press-tab-panel>
-</webui-press-tabs>
+</webhub-press-tab-panel>
+</webhub-press-tabs>
 
 This gives you:
-- **`WebUIElement`** base class for interactive Web Components
+- **`webhubElement`** base class for interactive Web Components
 - **`@attr`** and **`@observable`** decorators for reactive state
 - Automatic SSR hydration with zero manual DOM reading
 - Path-indexed targeted updates for minimal DOM mutations
 
-<webui-blockquote appearance="tip" title="Not every app needs this" icon="💡">
+<webhub-blockquote appearance="tip" title="Not every app needs this" icon="💡">
 
-If your pages are purely informational and never receive client-side state updates, you only need `@microsoft/webui` for building and rendering. Load the framework when components need browser-applied state or soft navigation. Add a same-named component module only for events, lifecycle code, decorators, or imperative APIs.
+If your pages are purely informational and never receive client-side state updates, you only need `@microsoft/webhub` for building and rendering. Load the framework when components need browser-applied state or soft navigation. Add a same-named component module only for events, lifecycle code, decorators, or imperative APIs.
 
-</webui-blockquote>
+</webhub-blockquote>
 
 ## Client-Side Router (Optional)
 
 For single-page navigation with client-side route transitions, install the router package:
 
-<webui-press-tabs>
-<webui-press-tab slot="tab" active>npm</webui-press-tab>
-<webui-press-tab slot="tab">yarn</webui-press-tab>
-<webui-press-tab slot="tab">pnpm</webui-press-tab>
-<webui-press-tab-panel active>
+<webhub-press-tabs>
+<webhub-press-tab slot="tab" active>npm</webhub-press-tab>
+<webhub-press-tab slot="tab">yarn</webhub-press-tab>
+<webhub-press-tab slot="tab">pnpm</webhub-press-tab>
+<webhub-press-tab-panel active>
 
 ```bash
-npm install @microsoft/webui-router
+npm install @microsoft/webhub-router
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```bash
-yarn add @microsoft/webui-router
+yarn add @microsoft/webhub-router
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```bash
-pnpm add @microsoft/webui-router
+pnpm add @microsoft/webhub-router
 ```
 
-</webui-press-tab-panel>
-</webui-press-tabs>
+</webhub-press-tab-panel>
+</webhub-press-tabs>
 
-The router works with both WebUI Framework (`@microsoft/webui-framework`) and `@microsoft/fast-element` 3.x components. It's a separate package because it's only needed for apps with client-side navigation.
+The router works with both webhub Framework (`@microsoft/webhub-framework`) and `@microsoft/fast-element` 3.x components. It's a separate package because it's only needed for apps with client-side navigation.
 
 See the [Routing guide](/guide/concepts/routing) for setup and usage.

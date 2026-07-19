@@ -1,20 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr, observable } from '../../../src/index.js';
+import { webhubElement, attr, observable } from '../../../src/index.js';
 
 interface RepeatItem {
   id: string;
   title: string;
 }
 
-export class TestRepeatChild extends WebUIElement {
+export class TestRepeatChild extends webhubElement {
   @attr label = '';
 }
 
 TestRepeatChild.define('test-repeat-child');
 
-export class TestRepeatParent extends WebUIElement {
+export class TestRepeatParent extends webhubElement {
   @observable nextId = 6;
   @observable items: RepeatItem[] = [
     { id: '1', title: 'Item 1' },

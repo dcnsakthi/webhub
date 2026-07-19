@@ -61,7 +61,7 @@ pub fn run(app: Option<&str>) -> ExitCode {
     eprintln!(
         "  {} {}",
         console::style("⚡").cyan(),
-        console::style(format!("WebUI Dev — {app_name}")).bold(),
+        console::style(format!("webhub Dev — {app_name}")).bold(),
     );
     eprintln!(
         "  {} URL        {}",
@@ -151,7 +151,7 @@ pub fn run(app: Option<&str>) -> ExitCode {
         }
     }
 
-    // Start WebUI server only after the first client manifest is complete.
+    // Start webhub server only after the first client manifest is complete.
     match process::spawn_child_prefixed(
         "server",
         "pnpm",
@@ -239,7 +239,7 @@ fn read_projection_manifests(app_dir: &Path) -> Vec<PathBuf> {
             let content = fs::read_to_string(app_dir.join("package.json")).ok()?;
             serde_json::from_str::<serde_json::Value>(&content)
                 .ok()?
-                .get("webuiProjectionManifest")?
+                .get("webhubProjectionManifest")?
                 .as_str()
                 .map(str::to_string)
         })() {
@@ -336,7 +336,7 @@ mod tests {
         let app = create_app_dir(
             r#"{
                 "scripts": {
-                    "start:server": "cargo run -p microsoft-webui-cli -- serve ./src --port 3003 --api-port 3013 --watch",
+                    "start:server": "cargo run -p microsoft-webhub-cli -- serve ./src --port 3003 --api-port 3013 --watch",
                     "start:api": "node dist/api.js"
                 }
             }"#,
@@ -351,7 +351,7 @@ mod tests {
         let app = create_app_dir(
             r#"{
                 "scripts": {
-                    "start:server": "webui serve ./src --projection-manifest ./dist/webui-projection.json --projection-manifest ./dist/external-projection.json --watch"
+                    "start:server": "webhub serve ./src --projection-manifest ./dist/webhub-projection.json --projection-manifest ./dist/external-projection.json --watch"
                 }
             }"#,
         );
@@ -359,7 +359,7 @@ mod tests {
         assert_eq!(
             read_projection_manifests(app.path()),
             vec![
-                app.path().join("./dist/webui-projection.json"),
+                app.path().join("./dist/webhub-projection.json"),
                 app.path().join("./dist/external-projection.json"),
             ]
         );
@@ -369,7 +369,7 @@ mod tests {
     fn test_read_projection_manifest_from_package_metadata() {
         let app = create_app_dir(
             r#"{
-                "webuiProjectionManifest": "./dist/webui-projection.json",
+                "webhubProjectionManifest": "./dist/webhub-projection.json",
                 "scripts": {
                     "start:server": "cargo run -p custom-server"
                 }
@@ -378,7 +378,7 @@ mod tests {
 
         assert_eq!(
             read_projection_manifests(app.path()),
-            vec![app.path().join("./dist/webui-projection.json")]
+            vec![app.path().join("./dist/webhub-projection.json")]
         );
     }
 }

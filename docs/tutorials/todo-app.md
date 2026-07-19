@@ -1,15 +1,15 @@
 # Building a Todo App
 
 This tutorial walks through the
-[`todo-webui`](https://github.com/microsoft/webui/tree/main/examples/app/todo-webui)
-example application. It uses the WebUI Framework to create two Web
+[`todo-webhub`](https://github.com/microsoft/webhub/tree/main/examples/app/todo-webhub)
+example application. It uses the webhub Framework to create two Web
 Components - `<todo-app>` and `<todo-item>` - with reactive state, event
 handling, and hydration from server-rendered HTML.
 
 By the end you will know how to:
 
-- Structure a WebUI project with components and static state
-- Author templates that use WebUI directives (`<for>`, `<if>`, `{{}}`, `@click`, `w-ref`)
+- Structure a webhub project with components and static state
+- Author templates that use webhub directives (`<for>`, `<if>`, `{{}}`, `@click`, `w-ref`)
 - Write TypeScript component classes with `@attr` and `@observable`
 - Hydrate the page so the server-rendered markup becomes interactive
 
@@ -20,7 +20,7 @@ By the end you will know how to:
 The example has the following layout:
 
 ```
-todo-webui/
+todo-webhub/
 ├── src/
 │   ├── index.html
 │   ├── index.ts
@@ -37,14 +37,14 @@ todo-webui/
 ```
 
 - **src/** contains all source templates, styles, and client-side code.
-- **data/** holds the JSON state that the WebUI server injects into the page at
+- **data/** holds the JSON state that the webhub server injects into the page at
   render time.
 
 ---
 
 ## 2. State
 
-`data/state.json` provides the data for server-side rendering. The WebUI server
+`data/state.json` provides the data for server-side rendering. The webhub server
 reads this file and uses it to populate every `{{expression}}` in your templates.
 
 ```json
@@ -70,7 +70,7 @@ updating the `@observable` in event handlers.
 
 ## 3. Entry Template
 
-`src/index.html` is the outer HTML shell that the WebUI server renders first.
+`src/index.html` is the outer HTML shell that the webhub server renders first.
 
 ```html
 <!DOCTYPE html>
@@ -136,7 +136,7 @@ Key points:
   events, and the parent catches them here.
 - **`w-ref="addInput"`** – stores a reference to the `<input>` element on the
   component class, accessible as `this.addInput`.
-- **`@keydown` / `@click`** – WebUI event-binding syntax. The framework wires
+- **`@keydown` / `@click`** – webhub event-binding syntax. The framework wires
   these to the corresponding methods on the component class.
 - **`<for each="item in items">`** – iterates over the `items` array and stamps
   out a `<todo-item>` for each entry.
@@ -238,16 +238,16 @@ host element's `state` attribute equals `"done"`.
 
 ## 6. Client-Side Component Classes
 
-The TypeScript classes give each component its interactive behaviour. The WebUI
+The TypeScript classes give each component its interactive behaviour. The webhub
 framework re-attaches these classes to the server-rendered shadow roots during
 hydration.
 
 ### `src/todo-app/todo-app.ts`
 
 ```typescript
-import { WebUIElement, attr, observable } from '@microsoft/webui-framework';
+import { webhubElement, attr, observable } from '@microsoft/webhub-framework';
 
-export class TodoApp extends WebUIElement {
+export class TodoApp extends webhubElement {
   // Reflected attribute – kept in sync with the DOM attribute
   @attr title = '';
 
@@ -310,9 +310,9 @@ TodoApp.define('todo-app');
 ### `src/todo-item/todo-item.ts`
 
 ```typescript
-import { WebUIElement, attr } from '@microsoft/webui-framework';
+import { webhubElement, attr } from '@microsoft/webhub-framework';
 
-export class TodoItem extends WebUIElement {
+export class TodoItem extends webhubElement {
   @attr id = '';
   @attr title = '';
   @attr state = 'pending';
@@ -353,10 +353,10 @@ up to the parent `<todo-app>`, where they are caught by the `@toggle-item` and
 are registered, which triggers the framework to walk the DOM and hydrate.
 
 ```typescript
-window.addEventListener('webui:hydration-complete', logHydrationTiming);
+window.addEventListener('webhub:hydration-complete', logHydrationTiming);
 
 function logHydrationTiming(): void {
-  const total = performance.getEntriesByName('webui:hydrate:total', 'measure')[0];
+  const total = performance.getEntriesByName('webhub:hydrate:total', 'measure')[0];
   console.log(`Hydration complete in ${total?.duration.toFixed(1)}ms`);
 
 }
@@ -366,7 +366,7 @@ import './todo-app/todo-app.js';
 import './todo-item/todo-item.js';
 
 // Fallback: if hydration already completed before the listener, log now
-if (performance.getEntriesByName('webui:hydrate:total', 'measure').length > 0) {
+if (performance.getEntriesByName('webhub:hydrate:total', 'measure').length > 0) {
   logHydrationTiming();
 }
 ```
@@ -378,23 +378,23 @@ When the page loads:
    elements.
 3. The framework matches each element to its class, re-attaches event listeners,
    and activates reactive bindings.
-4. The `webui:hydration-complete` event fires once every component on the page
+4. The `webhub:hydration-complete` event fires once every component on the page
    has been hydrated. The timing breakdown shows how long each component took.
 
 ---
 
 ## 8. Build and Run
 
-Install the WebUI toolchain:
+Install the webhub toolchain:
 
 ```bash
-npm install @microsoft/webui @microsoft/webui-framework
+npm install @microsoft/webhub @microsoft/webhub-framework
 ```
 
 Start the development server with live reload:
 
 ```bash
-npx webui serve ./src --state ./data/state.json --plugin=webui --watch
+npx webhub serve ./src --state ./data/state.json --plugin=webhub --watch
 ```
 
 The `--state` flag tells the server which JSON file to use when rendering
@@ -403,12 +403,12 @@ templates. The `--watch` flag enables live reload on file changes.
 Create a production build:
 
 ```bash
-npx webui build ./src --out ./dist --plugin=webui
+npx webhub build ./src --out ./dist --plugin=webhub
 ```
 
 The output in `./dist` contains the compiled protocol binary and CSS files.
 Bundle your browser source entry directly. Import
-`@microsoft/webui-framework` from authored component modules. Scriptless
+`@microsoft/webhub-framework` from authored component modules. Scriptless
 components contribute no startup state; when the framework is loaded, their
 compiled templates can activate for browser-applied state or soft navigation.
 The protocol and CSS are ready for deployment with any handler (Rust, Node.js,
@@ -420,10 +420,10 @@ C#, Python, Go).
 
 In this tutorial you:
 
-- **Structured a WebUI project** with separate component directories for
+- **Structured a webhub project** with separate component directories for
   templates, styles, and TypeScript.
 - **Created Web Components** using declarative shadow roots
-  (`shadowrootmode="open"`) and WebUI template directives (`<for>`, `<if>`,
+  (`shadowrootmode="open"`) and webhub template directives (`<for>`, `<if>`,
   `{{}}`).
 - **Used `@attr` and `@observable`** decorators to manage reactive state in
   component classes.
@@ -432,15 +432,15 @@ In this tutorial you:
 - **Referenced DOM elements** with `w-ref` to read input values without manual
   query selectors.
 - **Hydrated the app** by importing component modules and listening for the
-  `webui:hydration-complete` event with per-component timing.
-- **Built and served** the app using the WebUI CLI.
+  `webhub:hydration-complete` event with per-component timing.
+- **Built and served** the app using the webhub CLI.
 
 ---
 
 ## 10. Next Steps
 
-- [Hydration internals](https://github.com/microsoft/webui/blob/main/packages/webui-framework/RENDERING.md), deep dive into how the
+- [Hydration internals](https://github.com/microsoft/webhub/blob/main/packages/webhub-framework/RENDERING.md), deep dive into how the
   framework re-attaches to server-rendered markup.
 - [Routing](/guide/concepts/routing) – add multi-page navigation to your app.
-- [Commerce Example](https://github.com/microsoft/webui/tree/main/examples/app/commerce) –
+- [Commerce Example](https://github.com/microsoft/webhub/tree/main/examples/app/commerce) –
   a more complex app with product listings, search, cart, and nested routing.

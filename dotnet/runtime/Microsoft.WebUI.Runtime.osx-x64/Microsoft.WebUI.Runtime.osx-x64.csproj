@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <PackageId>Microsoft.WebUI.Runtime.osx-x64</PackageId>
+    <PackageId>Microsoft.webhub.Runtime.osx-x64</PackageId>
     <RuntimeIdentifier>osx-x64</RuntimeIdentifier>
-    <Description>WebUI native runtime for macOS x64.</Description>
+    <Description>webhub native runtime for macOS x64.</Description>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <IncludeSymbols>false</IncludeSymbols>
     <IsPackable>true</IsPackable>
@@ -12,7 +12,7 @@
     <NoWarn>$(NoWarn);NU5128</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)../../runtimes/osx-x64/native/libwebui_ffi.dylib"
+    <None Include="$(MSBuildThisFileDirectory)../../runtimes/osx-x64/native/libwebhub_ffi.dylib"
           Pack="true"
           PackagePath="runtimes/osx-x64/native/"
           Visible="false" />

@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
 interface SplitRepeatItem {
   label: string;
 }
 
-export class TestSplitRepeat extends WebUIElement {
+export class TestSplitRepeat extends webhubElement {
   @observable primaryItems: SplitRepeatItem[] = [{ label: 'Seed Alpha' }, { label: 'Seed Beta' }];
   @observable secondaryItems: SplitRepeatItem[] = [{ label: 'Seed One' }, { label: 'Seed Two' }];
 

@@ -18,7 +18,7 @@ use std::path::PathBuf;
 #[derive(Debug, Parser)]
 #[command(
     name = "demo-shell",
-    about = "WebUI demo shell — hosts all example apps"
+    about = "webhub demo shell — hosts all example apps"
 )]
 struct Args {
     /// Port to listen on (the single exposed port).
@@ -33,7 +33,7 @@ struct Args {
     #[arg(long, default_value_t = 3100)]
     base_port: u16,
 
-    /// Directory of the shell WebUI app (containing `src/index.html` and
+    /// Directory of the shell webhub app (containing `src/index.html` and
     /// `dist/index.js`). Defaults to `./examples/demo` for local dev; the
     /// container image overrides this to `./shell`.
     #[arg(long, default_value = "./examples/demo")]
@@ -50,7 +50,7 @@ async fn main() -> anyhow::Result<()> {
     let apps = registry::discover(&args.apps_dir, args.base_port)?;
     log::info!("Found {} app(s)", apps.len());
 
-    // Compile the shell WebUI app once at startup.
+    // Compile the shell webhub app once at startup.
     let shell_state = shell::ShellState::build(&args.shell_dir)?;
 
     // Build the proxy routing table
@@ -79,7 +79,7 @@ async fn main() -> anyhow::Result<()> {
             .app_data(apps_data.clone())
             .app_data(shell_data.clone())
             .app_data(web::Data::new(client))
-            // Shell UI (rendered from examples/demo/src via WebUIHandler)
+            // Shell UI (rendered from examples/demo/src via webhubHandler)
             .route("/", web::get().to(shell::shell_page))
             // Shell static assets (bundled JS, sourcemaps, etc.)
             .route("/_shell/{tail:.*}", web::get().to(shell::shell_asset))

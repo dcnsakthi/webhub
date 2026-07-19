@@ -7,14 +7,14 @@ use crate::error::WasmError;
 use js_sys::{Function, Object, Reflect};
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
-use webui_handler::plugin::fast_v2::FastV2HydrationPlugin;
-use webui_handler::plugin::fast_v3::FastV3HydrationPlugin;
-use webui_handler::plugin::webui::WebUIHydrationPlugin;
-use webui_handler::{
-    HandlerError, Protocol as HandlerProtocol, RenderOptions, ResponseWriter, WebUIHandler,
+use webhub_handler::plugin::fast_v2::FastV2HydrationPlugin;
+use webhub_handler::plugin::fast_v3::FastV3HydrationPlugin;
+use webhub_handler::plugin::webhub::webhubHydrationPlugin;
+use webhub_handler::{
+    HandlerError, Protocol as HandlerProtocol, RenderOptions, ResponseWriter, webhubHandler,
 };
 #[cfg(test)]
-use webui_protocol::WebUIProtocol;
+use webhub_protocol::webhubProtocol;
 
 const STREAM_CHUNK_SIZE: usize = 16 * 1024;
 
@@ -32,12 +32,12 @@ impl StringWriter {
 }
 
 impl ResponseWriter for StringWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.content.push_str(content);
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -56,7 +56,7 @@ impl<'a> CallbackWriter<'a> {
         }
     }
 
-    fn flush(&mut self) -> webui_handler::Result<()> {
+    fn flush(&mut self) -> webhub_handler::Result<()> {
         if self.buffer.is_empty() {
             return Ok(());
         }
@@ -70,7 +70,7 @@ impl<'a> CallbackWriter<'a> {
 }
 
 impl ResponseWriter for CallbackWriter<'_> {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.buffer.push_str(content);
         if self.buffer.len() >= STREAM_CHUNK_SIZE {
             self.flush()?;
@@ -78,7 +78,7 @@ impl ResponseWriter for CallbackWriter<'_> {
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         self.flush()
     }
 }
@@ -87,7 +87,7 @@ impl ResponseWriter for CallbackWriter<'_> {
 pub(crate) enum HandlerPluginKind {
     FastV2,
     FastV3,
-    WebUI,
+    webhub,
 }
 
 impl HandlerPluginKind {
@@ -95,7 +95,7 @@ impl HandlerPluginKind {
         match name {
             "fast" | "fast-v2" => Ok(Self::FastV2),
             "fast-v3" => Ok(Self::FastV3),
-            "webui" => Ok(Self::WebUI),
+            "webhub" => Ok(Self::webhub),
             other => Err(WasmError::UnknownPlugin(other.to_string())),
         }
     }
@@ -119,7 +119,7 @@ impl Default for WasmRenderOptions {
 #[wasm_bindgen]
 pub struct Protocol {
     inner: HandlerProtocol,
-    handler: WebUIHandler,
+    handler: webhubHandler,
 }
 
 #[wasm_bindgen]
@@ -208,7 +208,7 @@ impl Protocol {
 
 #[cfg(test)]
 pub(crate) fn render_protocol_to_string(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     state_json: &str,
     entry: &str,
     request_path: &str,
@@ -229,7 +229,7 @@ fn parse_state_json(state_json: &str) -> Result<Value, WasmError> {
 }
 
 fn render_protocol_to_string_value(
-    handler: &WebUIHandler,
+    handler: &webhubHandler,
     protocol: &HandlerProtocol,
     state: &Value,
     options: &WasmRenderOptions,
@@ -245,7 +245,7 @@ fn render_protocol_to_string_value(
 }
 
 fn render_protocol_to_callback_value(
-    handler: &WebUIHandler,
+    handler: &webhubHandler,
     protocol: &HandlerProtocol,
     state: &Value,
     options: &WasmRenderOptions,
@@ -295,18 +295,18 @@ fn optional_string_field(options: &JsValue, field: &str) -> Result<Option<String
     })
 }
 
-fn create_handler(plugin: Option<HandlerPluginKind>) -> WebUIHandler {
+fn create_handler(plugin: Option<HandlerPluginKind>) -> webhubHandler {
     match plugin {
         Some(HandlerPluginKind::FastV2) => {
-            WebUIHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()))
+            webhubHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()))
         }
         Some(HandlerPluginKind::FastV3) => {
-            WebUIHandler::with_plugin(|| Box::new(FastV3HydrationPlugin::new()))
+            webhubHandler::with_plugin(|| Box::new(FastV3HydrationPlugin::new()))
         }
-        Some(HandlerPluginKind::WebUI) => {
-            WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()))
+        Some(HandlerPluginKind::webhub) => {
+            webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()))
         }
-        None => WebUIHandler::new(),
+        None => webhubHandler::new(),
     }
 }
 
@@ -329,8 +329,8 @@ mod tests {
             Some(HandlerPluginKind::FastV3)
         );
         assert_eq!(
-            parse_optional_plugin(Some("webui")).unwrap(),
-            Some(HandlerPluginKind::WebUI)
+            parse_optional_plugin(Some("webhub")).unwrap(),
+            Some(HandlerPluginKind::webhub)
         );
     }
 
@@ -339,23 +339,23 @@ mod tests {
         let err = parse_optional_plugin(Some("unknown")).unwrap_err();
         assert_eq!(
             err.to_string(),
-            "Unknown plugin: unknown. Use \"webui\", \"fast-v3\", \"fast-v2\", or \"fast\"."
+            "Unknown plugin: unknown. Use \"webhub\", \"fast-v3\", \"fast-v2\", or \"fast\"."
         );
     }
 
     #[test]
     fn protocol_reuses_decoded_protocol() {
         use std::collections::HashMap;
-        use webui_protocol::{FragmentList, WebUIFragment};
+        use webhub_protocol::{FragmentList, webhubFragment};
 
         let mut fragments = HashMap::new();
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::signal("name".to_string(), true)],
+                fragments: vec![webhubFragment::signal("name".to_string(), true)],
             },
         );
-        let bytes = WebUIProtocol::new(fragments)
+        let bytes = webhubProtocol::new(fragments)
             .to_protobuf()
             .expect("protocol should serialize");
         let protocol = Protocol::new(&bytes, None).expect("protocol should load");
@@ -374,8 +374,8 @@ mod tests {
     #[test]
     fn render_projects_state_to_component_hydration_keys() {
         use std::collections::HashMap;
-        use webui_protocol::{
-            ComponentData, FragmentList, InitialStateStrategy, StateProjectionMode, WebUIFragment,
+        use webhub_protocol::{
+            ComponentData, FragmentList, InitialStateStrategy, StateProjectionMode, webhubFragment,
         };
 
         let mut fragments = HashMap::new();
@@ -383,22 +383,22 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>"),
-                    WebUIFragment::signal("head_end".to_string(), true),
-                    WebUIFragment::raw("</head><body>"),
-                    WebUIFragment::component("client-card"),
-                    WebUIFragment::signal("body_end".to_string(), true),
-                    WebUIFragment::raw("</body></html>"),
+                    webhubFragment::raw("<html><head>"),
+                    webhubFragment::signal("head_end".to_string(), true),
+                    webhubFragment::raw("</head><body>"),
+                    webhubFragment::component("client-card"),
+                    webhubFragment::signal("body_end".to_string(), true),
+                    webhubFragment::raw("</body></html>"),
                 ],
             },
         );
         fragments.insert(
             "client-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>client</p>")],
+                fragments: vec![webhubFragment::raw("<p>client</p>")],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
         protocol.components.insert(
             "client-card".to_string(),
@@ -414,7 +414,7 @@ mod tests {
             r#"{"kept":"KEPT_VALUE_WASM","dropped":"DROPPED_VALUE_WASM"}"#,
             "index.html",
             "/",
-            Some(HandlerPluginKind::WebUI),
+            Some(HandlerPluginKind::webhub),
         )
         .expect("render should succeed");
 

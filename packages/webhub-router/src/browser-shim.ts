@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 /**
- * Minimal browser API stubs so webui-router modules can load in Node.
+ * Minimal browser API stubs so webhub-router modules can load in Node.
  * Must be imported before any router code.
  */
 

@@ -2,14 +2,14 @@
 // Licensed under the MIT license.
 
 /**
- * Bundler-neutral TypeScript AST semantic compiler for WebUI state
+ * Bundler-neutral TypeScript AST semantic compiler for webhub state
  * projection.
  *
  * `compileProjection()` consumes only the adapter-resolved `AdapterContext`
  * (see `graph.ts`) — it never performs filesystem or package resolution.
  * It parses supported source kinds with the TypeScript compiler API, builds a
  * deterministic per-file symbol graph, resolves `observable`/`attr`/
- * `WebUIElement` identities through imports/aliases/namespaces/re-exports,
+ * `webhubElement` identities through imports/aliases/namespaces/re-exports,
  * associates component tags through the two supported `define()` forms,
  * proves exact reactive key sets by walking inheritance iteratively, and
  * emits a deterministic `ProjectionManifest`.
@@ -34,14 +34,14 @@ import { ProjectionError, createDiagnostic } from "./diagnostics.js";
 import type { ProjectionDiagnostic } from "./diagnostics.js";
 
 /** The well-known framework package specifier recognized by literal text. */
-const FRAMEWORK_SPECIFIER = "@microsoft/webui-framework";
+const FRAMEWORK_SPECIFIER = "@microsoft/webhub-framework";
 
 /**
  * Sentinel "module id" representing the framework package. Never a key in
  * `ctx.graph.modules`; recognized structurally wherever a specifier equals
  * `FRAMEWORK_SPECIFIER`, independent of the adapter-resolved graph.
  */
-const FRAMEWORK_SENTINEL = "\0framework:@microsoft/webui-framework";
+const FRAMEWORK_SENTINEL = "\0framework:@microsoft/webhub-framework";
 
 const SUPPORTED_EXTENSIONS = new Set([
   ".ts",
@@ -123,7 +123,7 @@ type Resolved =
  * any `define()` association is invalid.
  */
 export function compileProjection(ctx: AdapterContext): ProjectionManifest {
-  const profile = process.env["WEBUI_PROJECTION_PROFILE"] === "1";
+  const profile = process.env["webhub_PROJECTION_PROFILE"] === "1";
   const started = profile ? performance.now() : 0;
   const diagnostics: ProjectionDiagnostic[] = [];
   validateTypeScriptVersion(diagnostics);
@@ -147,7 +147,7 @@ export function compileProjection(ctx: AdapterContext): ProjectionManifest {
   if (profile) {
     const finished = performance.now();
     console.error(
-      `[webui-projection-compiler] parse=${(parsed - started).toFixed(1)}ms semantics=${(analyzed - parsed).toFixed(1)}ms manifest=${(finished - analyzed).toFixed(1)}ms graphModules=${ctx.graph.modules.size} parsedModules=${analyses.size} components=${Object.keys(manifest.components).length}`
+      `[webhub-projection-compiler] parse=${(parsed - started).toFixed(1)}ms semantics=${(analyzed - parsed).toFixed(1)}ms manifest=${(finished - analyzed).toFixed(1)}ms graphModules=${ctx.graph.modules.size} parsedModules=${analyses.size} components=${Object.keys(manifest.components).length}`
     );
   }
   return manifest;
@@ -341,8 +341,8 @@ class AnalysisRegistry {
     }
     const analysis = analyzeModule(moduleId, sourceFile);
     this.analyses.set(moduleId, analysis);
-    if (process.env["WEBUI_PROJECTION_PROFILE_DETAIL"] === "1") {
-      console.error(`[webui-projection-module] ${moduleId}`);
+    if (process.env["webhub_PROJECTION_PROFILE_DETAIL"] === "1") {
+      console.error(`[webhub-projection-module] ${moduleId}`);
     }
     return analysis;
   }
@@ -741,7 +741,7 @@ function compileDefinedComponents(
     );
     if (classResolution.kind !== "class") {
       // `.define()` is a common API outside Web Components. Unknown receivers
-      // are ignored here; strict WebUI build coverage catches any real
+      // are ignored here; strict webhub build coverage catches any real
       // scripted component omitted from the manifest without penalizing
       // unrelated libraries.
       continue;
@@ -753,13 +753,13 @@ function compileDefinedComponents(
       diagnostics.push(
         createDiagnostic("PROJ-C006", {
           location: classResolution.moduleId,
-          help: "Disk projection manifests require a physical source module for every shipped WebUI component.",
+          help: "Disk projection manifests require a physical source module for every shipped webhub component.",
         })
       );
       continue;
     }
     if (
-      !isPotentialWebUIClass(
+      !isPotentialwebhubClass(
         ctx,
         analyses,
         classResolution.moduleId,
@@ -822,7 +822,7 @@ function compileDefinedComponents(
   return result;
 }
 
-function isPotentialWebUIClass(
+function isPotentialwebhubClass(
   ctx: AdapterContext,
   analyses: AnalysisRegistry,
   startModuleId: string,
@@ -1005,7 +1005,7 @@ function resolveIdentity(
 function resolveFrameworkName(name: string): Resolved | undefined {
   if (name === "observable") return { kind: "frameworkObservable" };
   if (name === "attr") return { kind: "frameworkAttr" };
-  if (name === "WebUIElement") return { kind: "frameworkElement" };
+  if (name === "webhubElement") return { kind: "frameworkElement" };
   return undefined;
 }
 
@@ -1234,7 +1234,7 @@ function applyDecorator(
           : "PROJ-C004",
       {
       location: moduleId,
-      help: "Decorators must resolve to observable/attr exported by @microsoft/webui-framework.",
+      help: "Decorators must resolve to observable/attr exported by @microsoft/webhub-framework.",
       }
     )
   );
@@ -1362,7 +1362,7 @@ function buildManifest(
 
   const producerVersion = readProducerVersion();
   const buildId = computeBuildId({
-    producerName: "@microsoft/webui/projection.js",
+    producerName: "@microsoft/webhub/projection.js",
     producerVersion,
     adapterName: ctx.bundlerName,
     adapterBundler: `${ctx.bundlerName}@${ctx.bundlerVersion}`,
@@ -1386,7 +1386,7 @@ function buildManifest(
 
   return {
     schema: MANIFEST_SCHEMA,
-    producer: { name: "@microsoft/webui/projection.js", version: producerVersion },
+    producer: { name: "@microsoft/webhub/projection.js", version: producerVersion },
     adapter: { name: ctx.bundlerName, bundler: `${ctx.bundlerName}@${ctx.bundlerVersion}` },
     root,
     analysisHash,
@@ -1601,7 +1601,7 @@ function readProducerVersion(): string {
   } catch (error: unknown) {
     throw new ProjectionError([
       createDiagnostic("PROJ-C013", {
-        help: `Unable to read @microsoft/webui package version: ${error instanceof Error ? error.message : String(error)}`,
+        help: `Unable to read @microsoft/webhub package version: ${error instanceof Error ? error.message : String(error)}`,
       }),
     ]);
   }

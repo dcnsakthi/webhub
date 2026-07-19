@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
-export class TestRootEvent extends WebUIElement {
+export class TestRootEvent extends webhubElement {
   @observable totalClicks = 0;
 
   lastAction = '';

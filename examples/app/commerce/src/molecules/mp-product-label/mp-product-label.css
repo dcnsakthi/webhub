@@ -19,7 +19,7 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 9999px;
-  border: 1px solid var(--webui-border);
+  border: 1px solid var(--webhub-border);
 }
 
 .title {
@@ -28,7 +28,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: -0.025em;
-  color: var(--webui-text);
+  color: var(--webhub-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

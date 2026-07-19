@@ -3,7 +3,7 @@
 
 /**
  * Core router orchestrator — uses the Navigation API to intercept
- * navigations and activates/deactivates `<webui-route>` elements.
+ * navigations and activates/deactivates `<webhub-route>` elements.
  *
  * Heavy lifting is delegated to extracted modules:
  * - cache.ts      — NavigationCache (LRU + tag invalidation)
@@ -35,7 +35,7 @@ import {
   applyParamsQueryState,
   setRouteMeta,
   getRouteMeta,
-  WebUIRouteElement,
+  webhubRouteElement,
 } from './route-element.js';
 
 import type { PartialResponse, RouteChainEntry } from './cache.js';
@@ -50,14 +50,14 @@ import type { StreamingContext } from './streaming.js';
 import { ensureComponentLoaded, resolveLoaders, LOADER_FAILED } from './loaders.js';
 import { buildChainFromSSR, findChangeLevel, findOrCreateRouteElement } from './chain.js';
 
-export { parseQuery, filterQuery, WebUIRouteElement };
+export { parseQuery, filterQuery, webhubRouteElement };
 
-const SSR_PRELOAD_SELECTOR = 'link[data-webui-ssr-preload]';
-const WEBUI_DATA_ID = 'webui-data';
+const SSR_PRELOAD_SELECTOR = 'link[data-webhub-ssr-preload]';
+const webhub_DATA_ID = 'webhub-data';
 const DISABLE_DOCUMENT_VIEW_TRANSITION = '@view-transition { navigation: none; }';
-let webuiDataLoaded = false;
+let webhubDataLoaded = false;
 
-export class WebUIRouter {
+export class webhubRouter {
   private config: RouterConfig = {};
   private started = false;
   private cleanupFns: Array<() => void> = [];
@@ -122,7 +122,7 @@ export class WebUIRouter {
     return leaf?.params ?? {};
   }
 
-  /** Start the router. Lazily registers the `<webui-route>` custom element. */
+  /** Start the router. Lazily registers the `<webhub-route>` custom element. */
   start(config: RouterConfig = {}): void {
     if (this.started) return;
     this.started = true;
@@ -142,15 +142,15 @@ export class WebUIRouter {
     if (this.cacheEnabled) void this.ensureNavigationCache();
 
     if (!customElements.get(ROUTE_SELECTOR)) {
-      customElements.define(ROUTE_SELECTOR, WebUIRouteElement);
+      customElements.define(ROUTE_SELECTOR, webhubRouteElement);
     }
 
-    loadWebUIDataBlock();
+    loadwebhubDataBlock();
 
-    // Normalize window.__webui — ensure it exists with sensible defaults.
+    // Normalize window.__webhub — ensure it exists with sensible defaults.
     // Serves as the single source of truth for SSR metadata.
-    if (!window.__webui) window.__webui = {};
-    const meta = window.__webui!;
+    if (!window.__webhub) window.__webhub = {};
+    const meta = window.__webhub!;
     // Ensure sub-fields exist
     if (!meta.inventory) meta.inventory = '';
     if (!meta.nonce) meta.nonce = '';
@@ -213,7 +213,7 @@ export class WebUIRouter {
           basePath: this.basePath,
           excludePaths: this.excludePaths,
           get currentRequestPath() { return self.currentRequestPath; },
-          get inventory() { return window.__webui!.inventory!; },
+          get inventory() { return window.__webhub!.inventory!; },
           hasCache: (p) => cache.has(p),
           storeCache: (p, d, pre) => cache.store(p, d, pre),
           fetchPartial: (p, s, spec) => this.fetchPartial(p, s, spec),
@@ -268,10 +268,10 @@ export class WebUIRouter {
 
   /**
    * Ensure one or more components' templates + CSS are loaded before use.
-   * Batch-fetches missing templates from `/_webui/templates` in a single request.
+   * Batch-fetches missing templates from `/_webhub/templates` in a single request.
    */
   async ensureLoaded(...tags: string[]): Promise<void> {
-    const registry = window.__webui?.templates;
+    const registry = window.__webhub?.templates;
 
     const missing: string[] = [];
     for (const tag of tags) {
@@ -283,10 +283,10 @@ export class WebUIRouter {
     const promises: Promise<void>[] = [];
 
     if (missing.length > 0) {
-      const inv = window.__webui!.inventory!;
-      const endpoint = this.config.templateEndpoint ?? '/_webui/templates';
+      const inv = window.__webhub!.inventory!;
+      const endpoint = this.config.templateEndpoint ?? '/_webhub/templates';
       const fetchPromise = fetchComponentTemplates(
-        missing, inv, endpoint, window.__webui!.nonce!, this.stylesSet,
+        missing, inv, endpoint, window.__webhub!.nonce!, this.stylesSet,
         (inv) => this.updateInventory(inv),
       ).finally(() => {
         for (const tag of missing) this.loadPromises.delete(tag);
@@ -305,19 +305,19 @@ export class WebUIRouter {
 
   /** Garbage-collect all cached templates to free memory. */
   gc(): void {
-    const registry = window.__webui?.templates;
+    const registry = window.__webhub?.templates;
     if (registry) {
       for (const tag of Object.keys(registry)) {
         delete registry[tag];
       }
     }
-    const functionRegistry = window.__webui?.templateFns;
+    const functionRegistry = window.__webhub?.templateFns;
     if (functionRegistry) {
       for (const tag of Object.keys(functionRegistry)) {
         delete functionRegistry[tag];
       }
     }
-    if (window.__webui) window.__webui.inventory = '';
+    if (window.__webhub) window.__webhub.inventory = '';
   }
 
   /** Tear down. */
@@ -359,7 +359,7 @@ export class WebUIRouter {
       const thisGen = ++this.navGeneration;
       this.activeChain = buildChainFromSSR();
       // Chain was one-shot SSR data — free it now that we've hydrated
-      delete window.__webui!.chain;
+      delete window.__webhub!.chain;
 
       await Promise.all(
         this.activeChain
@@ -385,7 +385,7 @@ export class WebUIRouter {
 
       // SSR state was consumed by framework $applySSRState() during
       // DOMContentLoaded — free it to reduce memory.
-      delete window.__webui!.state;
+      delete window.__webhub!.state;
 
       if (this.config.dev) {
         this.validateRoutes();
@@ -465,7 +465,7 @@ export class WebUIRouter {
       query,
       path: requestPath,
     };
-    window.dispatchEvent(new CustomEvent('webui:route:navigated', { detail }));
+    window.dispatchEvent(new CustomEvent('webhub:route:navigated', { detail }));
   }
 
   // ── Fetch + Mount ──────────────────────────────────────────────
@@ -477,7 +477,7 @@ export class WebUIRouter {
   ): Promise<(PartialResponse & { inventory?: string }) | null> {
     const fullPath = prependBasePath(requestPath, this.basePath);
     const headers: Record<string, string> = { 'Accept': 'application/x-ndjson, application/json' };
-    if (window.__webui!.inventory) headers['X-WebUI-Inventory'] = window.__webui!.inventory!;
+    if (window.__webhub!.inventory) headers['X-webhub-Inventory'] = window.__webhub!.inventory!;
 
     const resp = await fetch(fullPath, { headers, signal });
     if (!resp.ok) return null;
@@ -499,7 +499,7 @@ export class WebUIRouter {
     if (signal?.aborted) return null;
     registerTemplatesAndStyles(
       data,
-      window.__webui!.nonce!,
+      window.__webhub!.nonce!,
       this.stylesSet,
       (inv) => this.updateInventory(inv),
     );
@@ -565,7 +565,7 @@ export class WebUIRouter {
       get navGeneration() { return self.navGeneration; },
       get currentRequestPath() { return self.currentRequestPath; },
       get activeChain() { return self.activeChain; },
-      get nonce() { return window.__webui!.nonce!; },
+      get nonce() { return window.__webhub!.nonce!; },
       get injectedStyles() { return self.stylesSet; },
       get injectedCss() { return self.cssSet; },
       setDeferredReader(r) { self.deferredReader = r; },
@@ -635,7 +635,7 @@ export class WebUIRouter {
   }
 
   private updateInventory(serverInventory: string): void {
-    window.__webui!.inventory = serverInventory;
+    window.__webhub!.inventory = serverInventory;
   }
 
   private navigateDocument(requestPath: string): void {
@@ -653,7 +653,7 @@ export class WebUIRouter {
 
     const style = document.createElement('style');
     style.textContent = DISABLE_DOCUMENT_VIEW_TRANSITION;
-    const nonce = window.__webui?.nonce;
+    const nonce = window.__webhub?.nonce;
     if (nonce) style.nonce = nonce;
     document.head.appendChild(style);
     this.cleanupFns.push(() => style.remove());
@@ -805,27 +805,27 @@ export class WebUIRouter {
 
 }
 
-function loadWebUIDataBlock(): void {
-  if (webuiDataLoaded || window.__webui?.state !== undefined) return;
-  const el = document.getElementById(WEBUI_DATA_ID);
+function loadwebhubDataBlock(): void {
+  if (webhubDataLoaded || window.__webhub?.state !== undefined) return;
+  const el = document.getElementById(webhub_DATA_ID);
   if (!el) {
-    webuiDataLoaded = true;
+    webhubDataLoaded = true;
     return;
   }
 
   const text = el.textContent;
   if (text) {
-    const templateFns = window.__webui?.templateFns;
-    const parsed = JSON.parse(text) as NonNullable<Window['__webui']>;
+    const templateFns = window.__webhub?.templateFns;
+    const parsed = JSON.parse(text) as NonNullable<Window['__webhub']>;
     if (templateFns) parsed.templateFns = templateFns;
-    window.__webui = parsed;
+    window.__webhub = parsed;
   }
   el.remove();
-  webuiDataLoaded = true;
+  webhubDataLoaded = true;
 }
 
 /** Singleton router instance. */
-export const Router = new WebUIRouter();
+export const Router = new webhubRouter();
 
 function findPendingComponent(
   activeChain: RouteChainEntry[],

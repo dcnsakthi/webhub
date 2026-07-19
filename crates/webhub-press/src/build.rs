@@ -12,9 +12,9 @@ use std::time::Instant;
 use console::style;
 use rayon::prelude::*;
 use serde_json::{Map, Value};
-use webui::BuildOptions;
-use webui_handler::{Protocol, RenderOptions, ResponseWriter, WebUIHandler};
-use webui_tokens::TokenFile;
+use webhub::BuildOptions;
+use webhub_handler::{Protocol, RenderOptions, ResponseWriter, webhubHandler};
+use webhub_tokens::TokenFile;
 
 use crate::bundler::{
     bundle_assets, collect_component_scripts_for_html, discover_component_scripts,
@@ -52,7 +52,7 @@ pub struct BuildCache {
     /// from deleted source pages survive until the next process restart.
     pub skip_clean: bool,
     /// Dev-mode flag: when true, the bundler skips minification for
-    /// faster rebuilds during `webui-press serve`.
+    /// faster rebuilds during `webhub-press serve`.
     pub dev_mode: bool,
 }
 
@@ -81,10 +81,10 @@ fn load_theme(theme: &str, config_dir: &Path) -> Result<TokenFile> {
             .canonicalize()
             .map_err(|e| Error::Build(format!("Failed to canonicalize {theme}: {e}")))?
     } else {
-        webui_tokens::resolve_theme_path(theme, config_dir)
+        webhub_tokens::resolve_theme_path(theme, config_dir)
             .map_err(|e| Error::Build(format!("Failed to resolve theme {theme}: {e}")))?
     };
-    webui_tokens::load_token_file(&resolved)
+    webhub_tokens::load_token_file(&resolved)
         .map_err(|e| Error::Build(format!("Failed to load theme {}: {e}", resolved.display())))
 }
 
@@ -93,9 +93,9 @@ fn inject_theme_tokens(
     token_file: &TokenFile,
     protocol_tokens: &[String],
 ) -> Result<()> {
-    let resolved = webui_tokens::resolve_tokens(protocol_tokens, token_file)
+    let resolved = webhub_tokens::resolve_tokens(protocol_tokens, token_file)
         .map_err(|e| Error::Build(format!("Failed to resolve theme tokens: {e}")))?;
-    webui_tokens::inject_into_state(state, &resolved);
+    webhub_tokens::inject_into_state(state, &resolved);
     Ok(())
 }
 
@@ -148,9 +148,9 @@ fn build_not_found_state(input: NotFoundStateInput<'_>) -> Value {
 
 // ── Output helpers ──────────────────────────────────────────────
 //
-// Mirrors the styling vocabulary in `crates/webui-cli/src/utils/output.rs`
-// so webui-press feels at home in a workspace where users may also see
-// `webui build` / `webui serve` output.
+// Mirrors the styling vocabulary in `crates/webhub-cli/src/utils/output.rs`
+// so webhub-press feels at home in a workspace where users may also see
+// `webhub build` / `webhub serve` output.
 
 /// Monotonic counter used to produce unique per-rebuild temp-dir names.
 /// Combined with the process id and a fxhash of the page path so two
@@ -230,12 +230,12 @@ impl StringWriter {
 }
 
 impl ResponseWriter for StringWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.buf.push_str(content);
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -282,7 +282,7 @@ pub fn build_docs_with_cache(
 
     // Flat output: site files live at the root of `out_dir`. URLs in HTML
     // include `basePath` via `<base href>` and link rewriting; the dev server
-    // (`webui-press serve`) maps URL `<basePath>/foo` → file `out_dir/foo`.
+    // (`webhub-press serve`) maps URL `<basePath>/foo` → file `out_dir/foo`.
     // For deploys (e.g. GitHub Pages project sites), the host mounts `out_dir`
     // at `<basePath>`, so the same flat layout works.
     let site_dir = out_dir.to_path_buf();
@@ -349,7 +349,7 @@ pub fn build_docs_with_cache(
     // Step 2: Resolve component sources for the per-page builds
     let mut component_sources: Vec<String> = Vec::new();
     let cwd = std::env::current_dir().unwrap_or_default();
-    // Built-in component library (e.g. crates/webui-press/components/)
+    // Built-in component library (e.g. crates/webhub-press/components/)
     let builtin_components = template_dir.parent().map(|p| p.join("components"));
     if let Some(ref bc) = builtin_components {
         if bc.exists() {
@@ -358,7 +358,7 @@ pub fn build_docs_with_cache(
     }
     // User component sources from config. Local paths are resolved against
     // the current project root; npm package names/scopes must stay bare so
-    // webui-discovery resolves them from node_modules.
+    // webhub-discovery resolves them from node_modules.
     if let Some(ref user_sources) = config.components {
         for source in user_sources {
             component_sources.push(resolve_config_component_source(source, &cwd));
@@ -396,8 +396,8 @@ pub fn build_docs_with_cache(
             .map_err(|e| Error::Io(format!("Cannot write theme.css: {e}")))?;
     }
 
-    let handler = WebUIHandler::with_plugin(|| {
-        Box::new(webui_handler::plugin::webui::WebUIHydrationPlugin::new())
+    let handler = webhubHandler::with_plugin(|| {
+        Box::new(webhub_handler::plugin::webhub::webhubHydrationPlugin::new())
     });
 
     // Pre-create per-page output directories sequentially (avoids races and
@@ -542,7 +542,7 @@ pub fn build_docs_with_cache(
     } else {
         None
     };
-    let (projection_source, projection_completer) = webui::projection_manifest_barrier();
+    let (projection_source, projection_completer) = webhub::projection_manifest_barrier();
     let site_dir_for_bundle = site_dir.clone();
     let root_bundle_for_bundle = root_bundle.clone();
     let page_bundles_for_bundle = page_bundles.clone();
@@ -576,10 +576,10 @@ pub fn build_docs_with_cache(
     //
     // Each page is its own complete app: we substitute `{{{page.content}}}`
     // in the template with the page's actual HTML (including any custom
-    // elements like <code-block>) and run `webui::build()` on the result.
+    // elements like <code-block>) and run `webhub::build()` on the result.
     // This means the build pipeline naturally discovers the components used
     // on this page, expands their declarative shadow DOM, and emits their
-    // template metadata to `window.__webui.templates` for client-side
+    // template metadata to `window.__webhub.templates` for client-side
     // hydration — no manual registration tricks required.
     let total_bytes = std::sync::atomic::AtomicUsize::new(0);
     let component_css: std::sync::Mutex<HashMap<String, String>> =
@@ -612,7 +612,7 @@ pub fn build_docs_with_cache(
         // each other's in-progress files.
         let nonce = REBUILD_NONCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let page_tmp = std::env::temp_dir().join(format!(
-            "webui-press-page-{}-{:x}-{nonce:x}",
+            "webhub-press-page-{}-{:x}-{nonce:x}",
             std::process::id(),
             fxhash(&page.path),
         ));
@@ -624,10 +624,10 @@ pub fn build_docs_with_cache(
         fs::write(page_tmp.join("index.html"), &page_html)
             .map_err(|e| Error::Io(format!("Cannot write page temp: {e}")))?;
 
-        let build_result = webui::build(BuildOptions {
+        let build_result = webhub::build(BuildOptions {
             app_dir: page_tmp.clone(),
             entry: "index.html".to_string(),
-            plugin: Some(webui::Plugin::WebUI),
+            plugin: Some(webhub::Plugin::webhub),
             components: component_sources.clone(),
             theme: token_file.clone(),
             projection_manifests: vec![projection_source.clone()],
@@ -748,7 +748,7 @@ pub fn build_docs_with_cache(
 
     let not_found_html = template_html.replace("{{{page.content}}}", &not_found_content);
     let nf_tmp = std::env::temp_dir().join(format!(
-        "webui-press-404-{}-{:x}",
+        "webhub-press-404-{}-{:x}",
         std::process::id(),
         REBUILD_NONCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
     ));
@@ -758,10 +758,10 @@ pub fn build_docs_with_cache(
     fs::create_dir_all(&nf_tmp).map_err(|e| Error::Io(e.to_string()))?;
     fs::write(nf_tmp.join("index.html"), &not_found_html).map_err(|e| Error::Io(e.to_string()))?;
 
-    let nf_build = webui::build(BuildOptions {
+    let nf_build = webhub::build(BuildOptions {
         app_dir: nf_tmp.clone(),
         entry: "index.html".to_string(),
-        plugin: Some(webui::Plugin::WebUI),
+        plugin: Some(webhub::Plugin::webhub),
         components: component_sources.clone(),
         theme: token_file.clone(),
         projection_manifests: vec![projection_source],
@@ -1311,10 +1311,10 @@ fn normalize_search_text(raw: &str) -> String {
     normalized
 }
 
-const PRE_BLOCK_MARKER_PREFIX: &str = "<span data-webui-press-pre-block=\"";
+const PRE_BLOCK_MARKER_PREFIX: &str = "<span data-webhub-press-pre-block=\"";
 const PRE_BLOCK_MARKER_SUFFIX: &str = "\"></span>";
 
-/// Replace `<pre …>…</pre>` blocks with placeholder elements so the WebUI
+/// Replace `<pre …>…</pre>` blocks with placeholder elements so the webhub
 /// HTML parser does not normalize whitespace inside them. Returns the
 /// modified string and the original blocks (in order) for restoration
 /// after rendering.
@@ -1494,7 +1494,7 @@ mod tests {
         let input = r#"<p>before</p><pre class="hljs">code</pre><p>after</p>"#;
         let (out, blocks) = protect_pre_blocks(input);
         assert_eq!(blocks.len(), 1);
-        assert!(out.contains(r#"<span data-webui-press-pre-block="0"></span>"#));
+        assert!(out.contains(r#"<span data-webhub-press-pre-block="0"></span>"#));
         assert!(!out.contains("<pre"));
         assert_eq!(blocks[0], r#"<pre class="hljs">code</pre>"#);
     }
@@ -1530,13 +1530,13 @@ mod tests {
     }
 
     #[test]
-    fn pre_block_placeholder_survives_webui_component_slot_render() -> TestResult {
+    fn pre_block_placeholder_survives_webhub_component_slot_render() -> TestResult {
         let input = "<code-block><pre><code>let x = 1;\n</code></pre></code-block>";
         let (protected, blocks) = protect_pre_blocks(input);
         let page_html = format!("<!DOCTYPE html><html><body>{protected}</body></html>");
 
         let tmp = std::env::temp_dir().join(format!(
-            "webui-press-slot-test-{}-{:x}",
+            "webhub-press-slot-test-{}-{:x}",
             std::process::id(),
             fxhash(input)
         ));
@@ -1550,17 +1550,17 @@ mod tests {
             .join("components")
             .to_string_lossy()
             .into_owned()];
-        let build_result = webui::build(BuildOptions {
+        let build_result = webhub::build(BuildOptions {
             app_dir: tmp.clone(),
             entry: "index.html".to_string(),
-            plugin: Some(webui::Plugin::WebUI),
+            plugin: Some(webhub::Plugin::webhub),
             components,
             ..BuildOptions::default()
         })?;
 
         let mut writer = StringWriter::with_capacity(4096);
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(webui_handler::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(webhub_handler::plugin::webhub::webhubHydrationPlugin::new())
         });
         let protocol = Protocol::new(build_result.protocol);
         handler.render(
@@ -1575,7 +1575,7 @@ mod tests {
         let html = restore_pre_blocks(&writer.buf, &blocks);
         assert!(
             html.contains("<pre><code>let x = 1;\n</code></pre>"),
-            "slotted pre block should be restored after WebUI render: {html}"
+            "slotted pre block should be restored after webhub render: {html}"
         );
         assert!(
             !html.contains(PRE_BLOCK_MARKER_PREFIX),

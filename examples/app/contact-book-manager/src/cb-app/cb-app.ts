@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '@microsoft/webui-framework';
-import { Router } from '@microsoft/webui-router';
+import { webhubElement, observable } from '@microsoft/webhub-framework';
+import { Router } from '@microsoft/webhub-router';
 import { api } from '#api';
 
 // Child components used in cb-app.html
@@ -12,7 +12,7 @@ type SearchChangeEvent = CustomEvent<{ value: string }>;
 type ContactEvent = CustomEvent<{ id: string }>;
 type FormSaveEvent = CustomEvent<Record<string, string>>;
 
-export class CbApp extends WebUIElement {
+export class CbApp extends webhubElement {
   @observable searchQuery = '';
   @observable totalFavorites = '0';
 

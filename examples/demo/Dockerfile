@@ -46,7 +46,7 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 
 # Build framework libraries first (needed by apps with build:deps)
-RUN pnpm --filter @microsoft/webui-framework --filter @microsoft/webui-router run build
+RUN pnpm --filter @microsoft/webhub-framework --filter @microsoft/webhub-router run build
 
 # Build each app's client assets
 RUN cd examples/app/hello-world && \
@@ -58,7 +58,7 @@ RUN cd examples/app/calculator && \
     mkdir -p dist && \
     npx esbuild src/index.ts --bundle --outfile=dist/index.js --format=esm --minify
 
-RUN cd examples/app/todo-webui && pnpm build
+RUN cd examples/app/todo-webhub && pnpm build
 RUN cd examples/app/contact-book-manager && pnpm build
 RUN cd examples/app/component-assets && pnpm build
 RUN cd examples/app/routes && pnpm build
@@ -77,13 +77,13 @@ RUN cd examples/app/routes/server && \
     --outfile=dist/index.js --packages=external
 
 # ── Build Rust binaries ─────────────────────────────────────────────
-RUN cargo build --release -p microsoft-webui-cli -p marketplace-api -p demo-shell
+RUN cargo build --release -p microsoft-webhub-cli -p marketplace-api -p demo-shell
 
 # ── Stage 3: Runtime ────────────────────────────────────────────────
 FROM debian:bookworm-slim
 
-LABEL org.opencontainers.image.source="https://github.com/microsoft/webui"
-LABEL org.opencontainers.image.description="WebUI Demo — all example apps in one container"
+LABEL org.opencontainers.image.source="https://github.com/microsoft/webhub"
+LABEL org.opencontainers.image.description="webhub Demo — all example apps in one container"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # Install Node.js runtime (needed for contact-book-manager & routes APIs)
@@ -107,7 +107,7 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copy Rust binaries
-COPY --from=builder /build/target/release/webui /usr/local/bin/webui
+COPY --from=builder /build/target/release/webhub /usr/local/bin/webhub
 COPY --from=builder /build/target/release/marketplace-api /usr/local/bin/marketplace-api
 COPY --from=builder /build/target/release/demo-shell /usr/local/bin/demo-shell
 
@@ -135,11 +135,11 @@ COPY --from=builder --chown=app:app /build/examples/app/calculator/dist/ ./apps/
 COPY --from=builder --chown=app:app /build/examples/app/calculator/data/ ./apps/calculator/data/
 COPY --from=builder --chown=app:app /build/examples/app/calculator/demo.toml ./apps/calculator/demo.toml
 
-# todo-webui
-COPY --from=builder --chown=app:app /build/examples/app/todo-webui/src/ ./apps/todo-webui/src/
-COPY --from=builder --chown=app:app /build/examples/app/todo-webui/dist/ ./apps/todo-webui/dist/
-COPY --from=builder --chown=app:app /build/examples/app/todo-webui/data/ ./apps/todo-webui/data/
-COPY --from=builder --chown=app:app /build/examples/app/todo-webui/demo.toml ./apps/todo-webui/demo.toml
+# todo-webhub
+COPY --from=builder --chown=app:app /build/examples/app/todo-webhub/src/ ./apps/todo-webhub/src/
+COPY --from=builder --chown=app:app /build/examples/app/todo-webhub/dist/ ./apps/todo-webhub/dist/
+COPY --from=builder --chown=app:app /build/examples/app/todo-webhub/data/ ./apps/todo-webhub/data/
+COPY --from=builder --chown=app:app /build/examples/app/todo-webhub/demo.toml ./apps/todo-webhub/demo.toml
 
 # contact-book-manager (has Node API)
 COPY --from=builder --chown=app:app /build/examples/app/contact-book-manager/src/ ./apps/contact-book-manager/src/
@@ -165,16 +165,16 @@ COPY --from=builder --chown=app:app /build/examples/app/commerce/dist/ ./apps/co
 COPY --from=builder --chown=app:app /build/examples/app/commerce/images/ ./apps/commerce/images/
 COPY --from=builder --chown=app:app /build/examples/app/commerce/demo.toml ./apps/commerce/demo.toml
 
-# Demo shell (the `/` UI itself — a real WebUI app)
+# Demo shell (the `/` UI itself — a real webhub app)
 COPY --from=builder --chown=app:app /build/examples/demo/src/  ./shell/src/
 COPY --from=builder --chown=app:app /build/examples/demo/dist/ ./shell/dist/
 
-# Shared npm theme used by webui-cli demo apps at runtime
-COPY --from=builder --chown=app:app /build/packages/webui-examples-theme/ ./node_modules/@microsoft/webui-examples-theme/
+# Shared npm theme used by webhub-cli demo apps at runtime
+COPY --from=builder --chown=app:app /build/packages/webhub-examples-theme/ ./node_modules/@microsoft/webhub-examples-theme/
 
 # Create data directories for apps that use state files
 RUN mkdir -p apps/hello-world/data apps/todo-fast/data apps/calculator/data \
-    apps/todo-webui/data apps/contact-book-manager/data apps/component-assets/data && \
+    apps/todo-webhub/data apps/contact-book-manager/data apps/component-assets/data && \
     chown -R app:app apps/
 
 USER app

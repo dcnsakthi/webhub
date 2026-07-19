@@ -20,14 +20,14 @@ const PACKAGE_ENTRY = pathToFileURL(
 ).href;
 
 function fixtureRoot(): string {
-  const root = mkdtempSync(path.join(tmpdir(), "webui-cli-fallback-"));
+  const root = mkdtempSync(path.join(tmpdir(), "webhub-cli-fallback-"));
   writeFileSync(
     path.join(root, "build"),
     `
 const fs = require("node:fs");
 const path = require("node:path");
 const args = process.argv.slice(2);
-fs.writeFileSync(process.env.WEBUI_CAPTURE_PATH, JSON.stringify(args));
+fs.writeFileSync(process.env.webhub_CAPTURE_PATH, JSON.stringify(args));
 const outIndex = args.indexOf("--out");
 if (outIndex >= 0) {
   const outDir = args[outIndex + 1];
@@ -49,9 +49,9 @@ function runFallback(root: string, source: string) {
       encoding: "utf8",
       env: {
         ...process.env,
-        WEBUI_ADDON_PATH: path.join(root, "missing-addon.node"),
-        WEBUI_BINARY_PATH: process.execPath,
-        WEBUI_CAPTURE_PATH: path.join(root, "args.json"),
+        webhub_ADDON_PATH: path.join(root, "missing-addon.node"),
+        webhub_BINARY_PATH: process.execPath,
+        webhub_CAPTURE_PATH: path.join(root, "args.json"),
       },
     }
   );
@@ -63,7 +63,7 @@ describe("projection CLI fallback", () => {
     t.after(() => rmSync(root, { recursive: true, force: true }));
     const appDir = path.join(root, "app");
     const outDir = path.join(root, "dist");
-    const manifest = path.join(root, "webui-projection.json");
+    const manifest = path.join(root, "webhub-projection.json");
     const result = runFallback(
       root,
       `
@@ -71,7 +71,7 @@ import { build } from ${JSON.stringify(PACKAGE_ENTRY)};
 build({
   appDir: ${JSON.stringify(appDir)},
   outDir: ${JSON.stringify(outDir)},
-  plugin: "webui",
+  plugin: "webhub",
   projectionManifests: [${JSON.stringify(manifest)}],
 });
 `
@@ -101,7 +101,7 @@ try {
     appDir: ${JSON.stringify(appDir)},
     outDir: ${JSON.stringify(outDir)},
     projectionManifestObjects: [{
-      path: ${JSON.stringify(path.join(root, "webui-projection.json"))},
+      path: ${JSON.stringify(path.join(root, "webhub-projection.json"))},
       manifest: {},
     }],
   });

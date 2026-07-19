@@ -1,13 +1,13 @@
 {
-  "name": "@microsoft/webui-test-support",
+  "name": "@microsoft/webhub-test-support",
   "version": "0.0.18",
   "type": "module",
   "private": true,
-  "description": "Private shared test utilities for WebUI workspace packages.",
+  "description": "Private shared test utilities for webhub workspace packages.",
   "license": "MIT",
   "sideEffects": false,
   "dependencies": {
-    "@microsoft/webui": "workspace:*",
+    "@microsoft/webhub": "workspace:*",
     "esbuild": "catalog:"
   },
   "exports": {

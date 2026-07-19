@@ -2,9 +2,9 @@
 // Licensed under the MIT license.
 
 /**
- * `@microsoft/webui/projection.js` — build-only state projection compiler subpath.
+ * `@microsoft/webhub/projection.js` — build-only state projection compiler subpath.
  *
- * This subpath is intentionally separate from the root `@microsoft/webui`
+ * This subpath is intentionally separate from the root `@microsoft/webhub`
  * entry so that render/build consumers do not load compiler or adapter code.
  *
  * Peer dependencies required by this subpath:

@@ -5,10 +5,10 @@ using System;
 using System.Text.Json;
 using System.Threading;
 
-namespace Microsoft.WebUI;
+namespace Microsoft.webhub;
 
 /// <summary>
-/// Owns a decoded WebUI protocol for repeated rendering.
+/// Owns a decoded webhub protocol for repeated rendering.
 /// </summary>
 /// <remarks>
 /// Create one instance when the server loads <c>protocol.bin</c> and reuse it
@@ -16,17 +16,17 @@ namespace Microsoft.WebUI;
 /// </remarks>
 public sealed class Protocol : IDisposable
 {
-    private readonly NativeBindings.WebUIProtocolSafeHandle _handle;
+    private readonly NativeBindings.webhubProtocolSafeHandle _handle;
     private volatile int _disposed;
 
     /// <summary>
-    /// Decodes and indexes a compiled WebUI protocol.
+    /// Decodes and indexes a compiled webhub protocol.
     /// </summary>
     /// <param name="protocol">Pre-compiled protobuf protocol bytes.</param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="protocol"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="WebUIException">Thrown when the protocol is invalid.</exception>
+    /// <exception cref="webhubException">Thrown when the protocol is invalid.</exception>
     public Protocol(byte[] protocol)
     {
         ArgumentNullException.ThrowIfNull(protocol);
@@ -34,13 +34,13 @@ public sealed class Protocol : IDisposable
         _handle = NativeBindings.CreateProtocol(protocol);
         if (_handle.IsInvalid)
         {
-            string error = NativeBindings.GetLastError() ?? "Failed to load WebUI protocol.";
+            string error = NativeBindings.GetLastError() ?? "Failed to load webhub protocol.";
             _handle.Dispose();
-            throw new WebUIException(error);
+            throw new webhubException(error);
         }
     }
 
-    internal NativeBindings.WebUIProtocolSafeHandle Handle
+    internal NativeBindings.webhubProtocolSafeHandle Handle
     {
         get
         {
@@ -58,7 +58,7 @@ public sealed class Protocol : IDisposable
     /// <param name="inventoryHex">Hex-encoded component inventory.</param>
     /// <returns>A JSON string containing state, templates, inventory, path, and chain.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the protocol has been disposed.</exception>
-    /// <exception cref="WebUIException">Thrown when the operation fails.</exception>
+    /// <exception cref="webhubException">Thrown when the operation fails.</exception>
     public string RenderPartial(
         string stateJson,
         string entryId,
@@ -71,7 +71,7 @@ public sealed class Protocol : IDisposable
         ArgumentNullException.ThrowIfNull(requestPath);
         ArgumentNullException.ThrowIfNull(inventoryHex);
 
-        IntPtr resultPtr = NativeBindings.webui_protocol_render_partial(
+        IntPtr resultPtr = NativeBindings.webhub_protocol_render_partial(
             _handle,
             stateJson,
             entryId,
@@ -81,7 +81,7 @@ public sealed class Protocol : IDisposable
         if (resultPtr == IntPtr.Zero)
         {
             string error = NativeBindings.GetLastError() ?? "RenderPartial failed.";
-            throw new WebUIException(error);
+            throw new webhubException(error);
         }
 
         return NativeBindings.ReadAndFreeString(resultPtr)!;
@@ -94,7 +94,7 @@ public sealed class Protocol : IDisposable
     /// <param name="inventoryHex">Hex-encoded component inventory.</param>
     /// <returns>A JSON string containing templates, styles, functions, and updated inventory.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the protocol has been disposed.</exception>
-    /// <exception cref="WebUIException">Thrown when the operation fails.</exception>
+    /// <exception cref="webhubException">Thrown when the operation fails.</exception>
     public string RenderComponentTemplates(
         string[] componentTags,
         string inventoryHex)
@@ -104,7 +104,7 @@ public sealed class Protocol : IDisposable
         ArgumentNullException.ThrowIfNull(inventoryHex);
 
         string componentTagsJson = JsonSerializer.Serialize(componentTags);
-        IntPtr resultPtr = NativeBindings.webui_protocol_render_component_templates(
+        IntPtr resultPtr = NativeBindings.webhub_protocol_render_component_templates(
             _handle,
             componentTagsJson,
             inventoryHex);
@@ -112,7 +112,7 @@ public sealed class Protocol : IDisposable
         if (resultPtr == IntPtr.Zero)
         {
             string error = NativeBindings.GetLastError() ?? "RenderComponentTemplates failed.";
-            throw new WebUIException(error);
+            throw new webhubException(error);
         }
 
         return NativeBindings.ReadAndFreeString(resultPtr)!;
@@ -123,16 +123,16 @@ public sealed class Protocol : IDisposable
     /// </summary>
     /// <returns>CSS token names in build order, preserving duplicates.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the protocol has been disposed.</exception>
-    /// <exception cref="WebUIException">Thrown when the operation fails.</exception>
+    /// <exception cref="webhubException">Thrown when the operation fails.</exception>
     public string[] Tokens()
     {
         ThrowIfDisposed();
-        IntPtr resultPtr = NativeBindings.webui_protocol_tokens(_handle);
+        IntPtr resultPtr = NativeBindings.webhub_protocol_tokens(_handle);
 
         if (resultPtr == IntPtr.Zero)
         {
             string error = NativeBindings.GetLastError() ?? "Tokens failed.";
-            throw new WebUIException(error);
+            throw new webhubException(error);
         }
 
         string tokens = NativeBindings.ReadAndFreeString(resultPtr)!;

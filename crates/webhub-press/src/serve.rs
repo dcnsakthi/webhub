@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Development server for `webui-press`.
+//! Development server for `webhub-press`.
 //!
-//! Composes [`webui_dev_server`] primitives:
+//! Composes [`webhub_dev_server`] primitives:
 //!
 //!  - [`LiveReload`] for SSE-based browser auto-reload.
-//!  - [`spawn_watcher`](webui_dev_server::spawn_watcher) for debounced
+//!  - [`spawn_watcher`](webhub_dev_server::spawn_watcher) for debounced
 //!    filesystem notifications.
-//!  - [`spawn_rebuild_worker`](webui_dev_server::spawn_rebuild_worker)
+//!  - [`spawn_rebuild_worker`](webhub_dev_server::spawn_rebuild_worker)
 //!    for the rebuild loop (tick coalescing, success/error reporting,
 //!    livereload broadcast).
-//!  - [`serve_static_file`](webui_dev_server::serve_static_file) for
+//!  - [`serve_static_file`](webhub_dev_server::serve_static_file) for
 //!    `basePath`-aware static file routing with HTML livereload
 //!    injection.
 //!
@@ -30,8 +30,8 @@ use std::time::Duration;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
 use anyhow::{anyhow, Context, Result};
 use console::style;
-use webui_dev_server::path::normalize_base_path;
-use webui_dev_server::{
+use webhub_dev_server::path::normalize_base_path;
+use webhub_dev_server::{
     default_ignore_paths, serve_static_file, spawn_rebuild_worker, spawn_watcher, sse_handler,
     LiveReload, NotFoundStrategy, StaticServeConfig, WatchConfig, WatcherHandle,
 };
@@ -45,7 +45,7 @@ const DEBOUNCE_DURATION: Duration = Duration::from_millis(50);
 
 /// SSE endpoint path. Absolute (root-relative) so it's not affected by
 /// `<base href>` set in built pages.
-const RELOAD_PATH: &str = "/__webui_press/livereload";
+const RELOAD_PATH: &str = "/__webhub_press/livereload";
 
 /// Inputs needed to start the dev server.
 pub struct ServeConfig {
@@ -78,7 +78,7 @@ pub async fn run_serve(opts: ServeConfig) -> Result<()> {
     println!(
         "{} {}",
         style("⚡").cyan().bold(),
-        style("WebUI Press dev server").bold()
+        style("webhub Press dev server").bold()
     );
     println!();
 
@@ -130,7 +130,7 @@ pub async fn run_serve(opts: ServeConfig) -> Result<()> {
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
             build_docs_with_cache(&cfg, &config_dir, &template_dir, &mut guard)
                 .map_err(|e| format!("{e}"))?;
-            // webui-press has no per-rebuild advisories to surface.
+            // webhub-press has no per-rebuild advisories to surface.
             Ok(Vec::new())
         })
     };
@@ -145,7 +145,7 @@ pub async fn run_serve(opts: ServeConfig) -> Result<()> {
         );
         let mut ignore = default_ignore_paths();
         ignore.push(out_dir.clone());
-        ignore.push(PathBuf::from(".webui-press/cache"));
+        ignore.push(PathBuf::from(".webhub-press/cache"));
         spawn_watcher(
             WatchConfig {
                 paths: watched,
@@ -221,12 +221,12 @@ async fn static_handler(req: HttpRequest, cfg: web::Data<StaticServeConfig>) -> 
 ///    covered (it usually equals `config_dir`),
 ///  - `content_dir` — markdown source files, typically a sibling of
 ///    `config_dir` (e.g. `docs/` while config lives at
-///    `docs/.webui-press/config.json`),
+///    `docs/.webhub-press/config.json`),
 ///  - `public_dir` — verbatim assets copied into the build, often
 ///    nested inside `config_dir`.
 ///
 /// We deliberately do NOT watch the framework's `template_dir`: that
-/// directory ships with the `webui-press` crate and only changes when
+/// directory ships with the `webhub-press` crate and only changes when
 /// the binary itself is rebuilt, which already restarts the dev server.
 ///
 /// A path is dropped if it is already covered (via `starts_with`) by
@@ -279,24 +279,24 @@ mod tests {
 
     #[test]
     fn watch_paths_dedupes_nested_paths() {
-        let cfg = Path::new("/proj/docs/.webui-press");
-        let config_file = Path::new("/proj/docs/.webui-press/config.json");
-        let content = Path::new("/proj/docs/.webui-press");
-        let public = Path::new("/proj/docs/.webui-press/public");
+        let cfg = Path::new("/proj/docs/.webhub-press");
+        let config_file = Path::new("/proj/docs/.webhub-press/config.json");
+        let content = Path::new("/proj/docs/.webhub-press");
+        let public = Path::new("/proj/docs/.webhub-press/public");
         let paths = watch_paths(cfg, config_file, content, public);
         // config_path parent, content_dir, public_dir are all inside
         // config_dir → only config_dir watched.
-        assert_eq!(paths, vec![PathBuf::from("/proj/docs/.webui-press")]);
+        assert_eq!(paths, vec![PathBuf::from("/proj/docs/.webhub-press")]);
     }
 
     #[test]
     fn watch_paths_includes_sibling_content_dir() {
-        // Real-world layout: config lives in docs/.webui-press/config.json,
-        // markdown lives in docs/ (a parent / sibling of .webui-press).
-        let cfg = Path::new("docs/.webui-press");
-        let config_file = Path::new("docs/.webui-press/config.json");
+        // Real-world layout: config lives in docs/.webhub-press/config.json,
+        // markdown lives in docs/ (a parent / sibling of .webhub-press).
+        let cfg = Path::new("docs/.webhub-press");
+        let config_file = Path::new("docs/.webhub-press/config.json");
         let content = Path::new("docs");
-        let public = Path::new("docs/.webui-press/public");
+        let public = Path::new("docs/.webhub-press/public");
         let paths = watch_paths(cfg, config_file, content, public);
         // content_dir (docs) is a parent of everything else → it
         // promotes to the only watched root.
@@ -306,15 +306,15 @@ mod tests {
     #[test]
     fn watch_paths_includes_external_content_dir() {
         // content_dir lives outside config_dir.
-        let cfg = Path::new("/proj/.webui-press");
-        let config_file = Path::new("/proj/.webui-press/config.json");
+        let cfg = Path::new("/proj/.webhub-press");
+        let config_file = Path::new("/proj/.webhub-press/config.json");
         let content = Path::new("/proj/markdown");
-        let public = Path::new("/proj/.webui-press/public");
+        let public = Path::new("/proj/.webhub-press/public");
         let paths = watch_paths(cfg, config_file, content, public);
         assert_eq!(
             paths,
             vec![
-                PathBuf::from("/proj/.webui-press"),
+                PathBuf::from("/proj/.webhub-press"),
                 PathBuf::from("/proj/markdown"),
             ]
         );

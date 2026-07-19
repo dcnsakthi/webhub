@@ -34,10 +34,10 @@ test.describe('light-dom hydration', () => {
   test('updates @observable reactively in light DOM', async ({ page }) => {
     await page.evaluate(() => {
       (document.querySelector('test-light-dom') as any).greeting = 'Hi';
-      (document.querySelector('test-light-dom') as any).name = 'WebUI';
+      (document.querySelector('test-light-dom') as any).name = 'webhub';
     });
 
     await expect(page.locator('test-light-dom .greeting')).toHaveText('Hi');
-    await expect(page.locator('test-light-dom .name')).toHaveText('WebUI');
+    await expect(page.locator('test-light-dom .name')).toHaveText('webhub');
   });
 });

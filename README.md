@@ -1,8 +1,8 @@
-# WebUI
+# webhub
 
-**WebUI** is a high-performance, language-agnostic server-side rendering framework built in Rust. It compiles HTML templates into compact Protocol Buffer binaries at build time so runtime rendering applies state without reparsing templates. Interactive Web Components hydrate as islands on the client.
+**webhub** is a high-performance, language-agnostic server-side rendering framework built in Rust. It compiles HTML templates into compact Protocol Buffer binaries at build time so runtime rendering applies state without reparsing templates. Interactive Web Components hydrate as islands on the client.
 
-**Documentation:** [microsoft.github.io/webui](https://microsoft.github.io/webui)
+**Documentation:** [microsoft.github.io/webhub](https://microsoft.github.io/webhub)
 
 ## Highlights
 
@@ -15,32 +15,32 @@
 ## Install
 
 ```bash
-npm install @microsoft/webui
+npm install @microsoft/webhub
 ```
 
 Or install the Rust CLI:
 
 ```bash
-cargo install microsoft-webui-cli
+cargo install microsoft-webhub-cli
 ```
 
 For .NET server-side bindings:
 
 ```bash
-dotnet add package Microsoft.WebUI
+dotnet add package Microsoft.webhub
 ```
 
-The NuGet package restores platform-specific `Microsoft.WebUI.Runtime.*` native assets transitively. Release builds stage `.nupkg` and `.snupkg` artifacts with repository metadata and Source Link; nuget.org publishing is manual until ESRP automation supports this project.
+The NuGet package restores platform-specific `Microsoft.webhub.Runtime.*` native assets transitively. Release builds stage `.nupkg` and `.snupkg` artifacts with repository metadata and Source Link; nuget.org publishing is manual until ESRP automation supports this project.
 NuGet metadata uses `Authors=Microsoft`, the `Microsoft` package owner, a stable project URL, a package license URL with license acceptance required, release notes links, discoverability tags, and the required `© Microsoft Corporation. All rights reserved.` copyright notice. Before nuget.org publishing, staged packages and Authenticode-signable contents must be signed with a Microsoft certificate through the approved signing process.
 
 ## Learn
 
 | Resource | Link |
 |----------|------|
-| Full documentation | <https://microsoft.github.io/webui> |
-| Getting started | <https://microsoft.github.io/webui/guide/> |
-| CLI reference | <https://microsoft.github.io/webui/guide/cli/> |
-| Language integrations | <https://microsoft.github.io/webui/guide/integrations> |
+| Full documentation | <https://microsoft.github.io/webhub> |
+| Getting started | <https://microsoft.github.io/webhub/guide/> |
+| CLI reference | <https://microsoft.github.io/webhub/guide/cli/> |
+| Language integrations | <https://microsoft.github.io/webhub/guide/integrations> |
 | Benchmarks | [`BENCHMARKS.md`](BENCHMARKS.md) |
 
 ## Development
@@ -91,7 +91,7 @@ cargo xtask build-windows-local --target x64
 cargo xtask build-windows-local --target arm64
 ```
 
-The command stages artifacts into `publish/native/`, `packages/webui-win32-*`,
+The command stages artifacts into `publish/native/`, `packages/webhub-win32-*`,
 and `dotnet/runtimes/win-*/native/`. `cargo-xwin` downloads Microsoft Windows
 SDK and CRT assets; using it requires accepting the Microsoft SDK license terms
 referenced by cargo-xwin.
@@ -106,9 +106,9 @@ Wine Stable may require explicit approval in macOS **System Settings** >
 **Privacy & Security** because it is not notarized. After approving it, run:
 
 ```bash
-WINEDEBUG=-all WINEPREFIX="$PWD/.wine-webui-x64" \
+WINEDEBUG=-all WINEPREFIX="$PWD/.wine-webhub-x64" \
   "/Applications/Wine Stable.app/Contents/Resources/wine/bin/wine" \
-  "$PWD/packages/webui-win32-x64/bin/webui.exe" --help
+  "$PWD/packages/webhub-win32-x64/bin/webhub.exe" --help
 ```
 
 Use Wine only for the x64 artifact. Test the ARM64 Windows artifact on Windows
@@ -120,7 +120,7 @@ For contribution policy, issue guidelines, and the current pull request policy, 
 
 ```text
 crates/      Rust crates for the CLI, parser, handler, protocol, FFI, and integrations
-packages/    npm packages for the CLI, WebUI Framework, router, and platform binaries
+packages/    npm packages for the CLI, webhub Framework, router, and platform binaries
 dotnet/      .NET bindings, runtime packages, and global tool packaging
 docs/        VitePress documentation site
 examples/    Example applications and integration samples
@@ -128,13 +128,13 @@ examples/    Example applications and integration samples
 
 ## Feedback and support
 
-WebUI is still in active development. We are not accepting unsolicited pull requests right now, but we do welcome well-documented issues:
+webhub is still in active development. We are not accepting unsolicited pull requests right now, but we do welcome well-documented issues:
 
 | Need | Where to go |
 |------|-------------|
-| Report a bug | [Choose an issue template](https://github.com/microsoft/webui/issues/new/choose) |
-| Request a feature | [Choose an issue template](https://github.com/microsoft/webui/issues/new/choose) |
-| Report a documentation need | [Choose an issue template](https://github.com/microsoft/webui/issues/new/choose) |
+| Report a bug | [Choose an issue template](https://github.com/microsoft/webhub/issues/new/choose) |
+| Request a feature | [Choose an issue template](https://github.com/microsoft/webhub/issues/new/choose) |
+| Report a documentation need | [Choose an issue template](https://github.com/microsoft/webhub/issues/new/choose) |
 | Get support guidance | [`SUPPORT.md`](SUPPORT.md) |
 | Report a security issue | [`SECURITY.md`](SECURITY.md) |
 

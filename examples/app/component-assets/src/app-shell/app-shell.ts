@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '@microsoft/webui-framework';
-import { defineComponentAssets } from '@microsoft/webui-framework/component-asset.js';
+import { webhubElement, attr } from '@microsoft/webhub-framework';
+import { defineComponentAssets } from '@microsoft/webhub-framework/component-asset.js';
 
 const assets = defineComponentAssets({
   'lazy-panel': {
-    asset: './lazy-panel.webui.js',
+    asset: './lazy-panel.webhub.js',
     data: async () => await (await fetch('./lazy-panel-data.json')).json(),
   },
 });
 
-export class AppShell extends WebUIElement {
+export class AppShell extends webhubElement {
   @attr title = '';
 
   panelSlot!: HTMLDivElement;

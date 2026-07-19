@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '@microsoft/webui-framework';
+import { webhubElement, attr } from '@microsoft/webhub-framework';
 
 import '#molecules/mp-search-bar/mp-search-bar.js';
 
-export class MpNavbar extends WebUIElement {
+export class MpNavbar extends webhubElement {
   @attr({ attribute: 'store-name' }) storeName = 'Acme Store';
   @attr({ attribute: 'search-query' }) searchQuery = '';
   @attr({ attribute: 'cart-href' }) cartHref = './?cart=open';

@@ -3,7 +3,7 @@
 
 //! Streaming `ResponseWriter` helpers for actix-web (or any) HTTP host.
 //!
-//! `webui-handler` writes through a push-based [`ResponseWriter`] trait —
+//! `webhub-handler` writes through a push-based [`ResponseWriter`] trait —
 //! every `Raw` fragment, attribute, signal value, route element open/close,
 //! CSS preload `<link>`, and template assignment is a separate `write()`
 //! call (~hundreds per render). The default host pattern collects them all
@@ -55,15 +55,15 @@
 //! zero scan cost and no risk of mis-firing on `</body>` literals
 //! appearing inside HTML comments, `<iframe srcdoc>`, or inline scripts.
 //!
-//! [`RenderOptions::with_head_inject`]: webui_handler::RenderOptions::with_head_inject
-//! [`RenderOptions::with_body_inject`]: webui_handler::RenderOptions::with_body_inject
+//! [`RenderOptions::with_head_inject`]: webhub_handler::RenderOptions::with_head_inject
+//! [`RenderOptions::with_body_inject`]: webhub_handler::RenderOptions::with_body_inject
 
 use bytes::Bytes;
 use crossbeam_queue::ArrayQueue;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
-use webui_handler::{HandlerError, ResponseWriter, Result};
+use webhub_handler::{HandlerError, ResponseWriter, Result};
 
 // ── ChunkPool ──────────────────────────────────────────────────────
 
@@ -111,7 +111,7 @@ use webui_handler::{HandlerError, ResponseWriter, Result};
 ///
 /// ```ignore
 /// use std::sync::Arc;
-/// use webui::streaming::{ChunkPool, StreamingWriter};
+/// use webhub::streaming::{ChunkPool, StreamingWriter};
 ///
 /// // Construct ONE pool at server startup:
 /// let pool = Arc::new(ChunkPool::new(512, StreamingWriter::CHUNK_TARGET));
@@ -273,7 +273,7 @@ impl Drop for PooledChunk {
 /// ```ignore
 /// use std::time::Duration;
 /// use tokio::sync::mpsc;
-/// use webui::streaming::StreamingWriter;
+/// use webhub::streaming::StreamingWriter;
 ///
 /// let (tx, mut rx) = mpsc::channel(StreamingWriter::DEFAULT_CHANNEL_CAPACITY);
 /// actix_web::rt::task::spawn_blocking(move || {
@@ -340,7 +340,7 @@ impl StreamingWriter {
     /// Slack added to the chunk buffer's capacity beyond `chunk_target`,
     /// to absorb a single oversized write without an immediate growth
     /// realloc. 1 KiB is comfortably above the largest single
-    /// `ResponseWriter::write` call the WebUI handler emits in
+    /// `ResponseWriter::write` call the webhub handler emits in
     /// practice (signal values, attribute values, raw fragments are
     /// all small).
     const BUF_HEADROOM: usize = 1024;

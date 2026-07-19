@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
-export class TestConditional extends WebUIElement {
+export class TestConditional extends webhubElement {
   @observable open = true;
   @observable busy = false;
   @observable details = 'Details';
@@ -16,7 +16,7 @@ export class TestConditional extends WebUIElement {
 
 TestConditional.define('test-conditional');
 
-export class TestConditionalClient extends WebUIElement {
+export class TestConditionalClient extends webhubElement {
   @observable open = true;
   @observable busy = false;
   @observable details = 'Details';
@@ -28,7 +28,7 @@ export class TestConditionalClient extends WebUIElement {
 
 TestConditionalClient.define('test-conditional-client');
 
-export class TestConditionalHydrationRanges extends WebUIElement {
+export class TestConditionalHydrationRanges extends webhubElement {
   @observable clientOnlyOpen = true;
   @observable outerOpen = true;
   @observable innerOpen = false;

@@ -5,7 +5,7 @@
  * Express.js API server for the routes example.
  *
  * Resolves state per-route for the Learning Platform.
- * The WebUI dev server proxies to this via --api-port.
+ * The webhub dev server proxies to this via --api-port.
  */
 
 import express from 'express';

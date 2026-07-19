@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! High-performance documentation site builder powered by WebUI Framework.
+//! High-performance documentation site builder powered by webhub Framework.
 //!
 //! Builds static HTML documentation sites from markdown content using the
-//! WebUI template engine and parallel rendering.
+//! webhub template engine and parallel rendering.
 
 pub mod build;
 mod bundler;

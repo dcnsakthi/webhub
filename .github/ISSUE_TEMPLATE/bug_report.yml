@@ -1,14 +1,14 @@
 name: Bug report
-description: Report a reproducible problem in WebUI.
+description: Report a reproducible problem in webhub.
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for helping improve WebUI. Before opening a bug, please read the [bug reporting guidance](https://github.com/microsoft/webui/blob/main/CONTRIBUTING.md#bugs).
+        Thank you for helping improve webhub. Before opening a bug, please read the [bug reporting guidance](https://github.com/microsoft/webhub/blob/main/CONTRIBUTING.md#bugs).
 
-        Do not report security vulnerabilities here. Follow the [security policy](https://github.com/microsoft/webui/security/policy) instead.
+        Do not report security vulnerabilities here. Follow the [security policy](https://github.com/microsoft/webhub/security/policy) instead.
   - type: checkboxes
     id: preflight
     attributes:
@@ -22,15 +22,15 @@ body:
     id: area
     attributes:
       label: Area
-      description: Which part of WebUI does this affect?
+      description: Which part of webhub does this affect?
       options:
         - CLI
         - Parser
         - Handler
         - Protocol
         - FFI
-        - WebUI Framework package
-        - WebUI Router package
+        - webhub Framework package
+        - webhub Router package
         - Documentation
         - Examples
         - Integrations
@@ -41,15 +41,15 @@ body:
     attributes:
       label: Summary
       description: Briefly describe the problem.
-      placeholder: WebUI fails to render nested route content when...
+      placeholder: webhub fails to render nested route content when...
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
       label: Minimal reproduction
-      description: If possible, reproduce the issue in the WebUI Playground and paste the share link from https://microsoft.github.io/webui/playground/. Otherwise, provide a sample repository, small code snippet, or minimal template.
-      placeholder: Paste a WebUI Playground share link or the smallest example that reproduces the problem.
+      description: If possible, reproduce the issue in the webhub Playground and paste the share link from https://microsoft.github.io/webhub/playground/. Otherwise, provide a sample repository, small code snippet, or minimal template.
+      placeholder: Paste a webhub Playground share link or the smallest example that reproduces the problem.
   - type: textarea
     id: steps
     attributes:
@@ -80,7 +80,7 @@ body:
         - OS:
         - Rust version:
         - Node.js version:
-        - WebUI package or CLI version:
+        - webhub package or CLI version:
         - Command:
   - type: textarea
     id: logs

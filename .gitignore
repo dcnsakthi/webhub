@@ -12,12 +12,12 @@ test-results/
 
 # Staged native binaries (populated by cargo xtask publish-stage)
 dotnet/runtimes/
-packages/*/webui.node
+packages/*/webhub.node
 publish/
 *.nupkg
 .last
-packages/webui/bin/webui
-packages/webui/bin/webui.exe
+packages/webhub/bin/webhub
+packages/webhub/bin/webhub.exe
 
 # Built from source by PR FFI checks.
-crates/webui-ffi/tests/fixtures/protocol.bin
+crates/webhub-ffi/tests/fixtures/protocol.bin

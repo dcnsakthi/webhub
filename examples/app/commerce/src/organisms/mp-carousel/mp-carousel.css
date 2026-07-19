@@ -14,7 +14,7 @@
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   scrollbar-width: thin;
-  scrollbar-color: var(--webui-text-muted) transparent;
+  scrollbar-color: var(--webhub-text-muted) transparent;
   list-style: none;
   margin: 0;
   padding: 0 0 0.75rem;
@@ -28,12 +28,12 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background: var(--webui-text-muted);
+    background: var(--webhub-text-muted);
     border-radius: 3px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: var(--webui-text-secondary);
+    background: var(--webhub-text-secondary);
   }
 }
 

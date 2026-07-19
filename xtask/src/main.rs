@@ -101,7 +101,7 @@ fn main() -> ExitCode {
         Some("proto") => match proto_regenerate() {
             Ok(()) => {
                 eprintln!(
-                    "  {} proto regenerated (crates/webui-protocol/src/gen_webui.rs)",
+                    "  {} proto regenerated (crates/webhub-protocol/src/gen_webhub.rs)",
                     console::style("✔").green(),
                 );
                 ExitCode::SUCCESS
@@ -139,7 +139,7 @@ fn usage() -> ExitCode {
            publish-stage [--target <triple|all>] [--profile release] [--native-only|--pack-only]  Stage release artifacts into publish/\n  \
            build-windows-local [--target all|x64|arm64|<triple>]  Build and stage Windows MSVC artifacts locally with cargo-xwin\n  \
            license-headers [--fix]  Check (or fix) license headers in source files\n  \
-           proto  Regenerate src/gen_webui.rs from proto/webui.proto"
+           proto  Regenerate src/gen_webhub.rs from proto/webhub.proto"
     );
     ExitCode::SUCCESS
 }
@@ -149,7 +149,7 @@ fn bench(target: Option<&str>, extra_args: &[&str]) -> ExitCode {
     // the extra args. These map to:
     //   * criterion benches: passed through as `--save-baseline`/`--baseline`
     //   * resource & e2e-ttfb examples: `--save NAME` / `--compare NAME`
-    //   * browser bench: `WEBUI_BENCH_SAVE` / `WEBUI_BENCH_COMPARE` env vars
+    //   * browser bench: `webhub_BENCH_SAVE` / `webhub_BENCH_COMPARE` env vars
     let mut save_baseline: Option<String> = None;
     let mut compare_baseline: Option<String> = None;
     let mut criterion_args: Vec<&str> = Vec::with_capacity(extra_args.len());
@@ -185,7 +185,7 @@ fn bench(target: Option<&str>, extra_args: &[&str]) -> ExitCode {
             // Each phase passes through the baseline flags.
             type BenchPhase = fn(Option<String>, Option<String>) -> ExitCode;
             let phases: &[(&str, BenchPhase)] = &[
-                ("criterion (microsoft-webui)", bench_webui_criterion_phase),
+                ("criterion (microsoft-webhub)", bench_webhub_criterion_phase),
                 ("streaming-resource", bench_resource),
                 ("streaming-e2e-ttfb", bench_e2e_ttfb),
                 ("streaming-browser", bench_browser),
@@ -213,37 +213,37 @@ fn bench(target: Option<&str>, extra_args: &[&str]) -> ExitCode {
             // through as criterion's native flags.
             let mut args: Vec<String> = vec!["bench".to_string()];
             match target {
-                Some("parser") | Some("webui-parser") | Some("microsoft-webui-parser") => {
+                Some("parser") | Some("webhub-parser") | Some("microsoft-webhub-parser") => {
                     args.push("-p".into());
-                    args.push("microsoft-webui-parser".into());
+                    args.push("microsoft-webhub-parser".into());
                 }
-                Some("handler") | Some("webui-handler") | Some("microsoft-webui-handler") => {
+                Some("handler") | Some("webhub-handler") | Some("microsoft-webhub-handler") => {
                     args.push("-p".into());
-                    args.push("microsoft-webui-handler".into());
+                    args.push("microsoft-webhub-handler".into());
                 }
-                Some("protocol") | Some("webui-protocol") | Some("microsoft-webui-protocol") => {
+                Some("protocol") | Some("webhub-protocol") | Some("microsoft-webhub-protocol") => {
                     args.push("-p".into());
-                    args.push("microsoft-webui-protocol".into());
+                    args.push("microsoft-webhub-protocol".into());
                 }
                 Some("expressions")
-                | Some("webui-expressions")
-                | Some("microsoft-webui-expressions") => {
+                | Some("webhub-expressions")
+                | Some("microsoft-webhub-expressions") => {
                     args.push("-p".into());
-                    args.push("microsoft-webui-expressions".into());
+                    args.push("microsoft-webhub-expressions".into());
                 }
-                Some("state") | Some("webui-state") | Some("microsoft-webui-state") => {
+                Some("state") | Some("webhub-state") | Some("microsoft-webhub-state") => {
                     args.push("-p".into());
-                    args.push("microsoft-webui-state".into());
+                    args.push("microsoft-webhub-state".into());
                 }
                 Some("contact-book") => {
                     args.push("-p".into());
-                    args.push("microsoft-webui".into());
+                    args.push("microsoft-webhub".into());
                     args.push("--bench".into());
                     args.push("contact_book_bench".into());
                 }
                 Some("streaming") => {
                     args.push("-p".into());
-                    args.push("microsoft-webui".into());
+                    args.push("microsoft-webhub".into());
                     args.push("--bench".into());
                     args.push("streaming_bench".into());
                 }
@@ -292,11 +292,11 @@ fn bench(target: Option<&str>, extra_args: &[&str]) -> ExitCode {
     }
 }
 
-fn bench_webui_criterion_phase(save: Option<String>, compare: Option<String>) -> ExitCode {
+fn bench_webhub_criterion_phase(save: Option<String>, compare: Option<String>) -> ExitCode {
     let mut args: Vec<String> = vec![
         "bench".into(),
         "-p".into(),
-        "microsoft-webui".into(),
+        "microsoft-webhub".into(),
         "--bench".into(),
         "streaming_bench".into(),
     ];
@@ -328,7 +328,7 @@ fn bench_resource(save: Option<String>, compare: Option<String>) -> ExitCode {
         "--example".into(),
         "streaming_resource_bench".into(),
         "-p".into(),
-        "microsoft-webui".into(),
+        "microsoft-webhub".into(),
     ];
     if save.is_some() || compare.is_some() {
         args.push("--".into());
@@ -358,7 +358,7 @@ fn bench_e2e_ttfb(save: Option<String>, compare: Option<String>) -> ExitCode {
         "--example".into(),
         "streaming_e2e_ttfb_bench".into(),
         "-p".into(),
-        "microsoft-webui".into(),
+        "microsoft-webhub".into(),
     ];
     if save.is_some() || compare.is_some() {
         args.push("--".into());
@@ -393,10 +393,10 @@ fn bench_browser(save: Option<String>, compare: Option<String>) -> ExitCode {
     let mut cmd = Command::new("pnpm");
     cmd.arg("test").current_dir(&bench_dir);
     if let Some(name) = save.as_ref() {
-        cmd.env("WEBUI_BENCH_SAVE", name);
+        cmd.env("webhub_BENCH_SAVE", name);
     }
     if let Some(name) = compare.as_ref() {
-        cmd.env("WEBUI_BENCH_COMPARE", name);
+        cmd.env("webhub_BENCH_COMPARE", name);
     }
     match cmd.status() {
         Ok(status) if status.success() => ExitCode::SUCCESS,
@@ -453,14 +453,14 @@ fn check() -> ExitCode {
 
 // ── Proto generation ────────────────────────────────────────────────────
 
-/// Regenerate `crates/webui-protocol/src/gen_webui.rs` from `proto/webui.proto`.
+/// Regenerate `crates/webhub-protocol/src/gen_webhub.rs` from `proto/webhub.proto`.
 fn proto_regenerate() -> Result<(), String> {
     run_command(
         "cargo",
         &[
             "build",
             "-p",
-            "microsoft-webui-protocol",
+            "microsoft-webhub-protocol",
             "--features",
             "regenerate-proto",
         ],
@@ -468,25 +468,25 @@ fn proto_regenerate() -> Result<(), String> {
     )
 }
 
-/// Check that the committed `gen_webui.rs` matches what prost-build would generate.
+/// Check that the committed `gen_webhub.rs` matches what prost-build would generate.
 fn proto_check() -> Result<(), String> {
     use std::fs;
     use std::path::PathBuf;
 
-    let gen_path = PathBuf::from("crates/webui-protocol/src/gen_webui.rs");
+    let gen_path = PathBuf::from("crates/webhub-protocol/src/gen_webhub.rs");
     let before =
-        fs::read_to_string(&gen_path).map_err(|e| format!("failed to read gen_webui.rs: {e}"))?;
+        fs::read_to_string(&gen_path).map_err(|e| format!("failed to read gen_webhub.rs: {e}"))?;
 
     proto_regenerate()?;
 
     let after = fs::read_to_string(&gen_path)
-        .map_err(|e| format!("failed to read gen_webui.rs after regeneration: {e}"))?;
+        .map_err(|e| format!("failed to read gen_webhub.rs after regeneration: {e}"))?;
 
     if before != after {
         // Restore the original so the working tree isn't modified by the check.
         let _ = fs::write(&gen_path, &before);
         return Err(
-            "gen_webui.rs is out of date with proto/webui.proto. Run: cargo xtask proto"
+            "gen_webhub.rs is out of date with proto/webhub.proto. Run: cargo xtask proto"
                 .to_string(),
         );
     }
@@ -560,14 +560,14 @@ impl Step {
     const DOCS: Self = Self {
         name: "docs",
         run: || {
-            // Build the standalone webui-press binary
-            run_command_quiet("cargo", &["build", "-p", "microsoft-webui-press"], None)?;
-            // `@webui/docs...` builds the docs package AND all of its workspace
-            // dependencies (e.g. `@microsoft/webui-framework`'s tsc compile)
+            // Build the standalone webhub-press binary
+            run_command_quiet("cargo", &["build", "-p", "microsoft-webhub-press"], None)?;
+            // `@webhub/docs...` builds the docs package AND all of its workspace
+            // dependencies (e.g. `@microsoft/webhub-framework`'s tsc compile)
             // so that esbuild can resolve their `exports` to real .js files.
             // Without this, a fresh checkout would fail with
-            // "Could not resolve @microsoft/webui-framework".
-            run_command_quiet("pnpm", &["--filter", "@webui/docs...", "build"], None)
+            // "Could not resolve @microsoft/webhub-framework".
+            run_command_quiet("pnpm", &["--filter", "@webhub/docs...", "build"], None)
         },
     };
     const BENCH_VALIDATE: Self = Self {
@@ -586,7 +586,7 @@ impl Step {
                 &[
                     "bench",
                     "-p",
-                    "microsoft-webui",
+                    "microsoft-webhub",
                     "--bench",
                     "contact_book_bench",
                     "--profile=dev",

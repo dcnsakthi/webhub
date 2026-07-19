@@ -1,13 +1,13 @@
-# Microsoft.WebUI.Runtime
+# Microsoft.webhub.Runtime
 
-Native runtime packages for Microsoft.WebUI.
+Native runtime packages for Microsoft.webhub.
 
-`Microsoft.WebUI.Runtime.<rid>` packages carry the RID-specific `webui_ffi` native library under `runtimes/<rid>/native`. They do not contain managed APIs. The managed `Microsoft.WebUI` package depends on these runtime packages so NuGet restores the native asset for each supported platform.
+`Microsoft.webhub.Runtime.<rid>` packages carry the RID-specific `webhub_ffi` native library under `runtimes/<rid>/native`. They do not contain managed APIs. The managed `Microsoft.webhub` package depends on these runtime packages so NuGet restores the native asset for each supported platform.
 
 Most applications should install the managed package:
 
 ```bash
-dotnet add package Microsoft.WebUI
+dotnet add package Microsoft.webhub
 ```
 
 Reference a runtime package directly only when you are manually assembling native assets for custom packaging or testing.
@@ -16,16 +16,16 @@ Reference a runtime package directly only when you are manually assembling nativ
 
 | Runtime | Package |
 |---------|---------|
-| Windows x64 | `Microsoft.WebUI.Runtime.win-x64` |
-| Windows ARM64 | `Microsoft.WebUI.Runtime.win-arm64` |
-| Linux x64 | `Microsoft.WebUI.Runtime.linux-x64` |
-| Linux ARM64 | `Microsoft.WebUI.Runtime.linux-arm64` |
-| macOS x64 | `Microsoft.WebUI.Runtime.osx-x64` |
-| macOS ARM64 | `Microsoft.WebUI.Runtime.osx-arm64` |
+| Windows x64 | `Microsoft.webhub.Runtime.win-x64` |
+| Windows ARM64 | `Microsoft.webhub.Runtime.win-arm64` |
+| Linux x64 | `Microsoft.webhub.Runtime.linux-x64` |
+| Linux ARM64 | `Microsoft.webhub.Runtime.linux-arm64` |
+| macOS x64 | `Microsoft.webhub.Runtime.osx-x64` |
+| macOS ARM64 | `Microsoft.webhub.Runtime.osx-arm64` |
 
 ## Documentation
 
-See the [WebUI repository](https://github.com/microsoft/webui) for full usage guides and examples.
+See the [webhub repository](https://github.com/microsoft/webhub) for full usage guides and examples.
 
 ## License
 

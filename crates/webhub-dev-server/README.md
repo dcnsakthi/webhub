@@ -1,8 +1,8 @@
-# microsoft-webui-dev-server
+# microsoft-webhub-dev-server
 
-Shared dev-server primitives for WebUI tooling.
+Shared dev-server primitives for webhub tooling.
 
-This crate provides three pieces that any WebUI dev server can compose:
+This crate provides three pieces that any webhub dev server can compose:
 
 - **`LiveReload`** — Server-Sent Events broadcaster. Cheap to clone, ships
   its own actix handler, generates the matching browser-side `<script>`,
@@ -12,15 +12,15 @@ This crate provides three pieces that any WebUI dev server can compose:
 - **`path::*`** — URL path utilities for serving files under a `basePath`
   prefix without traversal vulnerabilities.
 
-Used by `microsoft-webui-press` (static-site preview) and the `webui serve`
+Used by `microsoft-webhub-press` (static-site preview) and the `webhub serve`
 CLI command (HMR for app development).
 
 This crate is not intended for direct end-user consumption; its public API
-follows the WebUI workspace versioning rather than semver.
+follows the webhub workspace versioning rather than semver.
 
 ## Documentation
 
-See the [WebUI repository](https://github.com/microsoft/webui) for full usage guides and examples.
+See the [webhub repository](https://github.com/microsoft/webhub) for full usage guides and examples.
 
 ## License
 

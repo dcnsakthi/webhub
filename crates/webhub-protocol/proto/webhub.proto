@@ -3,11 +3,11 @@
 
 syntax = "proto3";
 
-package webui;
+package webhub;
 
 // Per-component metadata keyed by tag name.
 message ComponentData {
-  // Non-WebUI client-side template payload.
+  // Non-webhub client-side template payload.
   // FAST plugins store complete <f-template> HTML here.
   string template = 1;
   // Component CSS content for the Module strategy.
@@ -19,16 +19,16 @@ message ComponentData {
   // Set to e.g. "/my-card.css" when the component has a CSS file and the
   // build used CssStrategy::Link. Empty for Style/Module strategies and
   // for components without CSS.
-  // The handler uses css_strategy and dom_strategy on WebUIProtocol to
+  // The handler uses css_strategy and dom_strategy on webhubProtocol to
   // decide what to emit in <head>:
   //   Link + Shadow → <link rel="preload"> (shadow root has the stylesheet)
   //   Link + Light  → <link rel="stylesheet"> (no shadow root to host it)
   string css_href = 3;
-  // WebUI plugin JSON-safe component metadata.
+  // webhub plugin JSON-safe component metadata.
   // Stored separately from executable condition closures so handlers can emit
   // the static metadata in application/json data blocks.
   string template_json = 4;
-  // WebUI plugin component-local JavaScript condition closure array.
+  // webhub plugin component-local JavaScript condition closure array.
   // Empty when the component has no conditions or boolean attributes.
   string template_functions = 5;
   // Exact @observable + @attr property keys when hydration_mode is KEYS.
@@ -51,9 +51,9 @@ message ComponentData {
 
 // Build-wide initial-state behavior.
 enum InitialStateStrategy {
-  // Emit the complete state object. Used by default and non-WebUI plugins.
+  // Emit the complete state object. Used by default and non-webhub plugins.
   INITIAL_STATE_STRATEGY_FULL = 0;
-  // Select state from reachable WebUI component surfaces.
+  // Select state from reachable webhub component surfaces.
   INITIAL_STATE_STRATEGY_COMPONENTS = 1;
 }
 
@@ -81,7 +81,7 @@ enum DomStrategy {
 }
 
 // Root protocol containing all fragment records and build metadata.
-message WebUIProtocol {
+message webhubProtocol {
   map<string, FragmentList> fragments = 1;
   // Sorted, deduplicated CSS custom property names used across all components
   // and entry page styles (e.g., "colorBrandBackground", "spacingMedium").
@@ -95,39 +95,39 @@ message WebUIProtocol {
   // Build-wide DOM encapsulation strategy. Combined with css_strategy to
   // decide preload vs stylesheet emission.
   DomStrategy dom_strategy = 5;
-  // Whether initial SSR metadata contains full state or WebUI component
+  // Whether initial SSR metadata contains full state or webhub component
   // projection. Partial-navigation state remains component-driven.
   InitialStateStrategy initial_state_strategy = 6;
 }
 
 // A list of fragments (needed because protobuf maps cannot have repeated values directly).
 message FragmentList {
-  repeated WebUIFragment fragments = 1;
+  repeated webhubFragment fragments = 1;
 }
 
 // A single fragment — one of several types.
-message WebUIFragment {
+message webhubFragment {
   oneof fragment {
-    WebUIFragmentRaw raw = 1;
-    WebUIFragmentComponent component = 2;
-    WebUIFragmentFor for_loop = 3;
-    WebUIFragmentSignal signal = 4;
-    WebUIFragmentIf if_cond = 5;
-    WebUIFragmentAttribute attribute = 6;
-    WebUIFragmentPlugin plugin = 7;
-    WebUIFragmentRoute route = 8;
-    WebUIFragmentOutlet outlet = 9;
+    webhubFragmentRaw raw = 1;
+    webhubFragmentComponent component = 2;
+    webhubFragmentFor for_loop = 3;
+    webhubFragmentSignal signal = 4;
+    webhubFragmentIf if_cond = 5;
+    webhubFragmentAttribute attribute = 6;
+    webhubFragmentPlugin plugin = 7;
+    webhubFragmentRoute route = 8;
+    webhubFragmentOutlet outlet = 9;
   }
 }
 
 // Declarative route definition linking a URL path template to a component.
 // Nested routes are expressed via repeated children.
-message WebUIFragmentRoute {
+message webhubFragmentRoute {
   string path = 1;
   string fragment_id = 2;
   bool exact = 3;
   // Nested child routes rendered at the component's <outlet />.
-  repeated WebUIFragmentRoute children = 4;
+  repeated webhubFragmentRoute children = 4;
   // Comma-separated allowlist of query parameters forwarded as attributes.
   // Empty string means no query params are forwarded (deny-by-default).
   string allowed_query = 5;
@@ -151,46 +151,46 @@ message WebUIFragmentRoute {
 
 // Outlet placeholder — marks where matched child route content renders.
 // Components use this to indicate where nested route children are rendered.
-message WebUIFragmentOutlet {}
+message webhubFragmentOutlet {}
 
 // Opaque plugin-specific data passed from parser plugin to handler plugin.
-// WebUI framework does not interpret this data — it is a pass-through conduit.
+// webhub framework does not interpret this data — it is a pass-through conduit.
 // Each parser/handler plugin pair defines its own binary contract for the data field.
-message WebUIFragmentPlugin {
+message webhubFragmentPlugin {
   bytes data = 1;
 }
 
 // Static text or HTML content.
-message WebUIFragmentRaw {
+message webhubFragmentRaw {
   string value = 1;
 }
 
 // Reference to a reusable component fragment.
-message WebUIFragmentComponent {
+message webhubFragmentComponent {
   string fragment_id = 1;
 }
 
 // Loop directive iterating over a collection.
-message WebUIFragmentFor {
+message webhubFragmentFor {
   string item = 1;
   string collection = 2;
   string fragment_id = 3;
 }
 
 // Dynamic data binding via signal.
-message WebUIFragmentSignal {
+message webhubFragmentSignal {
   string value = 1;
   bool raw = 2;
 }
 
 // Conditional rendering fragment.
-message WebUIFragmentIf {
+message webhubFragmentIf {
   ConditionExpr condition = 1;
   string fragment_id = 2;
 }
 
 // Dynamic attribute binding.
-message WebUIFragmentAttribute {
+message webhubFragmentAttribute {
   string name = 1;
   // For simple dynamic attrs, the signal name.
   string value = 2;

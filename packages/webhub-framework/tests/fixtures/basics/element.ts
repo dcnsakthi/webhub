@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr, observable } from '../../../src/index.js';
+import { webhubElement, attr, observable } from '../../../src/index.js';
 
-export class TestBasics extends WebUIElement {
+export class TestBasics extends webhubElement {
   @attr greeting = 'Hello';
   @observable name = 'World';
   @observable count = 0;

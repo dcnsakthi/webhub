@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-// WebUI Docs — hydration entry point.
+// webhub Docs — hydration entry point.
 // Imports interactive components for client-side behavior.
 
 import "./docs-theme-toggle/docs-theme-toggle.js";

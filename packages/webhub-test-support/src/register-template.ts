@@ -4,7 +4,7 @@
 /**
  * Minimal template registration utilities for E2E test fixtures.
  *
- * Most fixtures now use real WebUI HTML templates compiled by the pipeline
+ * Most fixtures now use real webhub HTML templates compiled by the pipeline
  * (see fixture-render.ts). These helpers remain for edge cases that need
  * programmatic template registration (e.g. light-DOM hydration tests,
  * client-created component tests).
@@ -13,7 +13,7 @@
 import type {
   CompiledConditionFn,
   TemplateMeta,
-} from '../../webui-framework/src/template-types.js';
+} from '../../webhub-framework/src/template-types.js';
 
 export type { CompiledConditionFn, TemplateMeta };
 
@@ -27,22 +27,22 @@ export function registerCompiledTemplate(
   fns?: CompiledConditionFn[],
 ): void {
   const w = window as unknown as {
-    __webui?: {
+    __webhub?: {
       templates?: Record<string, TemplateMeta>;
       templateFns?: Record<string, CompiledConditionFn[]>;
       [k: string]: unknown;
     };
   };
-  if (!w.__webui) w.__webui = {};
-  if (!w.__webui.templates) w.__webui.templates = {};
-  w.__webui.templates[name] = meta;
+  if (!w.__webhub) w.__webhub = {};
+  if (!w.__webhub.templates) w.__webhub.templates = {};
+  w.__webhub.templates[name] = meta;
   if (fns) {
-    if (!w.__webui.templateFns) w.__webui.templateFns = {};
-    w.__webui.templateFns[name] = fns;
+    if (!w.__webhub.templateFns) w.__webhub.templateFns = {};
+    w.__webhub.templateFns[name] = fns;
   }
 }
 
 /** Render a static template registration as an inline `<script>` tag. */
 export function renderTemplateScript(name: string, meta: TemplateMeta): string {
-  return `<script>window.__webui=window.__webui||{};window.__webui.templates=window.__webui.templates||{};window.__webui.templates[${JSON.stringify(name)}]=${JSON.stringify(meta)};</script>`;
+  return `<script>window.__webhub=window.__webhub||{};window.__webhub.templates=window.__webhub.templates||{};window.__webhub.templates[${JSON.stringify(name)}]=${JSON.stringify(meta)};</script>`;
 }

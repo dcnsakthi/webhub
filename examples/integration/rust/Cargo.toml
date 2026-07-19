@@ -1,17 +1,17 @@
 [package]
-name = "webui-rust-example"
+name = "webhub-rust-example"
 version = "0.1.0"
 edition = "2021"
 publish = false
 
 [[bin]]
-name = "webui-rust-example"
+name = "webhub-rust-example"
 path = "src/main.rs"
 
 [dependencies]
 serde_json = { workspace = true }
-microsoft-webui-protocol = { path = "../../../crates/webui-protocol" }
-microsoft-webui-handler = { path = "../../../crates/webui-handler" }
+microsoft-webhub-protocol = { path = "../../../crates/webhub-protocol" }
+microsoft-webhub-handler = { path = "../../../crates/webhub-handler" }
 anyhow = { workspace = true }
 
 [lints]

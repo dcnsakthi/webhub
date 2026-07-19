@@ -10,11 +10,11 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.6" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Microsoft.WebUI/Microsoft.WebUI.csproj" />
+    <ProjectReference Include="../../src/Microsoft.webhub/Microsoft.webhub.csproj" />
   </ItemGroup>
 
   <!--
-    Compile the fixture app with the webui CLI at build time rather than
+    Compile the fixture app with the webhub CLI at build time rather than
     committing a prebuilt protocol binary. No projection manifest is supplied,
     so the resulting protocol exercises the full-state safety fallback.
 
@@ -28,6 +28,6 @@
           Outputs="$(OutDir)fixtures/projection-app/protocol.bin">
     <MakeDir Directories="$(OutDir)fixtures/projection-app" />
     <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
-          Command="cargo run --quiet -p microsoft-webui-cli -- build fixtures/projection-app --out &quot;$(OutDir)fixtures/projection-app/protocol.bin&quot; --plugin webui" />
+          Command="cargo run --quiet -p microsoft-webhub-cli -- build fixtures/projection-app --out &quot;$(OutDir)fixtures/projection-app/protocol.bin&quot; --plugin webhub" />
   </Target>
 </Project>

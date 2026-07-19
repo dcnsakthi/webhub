@@ -5,16 +5,16 @@
  * End-to-end tests for the Contact Book Manager app.
  *
  * Tests SSR rendering, client-side navigation, and visual regression.
- * The app uses shadow DOM components (cb-*) with WebUI Framework templating.
+ * The app uses shadow DOM components (cb-*) with webhub Framework templating.
  */
 
 import { test, expect, type Page } from '@playwright/test';
 
 function bootstrapStateFromHtml(html: string): Record<string, unknown> {
   const match = html.match(
-    /<script[^>]+id=["']webui-data["'][^>]*>(.*?)<\/script>/s,
+    /<script[^>]+id=["']webhub-data["'][^>]*>(.*?)<\/script>/s,
   );
-  if (!match?.[1]) throw new Error('#webui-data bootstrap block missing');
+  if (!match?.[1]) throw new Error('#webhub-data bootstrap block missing');
   return (JSON.parse(match[1]) as { state?: Record<string, unknown> }).state ?? {};
 }
 

@@ -5,15 +5,15 @@ import { expect, test, type Page } from '@playwright/test';
 
 type LazyResource = 'asset' | 'css' | 'data' | 'module';
 
-interface WebUIWindow {
-  __webui?: {
+interface webhubWindow {
+  __webhub?: {
     templates?: Record<string, unknown>;
   };
 }
 
 function classifyLazyResource(url: string): LazyResource | undefined {
   const { pathname } = new URL(url);
-  if (pathname.endsWith('/lazy-panel.webui.js')) return 'asset';
+  if (pathname.endsWith('/lazy-panel.webhub.js')) return 'asset';
   if (pathname.endsWith('/lazy-panel.css')) return 'css';
   if (pathname.endsWith('/lazy-panel-data.json')) return 'data';
   if (pathname.includes('/chunks/lazy-panel-') && pathname.endsWith('.js')) {
@@ -28,8 +28,8 @@ function countLazyRequests(requests: LazyResource[], resource: LazyResource): nu
 
 async function loadedTemplateNames(page: Page): Promise<string[]> {
   return page.evaluate(() => {
-    const webui = (window as typeof window & WebUIWindow).__webui;
-    return Object.keys(webui?.templates ?? {}).sort();
+    const webhub = (window as typeof window & webhubWindow).__webhub;
+    return Object.keys(webhub?.templates ?? {}).sort();
   });
 }
 

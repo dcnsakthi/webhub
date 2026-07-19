@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from "@microsoft/webui-framework";
+import { webhubElement, attr } from "@microsoft/webhub-framework";
 
-export class WebUIBlockquote extends WebUIElement {
+export class webhubBlockquote extends webhubElement {
   @attr appearance: string = "info";
   @attr title: string = "";
   @attr icon: string = "ℹ️";
 }
 
-WebUIBlockquote.define("webui-blockquote");
+webhubBlockquote.define("webhub-blockquote");

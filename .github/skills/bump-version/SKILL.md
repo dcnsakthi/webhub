@@ -1,11 +1,11 @@
 ---
 name: bump-version
-description: Bump WebUI to an input release version, run the full gate, and prepare a release PR with bucketed changes since the previous v-prefixed tag.
+description: Bump webhub to an input release version, run the full gate, and prepare a release PR with bucketed changes since the previous v-prefixed tag.
 ---
 
 # Bump Version Release PR
 
-Use this skill when preparing a WebUI release version bump PR.
+Use this skill when preparing a webhub release version bump PR.
 
 ## Inputs
 
@@ -38,7 +38,7 @@ Use `v<version>` only when comparing or creating Git tags.
    cargo xtask check
    ```
 
-5. Find the previous release tag. WebUI release tags are prefixed with `v`:
+5. Find the previous release tag. webhub release tags are prefixed with `v`:
 
    ```bash
    previous_tag=$(git tag --list 'v[0-9]*' --sort=-v:refname | grep -v "^v<version>$" | head -n 1)
@@ -93,7 +93,7 @@ Do not include commit SHAs in the PR release notes. If a commit subject already 
 ```markdown
 ## Release
 
-Bumps WebUI to `<version>`.
+Bumps webhub to `<version>`.
 
 Previous release tag: `<previous_tag>`
 

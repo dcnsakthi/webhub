@@ -6,7 +6,7 @@ using System.IO;
 using System.Text.Json;
 using Xunit;
 
-namespace Microsoft.WebUI.Tests;
+namespace Microsoft.webhub.Tests;
 
 public class ProtocolTests
 {

@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! High-level server helper for custom Rust servers using `webui-router`.
+//! High-level server helper for custom Rust servers using `webhub-router`.
 //!
 //! This module provides [`serve_request`] which encapsulates:
 //! - Route parameter extraction from the URL
-//! - HTML SSR rendering via [`WebUIHandler`]
+//! - HTML SSR rendering via [`webhubHandler`]
 //! - JSON partial responses for client-side navigation
 //! - Template inventory management
 //!
 //! # Example
 //!
 //! ```rust,ignore
-//! use webui::server::{serve_request, ServeRequest, ServeResponse};
+//! use webhub::server::{serve_request, ServeRequest, ServeResponse};
 //!
 //! let request = ServeRequest {
 //!     path: "/email/thread-5",
@@ -27,9 +27,9 @@
 //! }
 //! ```
 
-use crate::{Protocol, ResponseWriter, WebUIHandler};
-use webui_handler::route_handler;
-use webui_handler::RenderOptions;
+use crate::{Protocol, ResponseWriter, webhubHandler};
+use webhub_handler::route_handler;
+use webhub_handler::RenderOptions;
 
 /// A server request to be handled by [`serve_request`].
 pub struct ServeRequest<'a> {
@@ -39,7 +39,7 @@ pub struct ServeRequest<'a> {
     /// Check `Accept: application/json` in request headers.
     pub accept_json: bool,
     /// The client's current template inventory (hex bitmask).
-    /// Read from `X-WebUI-Inventory` request header. Empty string if not present.
+    /// Read from `X-webhub-Inventory` request header. Empty string if not present.
     pub inventory_hex: &'a str,
 }
 
@@ -47,22 +47,22 @@ pub struct ServeRequest<'a> {
 pub enum ServeResponse {
     /// Full HTML page for initial load or browser refresh.
     Html(String),
-    /// JSON partial for client-side navigation via `webui-router`.
+    /// JSON partial for client-side navigation via `webhub-router`.
     Json(String),
 }
 
 /// Handle a server request with automatic route handling.
 ///
 /// For HTML requests: renders the full page with route-matched SSR.
-/// The handler emits a consolidated `window.__webui` script block
+/// The handler emits a consolidated `window.__webhub` script block
 /// containing state, chain, inventory, and template metadata.
 ///
 /// For JSON requests: returns a partial response with route-scoped state,
-/// needed templates, and inventory for the `webui-router` client.
+/// needed templates, and inventory for the `webhub-router` client.
 ///
 /// # Arguments
-/// - `protocol` — The compiled WebUI protocol from [`build`](crate::build)
-/// - `handler` — The WebUI handler (with plugin configured)
+/// - `protocol` — The compiled webhub protocol from [`build`](crate::build)
+/// - `handler` — The webhub handler (with plugin configured)
 /// - `state` — The state JSON to render. For HTML requests, this should be
 ///   the full app state. For JSON requests, the caller should provide
 ///   route-scoped state (only what the target page component needs).
@@ -73,7 +73,7 @@ pub enum ServeResponse {
 /// and injected into the state object.
 pub fn serve_request(
     protocol: &Protocol,
-    handler: &WebUIHandler,
+    handler: &webhubHandler,
     state: serde_json::Value,
     entry: &str,
     request: &ServeRequest<'_>,
@@ -96,7 +96,7 @@ pub fn serve_request(
             .map_err(|e| format!("render_partial failed: {e}"))?;
         Ok(ServeResponse::Json(partial))
     } else {
-        // Full HTML SSR — handler emits the consolidated window.__webui
+        // Full HTML SSR — handler emits the consolidated window.__webhub
         // script block (state, chain, inventory, templates) automatically.
         let mut writer = MemWriter::with_capacity(131_072);
         let opts = RenderOptions::new(entry, request.path);
@@ -121,12 +121,12 @@ impl MemWriter {
 }
 
 impl ResponseWriter for MemWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.buf.push_str(content);
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -136,7 +136,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use std::collections::HashMap;
-    use webui_protocol::{FragmentList, WebUIFragment, WebUIProtocol};
+    use webhub_protocol::{FragmentList, webhubFragment, webhubProtocol};
 
     fn response_json(response: ServeResponse) -> serde_json::Value {
         match response {
@@ -153,17 +153,17 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-page")],
+                fragments: vec![webhubFragment::component("my-page")],
             },
         );
         fragments.insert(
             "my-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>page</p>")],
+                fragments: vec![webhubFragment::raw("<p>page</p>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let component = protocol
             .components
             .entry("my-page".to_string())
@@ -172,7 +172,7 @@ mod tests {
         component.css = ".page{color:red}".to_string();
         let protocol = Protocol::new(protocol);
 
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let request = ServeRequest {
             path: "/",
             accept_json: true,
@@ -206,17 +206,17 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-page")],
+                fragments: vec![webhubFragment::component("my-page")],
             },
         );
         fragments.insert(
             "my-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>page</p>")],
+                fragments: vec![webhubFragment::raw("<p>page</p>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let comp = protocol
             .components
             .entry("my-page".to_string())
@@ -226,7 +226,7 @@ mod tests {
         // No css content — Link strategy
         let protocol = Protocol::new(protocol);
 
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let request = ServeRequest {
             path: "/",
             accept_json: true,
@@ -256,17 +256,17 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-page")],
+                fragments: vec![webhubFragment::component("my-page")],
             },
         );
         fragments.insert(
             "my-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>page</p>")],
+                fragments: vec![webhubFragment::raw("<p>page</p>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let comp = protocol
             .components
             .entry("my-page".to_string())
@@ -275,7 +275,7 @@ mod tests {
         comp.template_json = r#"{"h":"<style>.p{color:red}</style><p/>"}"#.to_string();
         let protocol = Protocol::new(protocol);
 
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let request = ServeRequest {
             path: "/",
             accept_json: true,

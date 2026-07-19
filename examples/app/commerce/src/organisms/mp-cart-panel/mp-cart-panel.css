@@ -17,11 +17,11 @@
   height: 100dvh;
   margin: 0;
   padding: 0;
-  background: color-mix(in oklch, var(--webui-bg) 75%, transparent);
+  background: color-mix(in oklch, var(--webhub-bg) 75%, transparent);
   backdrop-filter: blur(32px) saturate(1.4);
   -webkit-backdrop-filter: blur(32px) saturate(1.4);
   border: none;
-  border-left: 1px solid var(--webui-border);
+  border-left: 1px solid var(--webhub-border);
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -68,7 +68,7 @@
 .panel-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--webui-text);
+  color: var(--webhub-text);
   margin: 0;
 }
 
@@ -78,9 +78,9 @@
   justify-content: center;
   width: 2.75rem;
   height: 2.75rem;
-  border: 1px solid var(--webui-border);
-  background: color-mix(in oklch, var(--webui-surface-alt) 75%, transparent);
-  color: var(--webui-text);
+  border: 1px solid var(--webhub-border);
+  background: color-mix(in oklch, var(--webhub-surface-alt) 75%, transparent);
+  color: var(--webhub-text);
   cursor: pointer;
   border-radius: 0.375rem;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
@@ -88,8 +88,8 @@
 }
 
 .close-btn:hover {
-  border-color: var(--webui-border-strong);
-  background: color-mix(in oklch, var(--webui-surface) 85%, transparent);
+  border-color: var(--webhub-border-strong);
+  background: color-mix(in oklch, var(--webhub-surface) 85%, transparent);
 }
 
 .close-icon {
@@ -104,7 +104,7 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  color: var(--webui-text-secondary);
+  color: var(--webhub-text-secondary);
   padding: 0 1.5rem;
 }
 
@@ -131,7 +131,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: var(--webui-border) transparent;
+  scrollbar-color: var(--webhub-border) transparent;
 }
 
 .cart-line {
@@ -140,16 +140,16 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 1rem 0.25rem;
-  border-bottom: 1px solid var(--webui-border);
+  border-bottom: 1px solid var(--webhub-border);
 }
 
 .item-image {
   position: relative;
   width: 4rem;
   height: 4rem;
-  border: 1px solid var(--webui-border);
+  border: 1px solid var(--webhub-border);
   border-radius: 0.375rem;
-  background: var(--webui-surface-alt);
+  background: var(--webhub-surface-alt);
   flex: 0 0 4rem;
   overflow: visible;
 }
@@ -172,19 +172,19 @@
   justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
-   border: 1px solid color-mix(in oklch, var(--webui-border) 28%, transparent);
+   border: 1px solid color-mix(in oklch, var(--webhub-border) 28%, transparent);
    border-radius: 9999px;
-   background: color-mix(in oklch, var(--webui-text) 88%, transparent);
-   color: color-mix(in oklch, var(--webui-bg) 86%, transparent);
+   background: color-mix(in oklch, var(--webhub-text) 88%, transparent);
+   color: color-mix(in oklch, var(--webhub-bg) 86%, transparent);
    cursor: pointer;
    transform: translate(-0.375rem, -0.375rem);
    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .remove-btn:hover {
-   background: var(--webui-text);
-   color: var(--webui-bg);
-   border-color: color-mix(in oklch, var(--webui-border) 16%, transparent);
+   background: var(--webhub-text);
+   color: var(--webhub-bg);
+   border-color: color-mix(in oklch, var(--webhub-border) 16%, transparent);
 }
 
 .remove-icon {
@@ -207,7 +207,7 @@
   font-size: 1rem;
   line-height: 1.25rem;
   font-weight: 400;
-  color: var(--webui-text);
+  color: var(--webhub-text);
   text-decoration: none;
 }
 
@@ -218,7 +218,7 @@
 .item-variant {
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: var(--webui-text-secondary);
+  color: var(--webhub-text-secondary);
   margin: 0;
 }
 
@@ -244,7 +244,7 @@
 .item-price {
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: var(--webui-text);
+  color: var(--webhub-text);
 }
 
 .item-price > mp-price {
@@ -254,7 +254,7 @@
 .qty-control {
   display: flex;
   align-items: center;
-  border: 1px solid var(--webui-border);
+  border: 1px solid var(--webhub-border);
   border-radius: 9999px;
   min-width: 6.125rem;
   height: 2.25rem;
@@ -273,7 +273,7 @@
   height: 100%;
   border: none;
   background: transparent;
-  color: var(--webui-text);
+  color: var(--webhub-text);
   cursor: pointer;
   border-radius: 9999px;
   transition: background 0.15s;
@@ -303,7 +303,7 @@
   font-size: 0.875rem;
   line-height: 1.25rem;
   font-weight: 400;
-  color: var(--webui-text);
+  color: var(--webhub-text);
   user-select: none;
 }
 
@@ -318,14 +318,14 @@
   justify-content: space-between;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: var(--webui-text-secondary);
+  color: var(--webhub-text-secondary);
   padding: 0 0 0.25rem;
   margin: 0 0 0.75rem;
 }
 
 .total-breakdown,
 .total-final {
-  border-bottom: 1px solid var(--webui-border);
+  border-bottom: 1px solid var(--webhub-border);
 }
 
 .shipping-row {
@@ -337,12 +337,12 @@
 }
 
 .total-value {
-  color: var(--webui-text);
+  color: var(--webhub-text);
   text-align: right;
 }
 
 .total-final {
-  color: var(--webui-text);
+  color: var(--webhub-text);
   margin-bottom: 1rem;
 }
 
@@ -350,7 +350,7 @@
   width: 100%;
   border-radius: 9999px;
   border: none;
-  background: var(--webui-accent);
+  background: var(--webhub-accent);
   color: #fff;
   padding: 0.75rem;
   font-size: 0.875rem;

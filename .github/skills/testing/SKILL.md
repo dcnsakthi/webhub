@@ -12,7 +12,7 @@ Use this skill when writing or modifying tests in this repository.
 Unit tests live alongside code in `#[cfg(test)]` modules. Integration tests go in each crate's `tests/` directory.
 
 ```bash
-cargo test -p microsoft-webui-handler   # one crate
+cargo test -p microsoft-webhub-handler   # one crate
 cargo test --workspace                   # all crates
 cargo xtask test                         # via xtask (part of quality gate)
 ```
@@ -28,18 +28,18 @@ Every code change ships with tests:
 
 Never remove, weaken, or `#[ignore]` an existing test unless explicitly asked.
 
-## Shared test utilities (`webui-test-utils`)
+## Shared test utilities (`webhub-test-utils`)
 
-The `webui-test-utils` crate provides common Rust test helpers, builders, and fixtures. Check it before writing new helpers - avoid duplicating across crates.
+The `webhub-test-utils` crate provides common Rust test helpers, builders, and fixtures. Check it before writing new helpers - avoid duplicating across crates.
 
 ```toml
 [dev-dependencies]
-webui-test-utils = { path = "../webui-test-utils" }
+webhub-test-utils = { path = "../webhub-test-utils" }
 ```
 
-## webui-framework E2E fixtures
+## webhub-framework E2E fixtures
 
-The `packages/webui-framework` package uses Playwright for E2E tests. Each fixture is a mini WebUI app compiled and rendered by the real pipeline.
+The `packages/webhub-framework` package uses Playwright for E2E tests. Each fixture is a mini webhub app compiled and rendered by the real pipeline.
 
 See `tests/fixtures/README.md` for the full reference.
 
@@ -50,17 +50,17 @@ tests/fixtures/<name>/
   src/
     index.html                 Page template (uses the component)
     <tag-name>/
-      <tag-name>.html          Component template (real WebUI syntax)
+      <tag-name>.html          Component template (real webhub syntax)
       <tag-name>.css           Component CSS (optional)
   state.json                   Initial render state (all bound properties)
   element.ts                   Component class (NO template registration)
   <name>.spec.ts               Playwright tests
-  webui.config.json            Build options override (optional)
+  webhub.config.json            Build options override (optional)
 ```
 
 ### How it works
 
-The test server (`fixture-render.ts`) auto-discovers fixtures with `src/index.html`, calls `@microsoft/webui` `build()` + `render()` to produce SSR HTML with template IIFEs, hydration markers, and inventory. The result is served at `/<name>/fixture.html`.
+The test server (`fixture-render.ts`) auto-discovers fixtures with `src/index.html`, calls `@microsoft/webhub` `build()` + `render()` to produce SSR HTML with template IIFEs, hydration markers, and inventory. The result is served at `/<name>/fixture.html`.
 
 ### Creating a new fixture
 
@@ -96,9 +96,9 @@ The test server (`fixture-render.ts`) auto-discovers fixtures with `src/index.ht
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr, observable } from '../../../src/index.js';
+import { webhubElement, attr, observable } from '../../../src/index.js';
 
-export class TestWidget extends WebUIElement {
+export class TestWidget extends webhubElement {
   @attr label = 'Hello';
   @observable count = 0;
 
@@ -175,7 +175,7 @@ With `state.json`: `{ "showChild": false }`.
 
 ### Per-fixture build config
 
-Create `webui.config.json` to override build options:
+Create `webhub.config.json` to override build options:
 
 ```json
 { "css": "module" }
@@ -183,21 +183,21 @@ Create `webui.config.json` to override build options:
 
 ### Light-DOM fixtures
 
-The pipeline always produces shadow DOM. For light-DOM hydration tests, use manual template registration with `registerCompiledTemplate` from `@microsoft/webui-test-support` and a hand-written `fixture.html`. See `fixtures/light-dom/` for the pattern.
+The pipeline always produces shadow DOM. For light-DOM hydration tests, use manual template registration with `registerCompiledTemplate` from `@microsoft/webhub-test-support` and a hand-written `fixture.html`. See `fixtures/light-dom/` for the pattern.
 
 ### Running framework E2E tests
 
 ```bash
-cd packages/webui-framework
+cd packages/webhub-framework
 pnpm build                    # build the framework
 pnpm test                     # unit + E2E tests
 npx playwright test           # E2E only
 npx playwright test tests/fixtures/<name>/  # one fixture
 ```
 
-### Test support package (`@microsoft/webui-test-support`)
+### Test support package (`@microsoft/webhub-test-support`)
 
-The `packages/webui-test-support` package provides:
+The `packages/webhub-test-support` package provides:
 
 - **`registerCompiledTemplate(name, meta)`** — register a raw `TemplateMeta` object (for manual/light-DOM fixtures)
 - **`renderTemplateScript(name, meta)`** — render a template as an inline `<script>` tag

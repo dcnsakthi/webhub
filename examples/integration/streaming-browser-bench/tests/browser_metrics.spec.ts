@@ -20,9 +20,9 @@
  *
  * # Baseline workflow (before/after comparison)
  *
- *   WEBUI_BENCH_SAVE=before pnpm test     # save current numbers as 'before'
+ *   webhub_BENCH_SAVE=before pnpm test     # save current numbers as 'before'
  *   …make change…
- *   WEBUI_BENCH_COMPARE=before pnpm test  # run + diff vs 'before'
+ *   webhub_BENCH_COMPARE=before pnpm test  # run + diff vs 'before'
  *
  * Baselines live at `target/bench-baselines/browser-<name>.json`.
  */
@@ -206,7 +206,7 @@ function saveSnapshot(name: string, rows: SnapshotRow[]): void {
 function loadSnapshot(name: string): Snapshot | null {
   const path = snapshotPath(name);
   if (!existsSync(path)) {
-    console.log(`\ncompare: baseline '${name}' not found at ${path} — run with WEBUI_BENCH_SAVE=${name} first`);
+    console.log(`\ncompare: baseline '${name}' not found at ${path} — run with webhub_BENCH_SAVE=${name} first`);
     return null;
   }
   const snap = JSON.parse(readFileSync(path, 'utf-8')) as Snapshot;
@@ -322,8 +322,8 @@ test.describe('Browser-perceived metrics: buffered vs streaming SSR', () => {
     expect(stream.ttfbMsMedian).toBeLessThan(buf.ttfbMsMedian / 5);
 
     // Baseline save / compare via env vars.
-    const saveName = process.env.WEBUI_BENCH_SAVE;
-    const compareName = process.env.WEBUI_BENCH_COMPARE;
+    const saveName = process.env.webhub_BENCH_SAVE;
+    const compareName = process.env.webhub_BENCH_COMPARE;
     if (saveName) {
       saveSnapshot(saveName, snapshotRows);
     }

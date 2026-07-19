@@ -1,7 +1,7 @@
-# WebUI Demo Shell
+# webhub Demo Shell
 
-A unified demo that hosts all WebUI example apps behind a single Rust reverse-proxy.
-The shell UI itself is a real WebUI app — the `<for>` loop, `?disabled` boolean
+A unified demo that hosts all webhub example apps behind a single Rust reverse-proxy.
+The shell UI itself is a real webhub app — the `<for>` loop, `?disabled` boolean
 attributes on the prev/next buttons, and `?selected` on the dropdown options are
 all driven by server-rendered state.
 
@@ -9,14 +9,14 @@ all driven by server-rendered state.
 
 ```
 Browser → :8080 → Demo Shell (Rust/actix-web)
-                    ├── /              → SSR shell (examples/demo/src) via WebUIHandler
+                    ├── /              → SSR shell (examples/demo/src) via webhubHandler
                     ├── /_shell/*      → Bundled shell client (examples/demo/dist/index.js)
                     ├── /{app}/*       → Reverse proxy → internal app server
                     ├── /api/apps      → App registry (JSON)
                     └── /health        → Health status
 ```
 
-The shell's protocol is compiled in-process at startup via `webui::build()`.
+The shell's protocol is compiled in-process at startup via `webhub::build()`.
 Each request renders that cached protocol against a fresh JSON state derived
 from the discovered app registry — so the dropdown, prev/next disabled flags,
 badge, description, counter, and source link are populated entirely by server
@@ -30,8 +30,8 @@ auto-discovers them by scanning for `demo.toml` files in the apps directory.
 
 ```bash
 # From the repository root:
-docker build -t webui-demo -f examples/demo/Dockerfile .
-docker run -p 8080:8080 webui-demo
+docker build -t webhub-demo -f examples/demo/Dockerfile .
+docker run -p 8080:8080 webhub-demo
 ```
 
 Then open http://localhost:8080.
@@ -44,10 +44,10 @@ examples/demo/
 │   ├── index.html          ← Shell entry template (uses <for>, ?disabled, etc.)
 │   └── index.ts            ← Client navigation script (vanilla JS)
 ├── data/
-│   └── state.json          ← Sample state for solo dev (`webui serve`)
+│   └── state.json          ← Sample state for solo dev (`webhub serve`)
 ├── dist/
 │   ├── index.js            ← Bundled client (produced by `pnpm build`)
-│   └── webui-projection.json ← Build-time state projection manifest
+│   └── webhub-projection.json ← Build-time state projection manifest
 ├── server/                 ← Rust reverse-proxy + SSR host (binary: demo-shell)
 └── README.md
 ```
@@ -62,12 +62,12 @@ description = "A calculator with basic and scientific mode"
 backend = "rust"                    # rust | node | rust-and-node | wasm | dotnet
 
 [server]
-type = "webui-cli"                  # webui-cli | custom-binary
-plugin = "webui"                    # plugin identifier (see WebUI docs)
+type = "webhub-cli"                  # webhub-cli | custom-binary
+plugin = "webhub"                    # plugin identifier (see webhub docs)
 source = "src"                      # Source directory
 servedir = "dist"                   # Static assets directory
 state = "data/state.json"           # Optional state file
-theme = "@microsoft/webui-examples-theme"  # Optional theme
+theme = "@microsoft/webhub-examples-theme"  # Optional theme
 
 # Optional: separate API server
 [api]
@@ -92,7 +92,7 @@ Options:
   --port <PORT>            Port to listen on [default: 8080]
   --apps-dir <APPS_DIR>    Directory with app subdirectories [default: ./apps]
   --base-port <BASE_PORT>  Base port for dynamic assignment [default: 3100]
-  --shell-dir <SHELL_DIR>  Shell WebUI app directory [default: ./examples/demo]
+  --shell-dir <SHELL_DIR>  Shell webhub app directory [default: ./examples/demo]
 ```
 
 ## Local Development (without Docker)
@@ -103,8 +103,8 @@ Build the shell client bundle once, then start the shell:
 # 1. Build the shell client bundle
 cd examples/demo && pnpm install && pnpm build && cd ../..
 
-# 2. Make sure the webui CLI is on your PATH (or install it):
-cargo install --path crates/webui-cli
+# 2. Make sure the webhub CLI is on your PATH (or install it):
+cargo install --path crates/webhub-cli
 #   …or run with:  PATH="$PWD/target/debug:$PATH" cargo run -p demo-shell -- ...
 
 # 3. Pre-build each example app's client assets (run `pnpm build`
@@ -124,11 +124,11 @@ cd examples/demo && pnpm start:server    # serves examples/demo/src on :3099
 
 | App | Backend | Description |
 |-----|---------|-------------|
-| Calculator | Rust | Scientific calculator (WebUI Framework) |
+| Calculator | Rust | Scientific calculator (webhub Framework) |
 | Commerce | Rust | Full e-commerce marketplace (custom Actix server) |
-| Component Assets | Rust | No-router app that loads a deferred component from a static WebUI asset |
+| Component Assets | Rust | No-router app that loads a deferred component from a static webhub asset |
 | Contact Book | Rust + Node | CRUD contact manager with REST API |
-| Hello World | Rust | Minimal WebUI starter app |
+| Hello World | Rust | Minimal webhub starter app |
 | Routes | Rust + Node | Multi-page routed app with Node.js API |
 | Todo (Fast) | Rust | Todo app (fast plugin) |
-| Todo (WebUI) | Rust | Todo app (webui plugin) |
+| Todo (webhub) | Rust | Todo app (webhub plugin) |

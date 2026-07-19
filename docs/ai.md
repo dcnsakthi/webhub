@@ -2,17 +2,17 @@
 layout: page
 ---
 
-# WebUI Framework - AI Reference
+# webhub Framework - AI Reference
 
 > **Single-page reference for LLMs.** This page contains everything an AI coding
-> assistant needs to generate correct WebUI Framework code. It covers the SSR
+> assistant needs to generate correct webhub Framework code. It covers the SSR
 > model, template syntax, component authoring, CLI commands, and known
 > constraints. Bookmark this page and feed it to your AI when working with
-> WebUI.
+> webhub.
 
-## What is WebUI Framework?
+## What is webhub Framework?
 
-WebUI is a **language-agnostic server-side rendering framework**. Templates
+webhub is a **language-agnostic server-side rendering framework**. Templates
 are compiled to a binary Protocol Buffer at build time. At runtime, any
 backend (Rust, Node, Go, C#, Python) fills in JSON state and produces HTML.
 On the client, interactive Web Components hydrate as islands.
@@ -32,7 +32,7 @@ On the client, interactive Web Components hydrate as islands.
 BUILD TIME          SERVER RENDER         CLIENT HYDRATION
 ─────────────       ──────────────        ─────────────────
 HTML + CSS + TS →   protocol.bin    →     Web Components
-webui build         + JSON state          hydrate as islands
+webhub build         + JSON state          hydrate as islands
                     → rendered HTML
 ```
 
@@ -55,7 +55,7 @@ webui build         + JSON state          hydrate as islands
    property writes, or soft navigation. Events, lifecycle code, decorators, and
    imperative APIs need a same-named `.ts` or `.js` module.
 
-5. **Hydration state is client-facing.** Initial `#webui-data.state` is
+5. **Hydration state is client-facing.** Initial `#webhub-data.state` is
    projected to hydration keys for components reachable on the active route.
    This reduces CPU and bytes, but it is not a secrecy boundary. Never put
    credentials or private tokens in browser render state.
@@ -80,7 +80,7 @@ my-app/
 │   └── state.json              ← Server state for dev
 ├── dist/
 │   ├── index.js                ← Browser entry/chunks
-│   └── webui-projection.json   ← Build-time state projection sidecar
+│   └── webhub-projection.json   ← Build-time state projection sidecar
 └── package.json
 ```
 
@@ -275,7 +275,7 @@ All attributes are validated at build time. Referencing a non-existent `pending`
 - `Router.invalidate(path?)` - evict by path or all
 
 **Server headers:**
-- `X-WebUI-Inventory` header: hex bitmask of loaded templates - server skips re-sending
+- `X-webhub-Inventory` header: hex bitmask of loaded templates - server skips re-sending
 
 ### Outlet
 
@@ -287,12 +287,12 @@ All attributes are validated at build time. Referencing a non-existent `pending`
 
 ## Component Class
 
-Every interactive component extends `WebUIElement`:
+Every interactive component extends `webhubElement`:
 
 ```typescript
-import { WebUIElement, attr, observable } from '@microsoft/webui-framework';
+import { webhubElement, attr, observable } from '@microsoft/webhub-framework';
 
-export class MyComponent extends WebUIElement {
+export class MyComponent extends webhubElement {
   // --- Decorators ---
 
   // @attr: reflects to/from HTML attribute (kebab-case)
@@ -339,7 +339,7 @@ MyComponent.define('my-component');
 ```
 
 Components can omit the `.ts` file when server-rendered output is final. The
-sibling module is the authored behavior boundary: without it, WebUI emits no
+sibling module is the authored behavior boundary: without it, webhub emits no
 bootstrap state for that component, but retains its compiled template for later
 browser rendering. Create a custom element for events, custom lifecycle code,
 imperative methods, or JavaScript-owned state.
@@ -404,7 +404,7 @@ can be loaded dynamically:
 Then load on demand with `Router.ensureLoaded` before creating the element:
 
 ```typescript
-// Fetches template + CSS from /_webui/templates before showing UI.
+// Fetches template + CSS from /_webhub/templates before showing UI.
 await Router.ensureLoaded('settings-dialog');
 this.showSettings = true;
 
@@ -422,7 +422,7 @@ Configure a custom endpoint if needed:
 
 ```typescript
 Router.start({
-  templateEndpoint: '/api/templates', // default: '/_webui/templates'
+  templateEndpoint: '/api/templates', // default: '/_webhub/templates'
   loaders: { ... },
 });
 ```
@@ -433,11 +433,11 @@ registered by the framework's compiler-owned host runtime. If a route remains
 unregistered after template publication and loader resolution, the router
 navigates the document to let the server render the component.
 
-Without `@microsoft/webui-router`, prebuild static assets and load them from a
+Without `@microsoft/webhub-router`, prebuild static assets and load them from a
 CDN or the app's static folder:
 
 ```bash
-webui build ./src --out ./dist --plugin=webui \
+webhub build ./src --out ./dist --plugin=webhub \
   --emit-component-assets settings-dialog
 ```
 
@@ -446,11 +446,11 @@ are returned in `BuildResult::component_asset_files` and written by
 `build_to_disk()`. Node callers use `componentAssetRoots` and receive flattened
 `componentAssetFiles` (`[filename, content, ...]`) from `build()`.
 
-`webui serve` accepts the same `--emit-component-assets` flag and validates each
+`webhub serve` accepts the same `--emit-component-assets` flag and validates each
 root on every dev build. HTML and theme-token errors in lazily loaded components
 fail the build instead of being missed because the component is outside the
-initial route tree. The dev server serves `<tag>.webui.js` from memory and
-rebuilds it on change under `--watch`. No separate `webui build`/`--out` step is
+initial route tree. The dev server serves `<tag>.webhub.js` from memory and
+rebuilds it on change under `--watch`. No separate `webhub build`/`--out` step is
 needed during development.
 
 ```typescript
@@ -464,11 +464,11 @@ async onOpenSettings(): Promise<void> {
 
 ```typescript
 // lazy-assets.ts
-import { defineComponentAssets } from '@microsoft/webui-framework/component-asset.js';
+import { defineComponentAssets } from '@microsoft/webhub-framework/component-asset.js';
 
 export const settingsAssets = defineComponentAssets({
   'settings-dialog': {
-    asset: '/settings-dialog.webui.js',
+    asset: '/settings-dialog.webhub.js',
     module: () => import('./settings-dialog/settings-dialog.js'),
     data: async () => await (await fetch('/settings-dialog-data.json')).json(),
   },
@@ -476,7 +476,7 @@ export const settingsAssets = defineComponentAssets({
 ```
 
 `defineComponentAssets()` uses the current page CSP nonce when it needs to append
-CSS module importmaps. The `.webui.js` asset is a browser-native ESM module that
+CSS module importmaps. The `.webhub.js` asset is a browser-native ESM module that
 carries the component template and style payload in one request. Concurrent calls
 for the same URL share one in-flight request, and CSS module styles are deduped.
 The manifest helper lets the shell start the template asset, JS chunk, and data
@@ -542,7 +542,7 @@ CSS is scoped per component via Shadow DOM. No CSS-in-JS.
 
 ```typescript
 // index.ts
-import { WebUIElement } from '@microsoft/webui-framework';
+import { webhubElement } from '@microsoft/webhub-framework';
 
 // Import components to register them as custom elements.
 // Registration triggers hydration automatically.
@@ -550,8 +550,8 @@ import './app-shell/app-shell.js';
 import './user-card/user-card.js';
 
 // Optional: listen for hydration completion
-window.addEventListener('webui:hydration-complete', () => {
-  const total = performance.getEntriesByName('webui:hydrate:total', 'measure')[0];
+window.addEventListener('webhub:hydration-complete', () => {
+  const total = performance.getEntriesByName('webhub:hydrate:total', 'measure')[0];
   console.log(`Hydration: ${total?.duration.toFixed(1)}ms`);
 });
 ```
@@ -568,7 +568,7 @@ npm install -D esbuild typescript
 ```javascript
 // build-client.mjs
 import * as esbuild from 'esbuild';
-import { esbuildProjection } from '@microsoft/webui/projection.js';
+import { esbuildProjection } from '@microsoft/webhub/projection.js';
 
 await esbuild.build({
   entryPoints: ['src/index.ts'],
@@ -582,18 +582,18 @@ await esbuild.build({
 
 ```bash
 node build-client.mjs
-webui build ./src --out ./dist --plugin=webui \
-  --projection-manifest ./dist/webui-projection.json
+webhub build ./src --out ./dist --plugin=webhub \
+  --projection-manifest ./dist/webhub-projection.json
 ```
 
 Rules:
 
-- `@microsoft/webui/projection.js` is build-only. `esbuild` and `typescript` are
-  optional peers and are not imported by the root `@microsoft/webui` runtime.
+- `@microsoft/webhub/projection.js` is build-only. `esbuild` and `typescript` are
+  optional peers and are not imported by the root `@microsoft/webhub` runtime.
 - The compiler contract is bundler-neutral; the package currently includes the
   supported esbuild adapter.
 - esbuild runs once. The adapter observes that run and writes
-  `webui-projection.json` atomically after successful output.
+  `webhub-projection.json` atomically after successful output.
 - No manifest means full state and no JavaScript inference.
 - Any supplied manifest enables strict coverage. Every scripted component in
   the protocol, including components discovered through `--components`, must
@@ -603,15 +603,15 @@ Rules:
   fragment.
 - The manifest uses JavaScript property names for `@observable` and `@attr`.
   Existing SSR host attributes take precedence over projected `@attr` values.
-- WebUI validates input/output hashes and embeds compact metadata in
+- webhub validates input/output hashes and embeds compact metadata in
   `protocol.bin`. Runtime handlers never open the manifest.
 
 ## Hydration with Router
 
 ```typescript
 // index.ts
-import { WebUIElement } from '@microsoft/webui-framework';
-import { Router } from '@microsoft/webui-router';
+import { webhubElement } from '@microsoft/webhub-framework';
+import { Router } from '@microsoft/webhub-router';
 import './app-shell/app-shell.js';
 
 // Start router after components are registered
@@ -654,7 +654,7 @@ supersede each other without queuing.
 ### Build
 
 ```bash
-webui build ./src --out ./dist --plugin=webui
+webhub build ./src --out ./dist --plugin=webhub
 ```
 
 | Flag | Default | Description |
@@ -664,35 +664,35 @@ webui build ./src --out ./dist --plugin=webui
 | `--entry <FILE>` | `index.html` | Entry HTML file |
 | `--css <MODE>` | `link` | `link`, `style`, or `module` |
 | `--dom <MODE>` | `shadow` | `shadow` or `light` |
-| `--plugin <NAME>` | none | Plugin identifier (e.g. `webui`) |
+| `--plugin <NAME>` | none | Plugin identifier (e.g. `webhub`) |
 | `--components <PACKAGE>` | none | Extra component sources (repeatable) |
-| `--projection-manifest <PATH>` | none | Bundler projection fragment (repeatable); requires `--plugin=webui` |
-| `--emit-component-assets <TAGS>` | none | Comma-separated root component tags emitted as static `.webui.js` ESM assets in `--out` |
+| `--projection-manifest <PATH>` | none | Bundler projection fragment (repeatable); requires `--plugin=webhub` |
+| `--emit-component-assets <TAGS>` | none | Comma-separated root component tags emitted as static `.webhub.js` ESM assets in `--out` |
 | `--theme <PACKAGE>` | none | Design token theme to validate against (see below) |
 | `--asset-file-name-template <TEMPLATE>` | `[name].[ext]` | Emitted asset filename template for Link-mode CSS files and static component assets. Tokens: `[name]`, `[hash]`, `[ext]` |
 | `--css-public-base <BASE>` | none | Public URL/path prefix for Link-mode CSS hrefs |
 | `--legal-comments <MODE>` | `inline` | `inline` preserves legal CSS comments, `none` strips all comments |
 | `--format <FORMAT>` | `human` | `human` (colorized) or `json` (machine-readable diagnostics on stdout) |
 
-With `--css module`, WebUI appends
+With `--css module`, webhub appends
 `shadowrootadoptedstylesheets="<component-name>"` to component `<template>`
 wrappers when needed. If you author the wrapper yourself for root events, keep
-your attributes there; WebUI preserves them for client/plugin templates.
+your attributes there; webhub preserves them for client/plugin templates.
 
 For framework apps that bundle browser code, bundle your source browser entry
-directly. Import `@microsoft/webui-framework` from authored component modules.
+directly. Import `@microsoft/webhub-framework` from authored component modules.
 An app that stays static after SSR needs no framework browser runtime. Import
 the framework once when scriptless components need browser state or soft
 navigation.
 
 For exact state projection, run the browser bundler first and pass its completed
-manifest to `webui build`. Repeat `--projection-manifest` for separately built
+manifest to `webhub build`. Repeat `--projection-manifest` for separately built
 external component bundles. Omitting the flag preserves full state.
 
 For CDN/browser caching in `link` mode, prefer:
 
 ```bash
-webui build ./src --out ./dist \
+webhub build ./src --out ./dist \
   --asset-file-name-template "[name]-[hash].[ext]" \
   --css-public-base "https://cdn.example.com/assets"
 ```
@@ -702,15 +702,15 @@ characters. The CSS files are still written to `--out`; `--css-public-base`
 changes only the href compiled into `protocol.bin` and emitted in stylesheet
 `<link>` tags.
 
-For lazy components without `@microsoft/webui-router`, emit static component
+For lazy components without `@microsoft/webhub-router`, emit static component
 assets:
 
 ```bash
-webui build ./src --out ./dist --plugin=webui \
+webhub build ./src --out ./dist --plugin=webhub \
   --emit-component-assets mail-thread,compose-page
 ```
 
-This writes `mail-thread.webui.js`. Requested roots stay outside initial SSR
+This writes `mail-thread.webhub.js`. Requested roots stay outside initial SSR
 unless the entry template also references them. The asset is standard ESM that
 carries the component template and styles. Load it with
 `defineComponentAssets()` before mounting the component. Use
@@ -722,13 +722,13 @@ HTML comments are stripped at build time and bindings inside them are ignored.
 CSS comments are stripped except legal comments and `<style>` signal fragments.
 Legal CSS comments containing `@license` or `@preserve`, or starting with `/*!`
 or `//!`, are preserved only when `--legal-comments inline` is active.
-Malformed HTML or CSS fails `webui build`; escape literal `<` as `&lt;` and
+Malformed HTML or CSS fails `webhub build`; escape literal `<` as `&lt;` and
 close all tags, comments, declarations, `var()` calls, and CSS delimiters.
 
 ### Serve (dev server)
 
 ```bash
-webui serve ./src --state ./data/state.json --plugin=webui --watch
+webhub serve ./src --state ./data/state.json --plugin=webhub --watch
 ```
 
 | Flag | Default | Description |
@@ -741,7 +741,7 @@ webui serve ./src --state ./data/state.json --plugin=webui --watch
 | `--entry <FILE>` | `index.html` | Entry HTML file |
 | `--css <MODE>` | `link` | `link`, `style`, or `module` |
 | `--dom <MODE>` | `shadow` | `shadow` or `light` |
-| `--plugin <NAME>` | none | Plugin identifier (e.g. `webui`) |
+| `--plugin <NAME>` | none | Plugin identifier (e.g. `webhub`) |
 | `--components <PACKAGE>` | none | Extra component sources (repeatable) |
 | `--projection-manifest <PATH>` | none | Bundler projection fragment (repeatable); watched explicitly with `--watch` |
 | `--api-port <PORT>` | none | Proxy route requests to API server |
@@ -754,13 +754,13 @@ webui serve ./src --state ./data/state.json --plugin=webui --watch
 ### Inspect
 
 ```bash
-webui inspect ./dist/protocol.bin
-webui inspect ./dist/protocol.bin | jq '.fragments | keys'
+webhub inspect ./dist/protocol.bin
+webhub inspect ./dist/protocol.bin | jq '.fragments | keys'
 ```
 
 ## Build Diagnostics & Error Output
 
-Authoring mistakes fail `webui build` with a structured, actionable diagnostic
+Authoring mistakes fail `webhub build` with a structured, actionable diagnostic
 (never a stack trace). Each one has a **stable error code**, the source
 location, the offending snippet, and a `help:` fix:
 
@@ -784,7 +784,7 @@ error is emitted as a single JSON object on **stdout** (no ANSI), so it can be
 parsed directly instead of scraping terminal text:
 
 ```bash
-webui build ./src --out ./dist --format json
+webhub build ./src --out ./dist --format json
 ```
 
 ```json
@@ -846,7 +846,7 @@ The package's `package.json` must have:
   "name": "@scope/my-button",
   "customElements": "./custom-elements.json",
   "exports": {
-    "./template-webui.html": "./dist/template-webui.html",
+    "./template-webhub.html": "./dist/template-webhub.html",
     "./styles.css": "./dist/styles.css"
   }
 }
@@ -854,12 +854,12 @@ The package's `package.json` must have:
 
 | Field | Required | Purpose |
 |-------|----------|---------|
-| `exports["./template-webui.html"]` | Yes | Component HTML template |
+| `exports["./template-webhub.html"]` | Yes | Component HTML template |
 | `exports["./styles.css"]` | No | Component CSS |
 | `customElements` | Yes | Path to Custom Elements Manifest (provides tag name) |
 
 Packages with a root JavaScript entry (`exports["."]`, `main`, `module`, or
-`browser`) are authored custom-element packages. Packages with only WebUI
+`browser`) are authored custom-element packages. Packages with only webhub
 template/style exports are compiler-owned template libraries. Their dynamic
 templates render on the server and can activate in the browser when the
 framework runtime is loaded.
@@ -869,30 +869,30 @@ hyphenated names are registered as components, matching CSS files are
 auto-paired. A sibling `.ts` or `.js` file marks the component as authored and
 interactive.
 
-**Caching:** npm results are cached at `~/.webui/cache/components/` and
+**Caching:** npm results are cached at `~/.webhub/cache/components/` and
 invalidated when `package.json` changes. Local paths are always re-scanned.
 
 ```bash
 # Single scoped package
-webui build ./src --out ./dist --components @reactive-ui/button
+webhub build ./src --out ./dist --components @reactive-ui/button
 
 # All packages under a scope
-webui build ./src --out ./dist --components @reactive-ui
+webhub build ./src --out ./dist --components @reactive-ui
 
 # Local shared library
-webui build ./src --out ./dist --components ./shared/components
+webhub build ./src --out ./dist --components ./shared/components
 
 # Multiple sources
-webui build ./src --out ./dist \
+webhub build ./src --out ./dist \
   --components @reactive-ui \
   --components ./shared/components
 ```
 
 ## `--theme` - Design Token Themes
 
-The `--theme` flag loads a token JSON file. On `webui build`, it validates that
+The `--theme` flag loads a token JSON file. On `webhub build`, it validates that
 each unresolved CSS token discovered by the parser exists in every theme. On
-`webui serve`, it performs the same validation and injects resolved CSS custom
+`webhub serve`, it performs the same validation and injects resolved CSS custom
 property declarations into the render state.
 
 **What it accepts:**
@@ -922,7 +922,7 @@ property declarations into the render state.
 A token used only with a literal `var()` fallback and absent from every theme
 (e.g. a misspelled `var(--colr-brand, #000)`) is reported as a non-fatal
 `unthemed-token` **warning** on `BuildResult.warnings` (a `Vec<Diagnostic>`,
-also printed by `webui build` and `webui serve`) instead of failing the build —
+also printed by `webhub build` and `webhub serve`) instead of failing the build —
 a typo safety net. Warnings are warning-severity `Diagnostic`s, so they render
 with the same layout as `missing-theme-token` errors: both carry the source
 location (`my-card.css:2:10` + the CSS line) and a `did you mean --…?`
@@ -930,7 +930,7 @@ suggestion computed by Levenshtein edit distance against the theme's tokens. The
 dev server frames each error/warning with blank lines so consecutive advisories
 stay readable.
 
-In `webui serve --watch`, rebuild failures are retained in dev-server state:
+In `webhub serve --watch`, rebuild failures are retained in dev-server state:
 the terminal and live-reload SSE report the error, and a browser refresh returns
 the latest rebuild error instead of stale HTML while keeping the live-reload
 connection active until the next clean rebuild.
@@ -1047,11 +1047,11 @@ The handler resolves `tokens.light` from the state, outputting:
     hydration the server-rendered DOM is trusted and not re-rendered, so a value
     set in a field initializer, the `constructor`, or before
     `super.connectedCallback()` cannot reach the DOM — the write is dropped and
-    the runtime logs a `[WebUI] Hydration mismatch` warning. If the value must
+    the runtime logs a `[webhub] Hydration mismatch` warning. If the value must
     appear in the first render, put it in the SSR state JSON; otherwise assign it
     after `super.connectedCallback()`. The warning is development-only — it is
-    stripped from production bundles via the `__WEBUI_DEV__` compile-time flag
-    (`webui-press build` sets `__WEBUI_DEV__=false` automatically; self-bundled
+    stripped from production bundles via the `__webhub_DEV__` compile-time flag
+    (`webhub-press build` sets `__webhub_DEV__=false` automatically; self-bundled
     apps add the define for production).
 
 ## Common Patterns
@@ -1184,24 +1184,24 @@ Each route handler should return only the state that route's component needs:
 {
   "scripts": {
     "build:client": "node build-client.mjs",
-    "build:protocol": "webui build ./src --out ./dist --plugin=webui --projection-manifest ./dist/webui-projection.json",
+    "build:protocol": "webhub build ./src --out ./dist --plugin=webhub --projection-manifest ./dist/webhub-projection.json",
     "build": "npm run build:client && npm run build:protocol",
-    "dev:server": "webui serve ./src --state ./data/state.json --plugin=webui --projection-manifest ./dist/webui-projection.json --watch"
+    "dev:server": "webhub serve ./src --state ./data/state.json --plugin=webhub --projection-manifest ./dist/webhub-projection.json --watch"
   },
   "dependencies": {
-    "@microsoft/webui": "latest",
-    "@microsoft/webui-framework": "latest"
+    "@microsoft/webhub": "latest",
+    "@microsoft/webhub-framework": "latest"
   }
 }
 ```
 
-Add `@microsoft/webui-router` if using client-side navigation.
+Add `@microsoft/webhub-router` if using client-side navigation.
 Run the client bundler in watch mode alongside `dev:server`; the dev server
 rebuilds when the adapter atomically replaces the manifest.
 
 ## Language Integration (Server Side)
 
-WebUI renders from **any** backend. The server loads `protocol.bin` into one
+webhub renders from **any** backend. The server loads `protocol.bin` into one
 `Protocol`, then renders with JSON state per request. Projection
 manifests are consumed only while producing `protocol.bin`; runtime rendering
 APIs are unchanged.
@@ -1211,24 +1211,24 @@ APIs are unchanged.
 ```rust
 let protocol = Protocol::from_protobuf(&fs::read("dist/protocol.bin")?)?;
 let state = json!({ "title": "Home", "items": items_vec });
-let handler = WebUIHandler::new();
+let handler = webhubHandler::new();
 handler.render(&protocol, &state, &options, &mut writer)?;
 ```
 
-**Streaming SSR (production).** Use `webui::streaming::StreamingWriter::new_pooled(tx, chunk_pool)` with a process-wide `ChunkPool` for bounded backpressure + zero per-flush allocation. Configure `.with_flush_timeout(Duration::from_secs(30))` to bound slow-loris DoS. Use `RenderOptions::with_head_inject(html)` / `with_body_inject(html)` for per-request HTML splicing at parser-synthesized `head_end` / `body_end` boundaries (no byte-scanner, cannot mis-fire on literals in comments / srcdoc). `HandlerError::ClientDisconnected` and `StreamTimeout` are returned from both `write()` and `end()` for telemetry. Pre-escape untrusted inject content with `webui_handler::encode_safe`.
+**Streaming SSR (production).** Use `webhub::streaming::StreamingWriter::new_pooled(tx, chunk_pool)` with a process-wide `ChunkPool` for bounded backpressure + zero per-flush allocation. Configure `.with_flush_timeout(Duration::from_secs(30))` to bound slow-loris DoS. Use `RenderOptions::with_head_inject(html)` / `with_body_inject(html)` for per-request HTML splicing at parser-synthesized `head_end` / `body_end` boundaries (no byte-scanner, cannot mis-fire on literals in comments / srcdoc). `HandlerError::ClientDisconnected` and `StreamTimeout` are returned from both `write()` and `end()` for telemetry. Pre-escape untrusted inject content with `webhub_handler::encode_safe`.
 
 ### Node.js
 
 ```javascript
-import { build, Protocol } from '@microsoft/webui';
+import { build, Protocol } from '@microsoft/webhub';
 
 const result = build({
   appDir: './src',
-  plugin: 'webui',
-  projectionManifests: ['./dist/webui-projection.json'],
+  plugin: 'webhub',
+  projectionManifests: ['./dist/webhub-projection.json'],
 });
 
-const protocol = new Protocol(result.protocol, { plugin: 'webui' });
+const protocol = new Protocol(result.protocol, { plugin: 'webhub' });
 const html = protocol.render(state, {
   entry: 'index.html',
   requestPath: req.url,
@@ -1240,10 +1240,10 @@ const html = protocol.render(state, {
 Use the split WASM bundles when rendering or parsing in the browser:
 
 ```javascript
-import initHandler, { Protocol } from './wasm/handler/webui_wasm_handler.js';
+import initHandler, { Protocol } from './wasm/handler/webhub_wasm_handler.js';
 await initHandler();
 const protocolBytes = new Uint8Array(await (await fetch('/protocol.bin')).arrayBuffer());
-const protocol = new Protocol(protocolBytes, 'webui');
+const protocol = new Protocol(protocolBytes, 'webhub');
 const html = protocol.render(
   JSON.stringify(state),
   { entry: 'index.html', requestPath: '/' },
@@ -1251,7 +1251,7 @@ const html = protocol.render(
 ```
 
 ```javascript
-import initParser, { build_protocol } from './wasm/parser/webui_wasm_parser.js';
+import initParser, { build_protocol } from './wasm/parser/webhub_wasm_parser.js';
 await initParser();
 const protocolBytes = build_protocol(
   { 'index.html': '<h1>{{title}}</h1>' },
@@ -1260,37 +1260,37 @@ const protocolBytes = build_protocol(
 );
 ```
 
-Use `wasm/all/webui_wasm_all.js` when both parser and handler exports are needed in one module, such as a playground.
+Use `wasm/all/webhub_wasm_all.js` when both parser and handler exports are needed in one module, such as a playground.
 
 ### Python (FFI)
 
 ```python
 protocol_bytes = Path("dist/protocol.bin").read_bytes()
 buffer = (ctypes.c_uint8 * len(protocol_bytes)).from_buffer_copy(protocol_bytes)
-protocol = lib.webui_protocol_create(buffer, len(protocol_bytes))
-handler = lib.webui_handler_create()
-ptr = lib.webui_handler_render(
+protocol = lib.webhub_protocol_create(buffer, len(protocol_bytes))
+handler = lib.webhub_handler_create()
+ptr = lib.webhub_handler_render(
     handler, protocol, data_json, b"index.html", request_path
 )
 result = ctypes.cast(ptr, c_char_p).value.decode("utf-8")
-lib.webui_free(ptr)
-lib.webui_protocol_destroy(protocol)
-lib.webui_handler_destroy(handler)
+lib.webhub_free(ptr)
+lib.webhub_protocol_destroy(protocol)
+lib.webhub_handler_destroy(handler)
 ```
 
 Create the protocol and handler once at startup, then pass both handles to
-`webui_handler_render` on every request.
+`webhub_handler_render` on every request.
 
 ### Go (cgo)
 
 ```go
-protocol := C.webui_protocol_create(
+protocol := C.webhub_protocol_create(
     (*C.uint8_t)(unsafe.Pointer(&protocolBytes[0])),
     C.uintptr_t(len(protocolBytes)),
 )
-handler := C.webui_handler_create()
-ptr := C.webui_handler_render(handler, protocol, cJSON, cEntry, cPath)
-defer C.webui_free(ptr)
+handler := C.webhub_handler_create()
+ptr := C.webhub_handler_render(handler, protocol, cJSON, cEntry, cPath)
+defer C.webhub_free(ptr)
 result := C.GoString(ptr)
 ```
 
@@ -1298,7 +1298,7 @@ result := C.GoString(ptr)
 
 ```csharp
 using var protocol = new Protocol(File.ReadAllBytes("dist/protocol.bin"));
-using var handler = new WebUIHandler("webui");
+using var handler = new webhubHandler("webhub");
 string result = handler.Render(protocol, dataJson, "index.html", requestPath);
 string partial = protocol.RenderPartial(dataJson, "index.html", requestPath, invHex);
 string templates = protocol.RenderComponentTemplates(["settings-dialog"], invHex);
@@ -1307,14 +1307,14 @@ string[] tokens = protocol.Tokens();
 
 ### Server Template Endpoint
 
-For `Router.ensureLoaded()`, expose `GET /_webui/templates?t=tag1,tag2`:
+For `Router.ensureLoaded()`, expose `GET /_webhub/templates?t=tag1,tag2`:
 
 ```rust
 let result = protocol.render_component_templates(&tags, &inv);
 ```
 
 ```javascript
-// @microsoft/webui npm package
+// @microsoft/webhub npm package
 const result = protocol.renderComponentTemplates(['settings-dialog'], invHex);
 ```
 

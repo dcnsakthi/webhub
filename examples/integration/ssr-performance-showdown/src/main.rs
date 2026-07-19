@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! SSR Performance Test — WebUI Framework
+//! SSR Performance Test — webhub Framework
 //!
 //! Rust server that loads a pre-built protocol.bin, computes a spiral
-//! pattern of tiles per-request, and renders them through the WebUI
+//! pattern of tiles per-request, and renders them through the webhub
 //! handler — comparable to the `fastify-html` entry in the
 //! ssr-performance-showdown benchmark.
 //!
 //! Prerequisites:
-//!   cargo run -p microsoft-webui-cli -- build app --out dist
+//!   cargo run -p microsoft-webhub-cli -- build app --out dist
 //!
 //! Usage:
 //!   cargo run                     # listen on :3000
@@ -18,7 +18,7 @@
 use actix_web::{web, App, HttpResponse, HttpServer};
 use anyhow::{Context, Result};
 use std::path::Path;
-use webui_handler::{Protocol, RenderOptions, ResponseWriter, WebUIHandler};
+use webhub_handler::{Protocol, RenderOptions, ResponseWriter, webhubHandler};
 
 // ── Spiral parameters (match ssr-performance-showdown) ──────────────────
 
@@ -43,12 +43,12 @@ impl MemoryWriter {
 }
 
 impl ResponseWriter for MemoryWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.buf.push_str(content);
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -101,7 +101,7 @@ async fn handle_index(protocol: web::Data<Protocol>) -> HttpResponse {
     let state = serde_json::Value::Object(state_map);
 
     let mut writer = MemoryWriter::with_capacity(256 * 1024);
-    let handler = WebUIHandler::new();
+    let handler = webhubHandler::new();
 
     if let Err(e) = handler.render(
         &protocol,

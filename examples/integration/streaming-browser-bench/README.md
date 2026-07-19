@@ -1,6 +1,6 @@
 # `streaming-browser-bench`
 
-Browser-perceived metrics for the WebUI streaming SSR pipeline.
+Browser-perceived metrics for the webhub streaming SSR pipeline.
 
 This package spins up a real actix-web server with two endpoints:
 
@@ -48,8 +48,8 @@ Snapshots are written to
 `target/bench-baselines/browser-<name>.json`. The compare phase
 prints a Δ%-table for TTFB, FCP, LCP, and load.
 
-(Underneath, this maps to env vars `WEBUI_BENCH_SAVE` and
-`WEBUI_BENCH_COMPARE` consumed by the spec; you can also set them
+(Underneath, this maps to env vars `webhub_BENCH_SAVE` and
+`webhub_BENCH_COMPARE` consumed by the spec; you can also set them
 directly when running `pnpm test`.)
 
 ## What it measures
@@ -71,7 +71,7 @@ is fundamentally wrong with the streaming pipeline.
 ## Why a separate package?
 
 The browser bench has different requirements from the criterion +
-example benches in `crates/webui/`:
+example benches in `crates/webhub/`:
 
 - needs Playwright + Chromium installed
 - spawns a long-lived HTTP server

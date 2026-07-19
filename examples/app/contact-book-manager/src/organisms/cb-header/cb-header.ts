@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '@microsoft/webui-framework';
+import { webhubElement, attr } from '@microsoft/webhub-framework';
 
-export class CbHeader extends WebUIElement {
+export class CbHeader extends webhubElement {
   @attr searchQuery = '';
 
   onInput(e: Event): void {

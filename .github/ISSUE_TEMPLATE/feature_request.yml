@@ -1,12 +1,12 @@
 name: Feature request
-description: Request a WebUI capability, API, CLI behavior, or workflow improvement.
+description: Request a webhub capability, API, CLI behavior, or workflow improvement.
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for helping shape WebUI. Before opening a feature request, please read the [feature request guidance](https://github.com/microsoft/webui/blob/main/CONTRIBUTING.md#feature-requests).
+        Thank you for helping shape webhub. Before opening a feature request, please read the [feature request guidance](https://github.com/microsoft/webhub/blob/main/CONTRIBUTING.md#feature-requests).
   - type: checkboxes
     id: preflight
     attributes:
@@ -18,15 +18,15 @@ body:
     id: area
     attributes:
       label: Area
-      description: Which part of WebUI would this improve?
+      description: Which part of webhub would this improve?
       options:
         - CLI
         - Parser
         - Handler
         - Protocol
         - FFI
-        - WebUI Framework package
-        - WebUI Router package
+        - webhub Framework package
+        - webhub Router package
         - Documentation
         - Examples
         - Integrations

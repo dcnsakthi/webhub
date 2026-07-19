@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-// Electron integration for WebUI — renders any pre-built WebUI app in a
-// frameless desktop window using the @microsoft/webui package.
+// Electron integration for webhub — renders any pre-built webhub app in a
+// frameless desktop window using the @microsoft/webhub package.
 //
 // Prerequisites:
-//   1. Build the native addon: cargo build -p microsoft-webui-node --release
-//   2. Build the @microsoft/webui package: pnpm --filter @microsoft/webui build
+//   1. Build the native addon: cargo build -p microsoft-webhub-node --release
+//   2. Build the @microsoft/webhub package: pnpm --filter @microsoft/webhub build
 //   3. Install workspace dependencies: pnpm install
-//   4. Build a WebUI app:
-//      cargo run -p microsoft-webui-cli -- build <app>/src --out <app>/dist --css link --plugin=webui
+//   4. Build a webhub app:
+//      cargo run -p microsoft-webhub-cli -- build <app>/src --out <app>/dist --css link --plugin=webhub
 //      esbuild <app>/src/index.ts --bundle --outfile=<app>/dist/index.js --format=esm
 //
 // Usage:
@@ -18,7 +18,7 @@
 import { app, BrowserWindow, Menu, net, protocol } from 'electron';
 import { existsSync, readFileSync } from 'fs';
 import { resolve, join, basename } from 'path';
-import { Protocol } from '@microsoft/webui';
+import { Protocol } from '@microsoft/webhub';
 
 // ---------------------------------------------------------------------------
 // CLI arguments
@@ -49,7 +49,7 @@ const pluginName = pluginArg ? pluginArg.split('=')[1] : undefined;
 
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: 'webui',
+    scheme: 'webhub',
     privileges: { standard: true, secure: true, supportFetchAPI: true },
   },
 ]);
@@ -63,7 +63,7 @@ app.whenReady().then(() => {
 
   if (!existsSync(join(distDir, 'protocol.bin'))) {
     console.error(`protocol.bin not found in ${distDir}`);
-    console.error('Build the app first: cargo run -p microsoft-webui-cli -- build <app>/src --out <app>/dist');
+    console.error('Build the app first: cargo run -p microsoft-webhub-cli -- build <app>/src --out <app>/dist');
     app.quit();
     return;
   }
@@ -80,7 +80,7 @@ app.whenReady().then(() => {
   const html = chunks.join('');
 
   // Protocol handler — serves rendered HTML + static assets
-  protocol.handle('webui', (request) => {
+  protocol.handle('webhub', (request) => {
     const url = new URL(request.url);
 
     if (url.pathname === '/' || url.pathname === '') {
@@ -114,7 +114,7 @@ app.whenReady().then(() => {
     },
   });
 
-  win.loadURL('webui://app/');
+  win.loadURL('webhub://app/');
 });
 
 app.on('window-all-closed', () => {

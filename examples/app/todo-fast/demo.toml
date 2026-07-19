@@ -6,9 +6,9 @@ description = "A todo app using the fast-v3 rendering plugin"
 backend = "rust"
 
 [server]
-type = "webui-cli"
+type = "webhub-cli"
 plugin = "fast-v3"
 source = "src"
 servedir = "dist"
 state = "data/state.json"
-theme = "@microsoft/webui-examples-theme"
+theme = "@microsoft/webhub-examples-theme"

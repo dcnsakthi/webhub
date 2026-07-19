@@ -1,6 +1,6 @@
-# WebUI Node.js Integration Example
+# webhub Node.js Integration Example
 
-Minimal example showing how to use the `@microsoft/webui` npm package to build
+Minimal example showing how to use the `@microsoft/webhub` npm package to build
 templates and render HTML with state data — all from Node.js.
 
 ## Prerequisites
@@ -8,13 +8,13 @@ templates and render HTML with state data — all from Node.js.
 1. Build the native addon:
 
 ```bash
-cargo build -p microsoft-webui-node
+cargo build -p microsoft-webhub-node
 ```
 
-2. Build the `@microsoft/webui` package:
+2. Build the `@microsoft/webhub` package:
 
 ```bash
-pnpm --filter @microsoft/webui build
+pnpm --filter @microsoft/webhub build
 ```
 
 3. Install workspace dependencies:
@@ -37,6 +37,6 @@ Or render a pre-built protocol with custom state:
 node index.js ../../app/hello-world/dist/protocol.bin ../../app/hello-world/data/state.json
 ```
 
-This uses the `@microsoft/webui` package API (`build()` and `Protocol`) which
+This uses the `@microsoft/webhub` package API (`build()` and `Protocol`) which
 automatically resolves the native addon from the workspace build output.
 `Protocol.render()` and `Protocol.renderStream()` reuse the decoded protocol.

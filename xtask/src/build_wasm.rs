@@ -3,7 +3,7 @@
 
 //! WASM playground build task.
 //!
-//! Builds the `webui-wasm` crate to WebAssembly via `wasm-pack` and writes
+//! Builds the `webhub-wasm` crate to WebAssembly via `wasm-pack` and writes
 //! handler, parser, and combined bundles into the documentation public assets.
 
 use crate::util::{ensure_cargo_install, ensure_rustup_target};
@@ -11,7 +11,7 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-pub(crate) const WASM_OUTPUT_DIR: &str = "docs/.webui-press/public/wasm";
+pub(crate) const WASM_OUTPUT_DIR: &str = "docs/.webhub-press/public/wasm";
 
 struct WasmVariant {
     label: &'static str,
@@ -24,26 +24,26 @@ const WASM_VARIANTS: &[WasmVariant] = &[
     WasmVariant {
         label: "all",
         out_dir: "all",
-        out_name: "webui_wasm_all",
+        out_name: "webhub_wasm_all",
         features: "all",
     },
     WasmVariant {
         label: "handler",
         out_dir: "handler",
-        out_name: "webui_wasm_handler",
+        out_name: "webhub_wasm_handler",
         features: "handler",
     },
     WasmVariant {
         label: "parser",
         out_dir: "parser",
-        out_name: "webui_wasm_parser",
+        out_name: "webhub_wasm_parser",
         features: "parser",
     },
 ];
 
-/// Build the webui-wasm packages for docs and release artifacts.
+/// Build the webhub-wasm packages for docs and release artifacts.
 pub fn run() -> Result<(), String> {
-    let crate_dir = Path::new("crates/webui-wasm");
+    let crate_dir = Path::new("crates/webhub-wasm");
     let out_dir = Path::new(WASM_OUTPUT_DIR);
 
     // 1. Ensure wasm-pack is installed (auto-install if missing)

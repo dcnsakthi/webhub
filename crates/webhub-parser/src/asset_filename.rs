@@ -189,11 +189,11 @@ mod tests {
     fn hash_template_uses_content_hash() {
         let template =
             AssetFileNameTemplate::try_new("[name]-[hash].[ext]".to_string(), "asset").unwrap();
-        let first = template.resolve("my-card", "webui.js", b"one");
-        let second = template.resolve("my-card", "webui.js", b"two");
+        let first = template.resolve("my-card", "webhub.js", b"one");
+        let second = template.resolve("my-card", "webhub.js", b"two");
 
         assert!(first.starts_with("my-card-"));
-        assert!(first.ends_with(".webui.js"));
+        assert!(first.ends_with(".webhub.js"));
         assert_ne!(first, second);
     }
 

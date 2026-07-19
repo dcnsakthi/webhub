@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-package webui_ffi
+package webhub_ffi
 
 import (
 	"os"
@@ -45,11 +45,11 @@ func loadedRuntime(t *testing.T) (handler, protocol unsafe.Pointer) {
 
 func TestSignalSubstitution(t *testing.T) {
 	handler, protocol := loadedRuntime(t)
-	result, err := Render(handler, protocol, `{"name":"WebUI"}`)
+	result, err := Render(handler, protocol, `{"name":"webhub"}`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result != "<p>Hello, WebUI!</p>" {
+	if result != "<p>Hello, webhub!</p>" {
 		t.Fatalf("got %q", result)
 	}
 }

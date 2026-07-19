@@ -6,29 +6,29 @@
 //!
 //! Usage:
 //!   # First, build the hello-world app
-//!   cargo run -p microsoft-webui-cli -- build ../../app/hello-world/templates --out ../../app/hello-world/dist
+//!   cargo run -p microsoft-webhub-cli -- build ../../app/hello-world/templates --out ../../app/hello-world/dist
 //!
 //!   # Then render it
 //!   cargo run -- ../../app/hello-world/dist/protocol.bin ../../app/hello-world/data/state.json
 //!
-//!   # Render with WebUI Framework hydration markers
-//!   cargo run -- ../../app/contact-book-manager/dist/protocol.bin ../../app/contact-book-manager/data/state.json --plugin=webui
+//!   # Render with webhub Framework hydration markers
+//!   cargo run -- ../../app/contact-book-manager/dist/protocol.bin ../../app/contact-book-manager/data/state.json --plugin=webhub
 
 use anyhow::{Context, Result};
 use std::env;
 use std::fs;
-use webui_handler::plugin::webui::WebUIHydrationPlugin;
-use webui_handler::{Protocol, RenderOptions, ResponseWriter, WebUIHandler};
+use webhub_handler::plugin::webhub::webhubHydrationPlugin;
+use webhub_handler::{Protocol, RenderOptions, ResponseWriter, webhubHandler};
 
 struct StdoutWriter;
 
 impl ResponseWriter for StdoutWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         print!("{content}");
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         println!();
         Ok(())
     }
@@ -38,7 +38,7 @@ fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
         eprintln!(
-            "Usage: {} <protocol.bin> <state.json> [--plugin=webui]",
+            "Usage: {} <protocol.bin> <state.json> [--plugin=webhub]",
             args[0]
         );
         std::process::exit(1);
@@ -61,11 +61,11 @@ fn main() -> Result<()> {
         serde_json::from_str(&state_json).context("Failed to parse state JSON")?;
 
     let handler = match plugin_name {
-        Some("webui") => WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new())),
+        Some("webhub") => webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new())),
         Some(unknown) => {
-            anyhow::bail!("Unknown plugin: {unknown}. This example supports \"webui\".")
+            anyhow::bail!("Unknown plugin: {unknown}. This example supports \"webhub\".")
         }
-        None => WebUIHandler::new(),
+        None => webhubHandler::new(),
     };
     let mut writer = StdoutWriter;
     handler

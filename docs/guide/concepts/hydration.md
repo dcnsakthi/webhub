@@ -1,6 +1,6 @@
 # Hydration
 
-WebUI renders components reached by the initial request on the server.
+webhub renders components reached by the initial request on the server.
 JavaScript is optional:
 
 | Component files | Browser behavior |
@@ -22,16 +22,16 @@ collection is explicitly supplied; supplying an empty array removes it.
 
 An app that remains static after SSR does not need the framework. An app that
 wants HTML-only soft navigation or browser-applied template updates imports
-`@microsoft/webui-framework` once in its browser entry.
+`@microsoft/webhub-framework` once in its browser entry.
 
 ## Authored Components
 
 Add a sibling module only when the component owns browser behavior:
 
 ```typescript
-import { WebUIElement } from '@microsoft/webui-framework';
+import { webhubElement } from '@microsoft/webhub-framework';
 
-export class UserCard extends WebUIElement {
+export class UserCard extends webhubElement {
   // Events, lifecycle, decorators, or imperative APIs belong here.
 }
 
@@ -54,11 +54,11 @@ bindings or routing work.
 
 Exact state projection is opt-in. Rust does not inspect JavaScript or
 TypeScript. The application bundles its browser code first, and a bundler
-adapter emits `webui-projection.json` from the same resolved graph and output
+adapter emits `webhub-projection.json` from the same resolved graph and output
 membership that produced the browser chunks.
 
 The projection compiler contract is bundler-neutral. The
-`@microsoft/webui/projection.js` subpath currently includes the supported
+`@microsoft/webhub/projection.js` subpath currently includes the supported
 esbuild adapter:
 
 ```bash
@@ -68,7 +68,7 @@ npm install -D esbuild typescript
 ```js
 // build-client.mjs
 import * as esbuild from 'esbuild';
-import { esbuildProjection } from '@microsoft/webui/projection.js';
+import { esbuildProjection } from '@microsoft/webhub/projection.js';
 
 await esbuild.build({
   entryPoints: ['src/index.ts'],
@@ -80,13 +80,13 @@ await esbuild.build({
 });
 ```
 
-Run the client build once, then give its manifest to WebUI:
+Run the client build once, then give its manifest to webhub:
 
 ```bash
 node build-client.mjs
-webui build ./src \
-  --plugin=webui \
-  --projection-manifest ./dist/webui-projection.json \
+webhub build ./src \
+  --plugin=webhub \
+  --projection-manifest ./dist/webhub-projection.json \
   --out ./dist
 ```
 
@@ -94,9 +94,9 @@ The generated file has this shape (hashes abbreviated):
 
 ```json
 {
-  "schema": "webui.state-projection/v1",
+  "schema": "webhub.state-projection/v1",
   "producer": {
-    "name": "@microsoft/webui/projection.js",
+    "name": "@microsoft/webhub/projection.js",
     "version": "0.0.18"
   },
   "adapter": {
@@ -128,7 +128,7 @@ bundle and becomes stale as soon as a declared input or output changes.
 
 The manifest records exact input hashes, emitted output hashes, code-split
 membership, component ownership, and sorted `@observable` plus `@attr` property
-names. WebUI validates those hashes and embeds only the resulting key surfaces
+names. webhub validates those hashes and embeds only the resulting key surfaces
 in `protocol.bin`. Runtime handlers do not load the manifest, TypeScript, or a
 bundler.
 
@@ -142,7 +142,7 @@ Behavior is intentionally strict:
 - Shared controls supplied through `--components` remain application-owned
   bundles. If they are external to the main bundle, build them separately and
   pass each manifest fragment with another `--projection-manifest`.
-- Stale inputs or outputs fail the WebUI build. Re-run the client bundler before
+- Stale inputs or outputs fail the webhub build. Re-run the client bundler before
   rebuilding the protocol.
 - `@attr` entries use JavaScript property names. During hydration, an existing
   SSR host attribute wins; projected state seeds the property only when that
@@ -162,12 +162,12 @@ package currently ships and supports the esbuild adapter.
 With validated projection manifests, the initial page includes only
 `@observable` and `@attr` values needed by authored components on the active
 route. Template values used only for server rendering stay out of browser
-state. Without manifests, WebUI preserves full state for compatibility and
+state. Without manifests, webhub preserves full state for compatibility and
 correctness.
 
 Later soft navigations include the values needed to render the destination
 components. Inactive sibling routes do not enlarge either payload. If the
-initial page needs no client state, WebUI writes:
+initial page needs no client state, webhub writes:
 
 ```json
 {"state":{}}

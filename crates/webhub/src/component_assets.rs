@@ -5,14 +5,14 @@
 
 use rayon::prelude::*;
 use std::collections::HashSet;
-use webui_handler::css_module;
-use webui_protocol::{web_ui_fragment::Fragment, WebUIFragmentRoute, WebUIProtocol};
+use webhub_handler::css_module;
+use webhub_protocol::{web_ui_fragment::Fragment, webhubFragmentRoute, webhubProtocol};
 
-use crate::{AssetFileNameTemplate, WebUIError};
+use crate::{AssetFileNameTemplate, webhubError};
 
-const ASSET_TYPE: &str = "webui-component-asset";
+const ASSET_TYPE: &str = "webhub-component-asset";
 const ASSET_VERSION: u64 = 1;
-const COMPONENT_ASSET_EXT: &str = "webui.js";
+const COMPONENT_ASSET_EXT: &str = "webhub.js";
 
 /// A rendered static component asset file.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,19 +32,19 @@ struct ComponentAssetPlan {
 ///
 /// Each requested root produces one ESM module. The module contains the root's
 /// conservative component dependency closure, template/style metadata, and any
-/// WebUI condition closures needed by those templates.
+/// webhub condition closures needed by those templates.
 ///
 /// # Errors
 ///
-/// Returns [`WebUIError`] when the root allowlist is invalid, a requested root
+/// Returns [`webhubError`] when the root allowlist is invalid, a requested root
 /// has no compiled template metadata, asset filename generation fails, or two
 /// component assets resolve to the same filename.
 #[must_use = "component asset files must be written or otherwise consumed"]
 pub fn render_component_assets(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     roots: &[String],
     file_name_template: &str,
-) -> Result<Vec<ComponentAssetFile>, WebUIError> {
+) -> Result<Vec<ComponentAssetFile>, webhubError> {
     let plans = plan_component_assets(protocol, roots)?;
     if plans.is_empty() {
         return Ok(Vec::new());
@@ -52,9 +52,9 @@ pub fn render_component_assets(
 
     let file_name_template =
         AssetFileNameTemplate::try_new(file_name_template.to_string(), "asset_file_name_template")
-            .map_err(|error| WebUIError::InvalidBuildOptions(error.to_string()))?;
+            .map_err(|error| webhubError::InvalidBuildOptions(error.to_string()))?;
 
-    let rendered: Vec<Result<ComponentAssetFile, WebUIError>> = plans
+    let rendered: Vec<Result<ComponentAssetFile, webhubError>> = plans
         .par_iter()
         .map(|plan| render_asset_file(protocol, plan, &file_name_template))
         .collect();
@@ -68,9 +68,9 @@ pub fn render_component_assets(
 }
 
 fn plan_component_assets(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     roots: &[String],
-) -> Result<Vec<ComponentAssetPlan>, WebUIError> {
+) -> Result<Vec<ComponentAssetPlan>, webhubError> {
     let roots = validate_roots(protocol, roots)?;
     let mut plans = Vec::with_capacity(roots.len());
     for root in roots {
@@ -83,20 +83,20 @@ fn plan_component_assets(
 }
 
 fn render_asset_file(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     plan: &ComponentAssetPlan,
     file_name_template: &AssetFileNameTemplate,
-) -> Result<ComponentAssetFile, WebUIError> {
+) -> Result<ComponentAssetFile, webhubError> {
     let content = build_asset_module(protocol, plan)?;
     let name = file_name_template.resolve(&plan.root, COMPONENT_ASSET_EXT, content.as_bytes());
     Ok(ComponentAssetFile { name, content })
 }
 
-fn validate_unique_asset_file_names(files: &[ComponentAssetFile]) -> Result<(), WebUIError> {
+fn validate_unique_asset_file_names(files: &[ComponentAssetFile]) -> Result<(), webhubError> {
     let mut names = HashSet::with_capacity(files.len());
     for file in files {
         if !names.insert(file.name.as_str()) {
-            return Err(WebUIError::InvalidBuildOptions(format!(
+            return Err(webhubError::InvalidBuildOptions(format!(
                 "component asset filename collision for '{}'. Adjust --asset-file-name-template to include [name] or another unique component-specific segment.",
                 file.name
             )));
@@ -106,9 +106,9 @@ fn validate_unique_asset_file_names(files: &[ComponentAssetFile]) -> Result<(), 
 }
 
 fn build_asset_module(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     plan: &ComponentAssetPlan,
-) -> Result<String, WebUIError> {
+) -> Result<String, webhubError> {
     let estimated = estimate_asset_module_size(protocol, plan);
     let mut js = String::with_capacity(estimated);
     js.push_str("const asset={\"type\":\"");
@@ -131,7 +131,7 @@ fn build_asset_module(
     Ok(js)
 }
 
-fn estimate_asset_module_size(protocol: &WebUIProtocol, plan: &ComponentAssetPlan) -> usize {
+fn estimate_asset_module_size(protocol: &webhubProtocol, plan: &ComponentAssetPlan) -> usize {
     let mut size = 128 + plan.root.len();
     for tag in &plan.components {
         size += tag.len() + 8;
@@ -145,7 +145,7 @@ fn estimate_asset_module_size(protocol: &WebUIProtocol, plan: &ComponentAssetPla
     size
 }
 
-fn push_string_array(out: &mut String, values: &[String]) -> Result<(), WebUIError> {
+fn push_string_array(out: &mut String, values: &[String]) -> Result<(), webhubError> {
     for (index, value) in values.iter().enumerate() {
         if index > 0 {
             out.push(',');
@@ -156,10 +156,10 @@ fn push_string_array(out: &mut String, values: &[String]) -> Result<(), WebUIErr
 }
 
 fn push_template_styles(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     components: &[String],
     out: &mut String,
-) -> Result<(), WebUIError> {
+) -> Result<(), webhubError> {
     let mut written = 0usize;
     for tag in components {
         let Some(component) = protocol.components.get(tag) else {
@@ -179,10 +179,10 @@ fn push_template_styles(
 }
 
 fn push_templates(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     components: &[String],
     out: &mut String,
-) -> Result<(), WebUIError> {
+) -> Result<(), webhubError> {
     let mut written = 0usize;
     for tag in components {
         let Some(component) = protocol.components.get(tag) else {
@@ -206,7 +206,7 @@ fn push_templates(
     Ok(())
 }
 
-fn has_template_functions(protocol: &WebUIProtocol, components: &[String]) -> bool {
+fn has_template_functions(protocol: &webhubProtocol, components: &[String]) -> bool {
     components.iter().any(|tag| {
         protocol
             .components
@@ -216,11 +216,11 @@ fn has_template_functions(protocol: &WebUIProtocol, components: &[String]) -> bo
 }
 
 fn push_template_functions(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     root: &str,
     components: &[String],
     out: &mut String,
-) -> Result<(), WebUIError> {
+) -> Result<(), webhubError> {
     let mut written = 0usize;
     for tag in components {
         let Some(component) = protocol.components.get(tag) else {
@@ -238,16 +238,16 @@ fn push_template_functions(
         written += 1;
     }
     if written == 0 {
-        return Err(WebUIError::InvalidBuildOptions(format!(
+        return Err(webhubError::InvalidBuildOptions(format!(
             "component asset for <{root}> had no template functions to emit"
         )));
     }
     Ok(())
 }
 
-fn push_json_string(out: &mut String, value: &str, context: &str) -> Result<(), WebUIError> {
+fn push_json_string(out: &mut String, value: &str, context: &str) -> Result<(), webhubError> {
     let encoded = serde_json::to_string(value).map_err(|error| {
-        WebUIError::Serialization(format!("Failed to encode {context}: {error}"))
+        webhubError::Serialization(format!("Failed to encode {context}: {error}"))
     })?;
     out.push_str(&encoded);
     Ok(())
@@ -282,28 +282,28 @@ fn push_u64(out: &mut String, value: u64) {
     }
 }
 
-fn validate_roots(protocol: &WebUIProtocol, roots: &[String]) -> Result<Vec<String>, WebUIError> {
+fn validate_roots(protocol: &webhubProtocol, roots: &[String]) -> Result<Vec<String>, webhubError> {
     let mut seen = HashSet::with_capacity(roots.len());
     let mut normalized = Vec::with_capacity(roots.len());
     for raw in roots {
         let tag = raw.trim();
         if tag.is_empty() {
-            return Err(WebUIError::InvalidBuildOptions(
+            return Err(webhubError::InvalidBuildOptions(
                 "--emit-component-assets contains an empty component tag".to_string(),
             ));
         }
         if !is_component_tag_name(tag) {
-            return Err(WebUIError::InvalidBuildOptions(format!(
+            return Err(webhubError::InvalidBuildOptions(format!(
                 "--emit-component-assets component '{tag}' must be a lowercase kebab-case custom element tag"
             )));
         }
         if !seen.insert(tag.to_string()) {
-            return Err(WebUIError::InvalidBuildOptions(format!(
+            return Err(webhubError::InvalidBuildOptions(format!(
                 "--emit-component-assets contains duplicate component <{tag}>"
             )));
         }
         if !protocol.fragments.contains_key(tag) {
-            return Err(WebUIError::InvalidBuildOptions(format!(
+            return Err(webhubError::InvalidBuildOptions(format!(
                 "--emit-component-assets requested unknown component <{tag}>. Add a discovered {tag}.html component or remove it from the allowlist."
             )));
         }
@@ -312,7 +312,7 @@ fn validate_roots(protocol: &WebUIProtocol, roots: &[String]) -> Result<Vec<Stri
             .get(tag)
             .is_some_and(has_template_payload)
         {
-            return Err(WebUIError::InvalidBuildOptions(format!(
+            return Err(webhubError::InvalidBuildOptions(format!(
                 "--emit-component-assets requested <{tag}>, but it has no compiled template metadata. Build with a plugin that emits component templates and ensure the component has a template."
             )));
         }
@@ -332,11 +332,11 @@ fn is_component_tag_name(tag: &str) -> bool {
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || *b == b'-')
 }
 
-fn has_template_payload(component: &webui_protocol::ComponentData) -> bool {
+fn has_template_payload(component: &webhub_protocol::ComponentData) -> bool {
     !component.template_json.is_empty() || !component.template.is_empty()
 }
 
-fn collect_component_asset_closure(protocol: &WebUIProtocol, root: &str) -> Vec<String> {
+fn collect_component_asset_closure(protocol: &webhubProtocol, root: &str) -> Vec<String> {
     let mut visited_fragments = HashSet::new();
     let mut components = HashSet::new();
     let mut stack = vec![root.to_string()];
@@ -385,7 +385,7 @@ fn collect_component_asset_closure(protocol: &WebUIProtocol, root: &str) -> Vec<
     ordered
 }
 
-fn push_route_component_ids(route: &WebUIFragmentRoute, stack: &mut Vec<String>) {
+fn push_route_component_ids(route: &webhubFragmentRoute, stack: &mut Vec<String>) {
     let mut routes = vec![route];
     while let Some(current) = routes.pop() {
         if !current.fragment_id.is_empty() {
@@ -405,17 +405,17 @@ fn push_route_component_ids(route: &WebUIFragmentRoute, stack: &mut Vec<String>)
 #[allow(clippy::disallowed_methods)]
 mod tests {
     use super::*;
-    use webui_protocol::{FragmentList, WebUIFragment};
+    use webhub_protocol::{FragmentList, webhubFragment};
 
-    fn protocol_with_component(tag: &str) -> WebUIProtocol {
+    fn protocol_with_component(tag: &str) -> webhubProtocol {
         let mut fragments = std::collections::HashMap::new();
         fragments.insert(
             tag.to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p></p>")],
+                fragments: vec![webhubFragment::raw("<p></p>")],
             },
         );
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         protocol
             .components
             .entry(tag.to_string())
@@ -454,10 +454,10 @@ mod tests {
                 .unwrap();
 
         assert_eq!(files.len(), 1);
-        assert_eq!(files[0].name, "mail-thread.webui.js");
+        assert_eq!(files[0].name, "mail-thread.webhub.js");
         assert!(files[0]
             .content
-            .contains(r#""type":"webui-component-asset""#));
+            .contains(r#""type":"webhub-component-asset""#));
         assert!(files[0].content.contains("export default asset;"));
     }
 
@@ -468,12 +468,12 @@ mod tests {
             "app-shell".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::component("mail-list"),
-                    WebUIFragment::route_from(webui_protocol::WebUiFragmentRoute {
+                    webhubFragment::component("mail-list"),
+                    webhubFragment::route_from(webhub_protocol::webhubFragmentRoute {
                         path: "compose".to_string(),
                         fragment_id: "compose-page".to_string(),
                         exact: true,
-                        children: vec![webui_protocol::WebUiFragmentRoute {
+                        children: vec![webhub_protocol::webhubFragmentRoute {
                             path: "preview".to_string(),
                             fragment_id: "compose-preview".to_string(),
                             exact: true,
@@ -488,11 +488,11 @@ mod tests {
             fragments.insert(
                 tag.to_string(),
                 FragmentList {
-                    fragments: vec![WebUIFragment::raw("<p></p>")],
+                    fragments: vec![webhubFragment::raw("<p></p>")],
                 },
             );
         }
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         for tag in ["app-shell", "mail-list", "compose-page", "compose-preview"] {
             protocol
                 .components

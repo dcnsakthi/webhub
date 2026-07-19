@@ -1,12 +1,12 @@
 {
-  "name": "@webui/docs",
+  "name": "@webhub/docs",
   "version": "0.1.0",
-  "description": "WebUI Framework Documentation",
+  "description": "webhub Framework Documentation",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "cargo run -p microsoft-webui-press -- build",
-    "start": "cargo run -p microsoft-webui-press -- serve"
+    "build": "cargo run -p microsoft-webhub-press -- build",
+    "start": "cargo run -p microsoft-webhub-press -- serve"
   },
   "dependencies": {
     "@codemirror/commands": "catalog:",
@@ -17,8 +17,8 @@
     "@codemirror/state": "catalog:",
     "@codemirror/theme-one-dark": "catalog:",
     "@codemirror/view": "catalog:",
-    "@microsoft/webui": "workspace:*",
-    "@microsoft/webui-framework": "workspace:*",
+    "@microsoft/webhub": "workspace:*",
+    "@microsoft/webhub-framework": "workspace:*",
     "esbuild": "catalog:"
   }
 }

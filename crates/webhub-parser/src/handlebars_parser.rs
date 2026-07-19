@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 use crate::Result;
-use webui_protocol::WebUIFragment;
+use webhub_protocol::webhubFragment;
 
 /// Parser for handlebars-style template syntax.
 pub struct HandlebarsParser;
@@ -19,7 +19,7 @@ impl HandlebarsParser {
     /// Rules for consecutive opening braces (N) without matching `}}}`:
     /// - N >= 5: first (N-2) braces are raw, remaining `{{…}}` is a valid double
     /// - N == 3 or 4: entire sequence through `}}` is treated as raw text
-    pub fn parse(&self, text: &str) -> Result<Vec<WebUIFragment>> {
+    pub fn parse(&self, text: &str) -> Result<Vec<webhubFragment>> {
         let bytes = text.as_bytes();
         let len = bytes.len();
         let mut fragments = Vec::new();
@@ -57,9 +57,9 @@ impl HandlebarsParser {
                             raw_buf.push('{');
                         }
                         if !raw_buf.is_empty() {
-                            fragments.push(WebUIFragment::raw(std::mem::take(&mut raw_buf)));
+                            fragments.push(webhubFragment::raw(std::mem::take(&mut raw_buf)));
                         }
-                        fragments.push(WebUIFragment::signal(var_name.to_string(), true));
+                        fragments.push(webhubFragment::signal(var_name.to_string(), true));
                         pos = var_end + 3;
                         continue;
                     }
@@ -75,9 +75,9 @@ impl HandlebarsParser {
                                 raw_buf.push('{');
                             }
                             if !raw_buf.is_empty() {
-                                fragments.push(WebUIFragment::raw(std::mem::take(&mut raw_buf)));
+                                fragments.push(webhubFragment::raw(std::mem::take(&mut raw_buf)));
                             }
-                            fragments.push(WebUIFragment::signal(var_name.to_string(), false));
+                            fragments.push(webhubFragment::signal(var_name.to_string(), false));
                             pos = var_end + 2;
                             continue;
                         }
@@ -102,9 +102,9 @@ impl HandlebarsParser {
                 let var_name = text[i..var_end].trim();
                 if !var_name.is_empty() {
                     if !raw_buf.is_empty() {
-                        fragments.push(WebUIFragment::raw(std::mem::take(&mut raw_buf)));
+                        fragments.push(webhubFragment::raw(std::mem::take(&mut raw_buf)));
                     }
-                    fragments.push(WebUIFragment::signal(var_name.to_string(), false));
+                    fragments.push(webhubFragment::signal(var_name.to_string(), false));
                     pos = var_end + 2;
                     continue;
                 }
@@ -116,7 +116,7 @@ impl HandlebarsParser {
         }
 
         if !raw_buf.is_empty() {
-            fragments.push(WebUIFragment::raw(raw_buf));
+            fragments.push(webhubFragment::raw(raw_buf));
         }
 
         Ok(fragments)
@@ -132,7 +132,7 @@ impl Default for HandlebarsParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use webui_protocol::web_ui_fragment::Fragment;
+    use webhub_protocol::web_ui_fragment::Fragment;
 
     #[test]
     fn test_parse_plain_text() {

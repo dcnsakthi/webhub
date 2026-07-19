@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 /**
- * Versioned deterministic JSON manifest schema for WebUI state projection.
+ * Versioned deterministic JSON manifest schema for webhub state projection.
  *
  * See DESIGN.md §"Bundler-Neutral State Projection Compiler" for the
  * authoritative cross-language contract.
@@ -11,7 +11,7 @@
 import { createHash } from "node:crypto";
 
 /** The only valid schema string for this version. */
-export const MANIFEST_SCHEMA = "webui.state-projection/v1" as const;
+export const MANIFEST_SCHEMA = "webhub.state-projection/v1" as const;
 export type ManifestSchema = typeof MANIFEST_SCHEMA;
 
 /** Sentinel hash value for virtual modules/outputs with no physical bytes. */
@@ -186,7 +186,7 @@ export interface ProjectionManifest {
 
 /** Identity of the tool that produced the manifest. */
 export interface ProducerInfo {
-  readonly name: "@microsoft/webui/projection.js";
+  readonly name: "@microsoft/webhub/projection.js";
   readonly version: string;
 }
 
@@ -196,7 +196,7 @@ export interface AdapterInfo {
   readonly bundler: string;
 }
 
-/** One shipped WebUI component's exact client state surface. */
+/** One shipped webhub component's exact client state surface. */
 export interface ComponentEntry {
   /** Root-relative physical module path. */
   readonly module: string;
@@ -376,7 +376,7 @@ function isProducerInfo(value: unknown): boolean {
     keys.length === 2 &&
     keys.includes("name") &&
     keys.includes("version") &&
-    value["name"] === "@microsoft/webui/projection.js" &&
+    value["name"] === "@microsoft/webhub/projection.js" &&
     typeof value["version"] === "string" &&
     value["version"].length > 0
   );

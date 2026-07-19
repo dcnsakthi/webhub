@@ -1,6 +1,6 @@
-# WebUI - Copilot Instructions
+# webhub - Copilot Instructions
 
-You are working on **WebUI**, a high-performance server-side rendering framework written in Rust that operates without JavaScript runtimes. It separates static and dynamic content at build time into a binary protocol that enables fast rendering in any host language.
+You are working on **webhub**, a high-performance server-side rendering framework written in Rust that operates without JavaScript runtimes. It separates static and dynamic content at build time into a binary protocol that enables fast rendering in any host language.
 
 Read and internalize these instructions at the start of every session. They are non-negotiable.
 
@@ -32,7 +32,7 @@ This executes, in order: `license-headers → fmt → clippy → deny → test �
 
 ## Performance is the top priority
 
-Every decision - API design, data structure choice, algorithm, error path - must be evaluated through a performance lens first. WebUI's value proposition is speed; nothing else matters if it is slow.
+Every decision - API design, data structure choice, algorithm, error path - must be evaluated through a performance lens first. webhub's value proposition is speed; nothing else matters if it is slow.
 
 ### Hard constraints
 
@@ -40,8 +40,8 @@ Every decision - API design, data structure choice, algorithm, error path - must
 |------|-----------|
 | **No recursion** in core algorithms | Use iterative loops with an explicit stack. Recursion blows the call stack on deep templates and defeats branch prediction. |
 | **No regular expressions** in core logic | Deterministic scanners are faster and more predictable. |
-| **Minimal runtime computation** | Move work to build time (the `webui build` CLI step) whenever possible. |
-| **Protobuf binary serialization** via `prost` | Zero-copy decoding; JSON is for `webui inspect` debugging only. |
+| **Minimal runtime computation** | Move work to build time (the `webhub build` CLI step) whenever possible. |
+| **Protobuf binary serialization** via `prost` | Zero-copy decoding; JSON is for `webhub inspect` debugging only. |
 | **Buffer consolidation** | Reuse buffers, pre-allocate, avoid unnecessary allocations. |
 
 ### Allocation discipline
@@ -68,12 +68,12 @@ Every decision - API design, data structure choice, algorithm, error path - must
 ## Rust architecture standards
 
 ### Error handling
-- Library crates (`webui-parser`, `webui-handler`, `webui-expressions`, `webui-state`, `webui-protocol`, `webui-ffi`) use **custom error enums** via `thiserror`.
-- Binary crates (`webui-cli`, `xtask`) may use `anyhow`.
+- Library crates (`webhub-parser`, `webhub-handler`, `webhub-expressions`, `webhub-state`, `webhub-protocol`, `webhub-ffi`) use **custom error enums** via `thiserror`.
+- Binary crates (`webhub-cli`, `xtask`) may use `anyhow`.
 - **No `unwrap()` or `expect()`** in library code - `clippy.toml` enforces this.
 - **Never `panic!` on recoverable input.** Bad template/CLI/state input must return `Result` - `panic = "abort"` in release would kill any FFI/WASM/Node host. Build-time authoring mistakes are returned as a structured `ParserError::Template(Box<Diagnostic>)`.
 - Errors must be **actionable**: tell the caller what went wrong *and* what they can do about it (a `help:` line, plus a "did you mean …?" suggestion for typos).
-- Diagnostics are **plain, color-free data** carrying a stable machine-readable `code`, source location (`--> owner:line:column`), snippet, and `help:`. **Color belongs only in `webui-cli`** (via `console::style()`); FFI/WASM/Node and the browser get the plain `Display` text. `webui-cli --format json` emits each error as a machine-readable object on stdout for tools/agents.
+- Diagnostics are **plain, color-free data** carrying a stable machine-readable `code`, source location (`--> owner:line:column`), snippet, and `help:`. **Color belongs only in `webhub-cli`** (via `console::style()`); FFI/WASM/Node and the browser get the plain `Display` text. `webhub-cli --format json` emits each error as a machine-readable object on stdout for tools/agents.
 - **Error construction is a cold path:** mark error builders `#[cold]`/`#[inline(never)]` and keep hot fast-paths inlinable - cold error code inlined into a hot function perturbs its layout and regresses performance.
 - For the full error-handling and diagnostics workflow, use the skill: `skills/diagnostics/SKILL.md`.
 
@@ -98,7 +98,7 @@ Every source file (`.rs`, `.ts`, `.js`, `.cs`, `.h`, `.proto`) **must** start wi
 
 followed by a blank line before any code. `cargo xtask check` enforces this. Run `cargo xtask license-headers --fix` to add missing headers automatically.
 
-Files excluded from the check: `.html`, `.css`, `.json`, `.yml`, `.xml`, and auto-generated files (e.g. `webui_ffi.h`).
+Files excluded from the check: `.html`, `.css`, `.json`, `.yml`, `.xml`, and auto-generated files (e.g. `webhub_ffi.h`).
 
 ### Dependencies
 - Keep them minimal. Prefer the standard library. Before adding a crate, justify why std doesn't suffice.
@@ -148,7 +148,7 @@ Every code change ships with tests. No exceptions.
 
 ## Developer docs (`/docs`) stay current
 
-The `docs/` directory is a VitePress site for external developers consuming WebUI.
+The `docs/` directory is a VitePress site for external developers consuming webhub.
 
 - Any change to user-visible behavior, CLI usage, or public API **must** include a corresponding docs update in the same PR.
 - For the full docs synchronization workflow, use the skill: `skills/docs-sync/SKILL.md`.
@@ -163,7 +163,7 @@ The `docs/` directory is a VitePress site for external developers consuming WebU
 - **Quality gate** - `skills/quality-gate/SKILL.md`
 - **Docs synchronization** - `skills/docs-sync/SKILL.md`
 - **Performance (speed + memory)** - `skills/perf/SKILL.md`
-- **WebUI app development** - `skills/webui-dev/SKILL.md`
+- **webhub app development** - `skills/webhub-dev/SKILL.md`
 - **Testing** - `skills/testing/SKILL.md`
 
 ---
@@ -180,16 +180,16 @@ The `docs/` directory is a VitePress site for external developers consuming WebU
 | License headers fix | `cargo xtask license-headers --fix` |
 | Tests (workspace) | `cargo xtask test` |
 | Build (workspace) | `cargo xtask build` |
-| Test a single crate | `cargo test -p webui-parser` (or any crate name) |
-| Benchmark a crate | `cargo bench -p webui-protocol` (or any crate name) |
+| Test a single crate | `cargo test -p webhub-parser` (or any crate name) |
+| Benchmark a crate | `cargo bench -p webhub-protocol` (or any crate name) |
 | Build in release mode | `cargo build --release` |
 | Docs site | `cd docs && pnpm build` |
 
 ---
 
-## FFI boundary (`webui-ffi`)
+## FFI boundary (`webhub-ffi`)
 
-The FFI crate exposes WebUI to many host languages via a C-compatible ABI and remains a high-sensitivity surface.
+The FFI crate exposes webhub to many host languages via a C-compatible ABI and remains a high-sensitivity surface.
 
 - Treat all FFI changes as safety- and compatibility-critical.
 - Use the FFI boundary checklist in: `skills/code-review/SKILL.md` (section 10b).
@@ -232,13 +232,13 @@ strip = true          # Strip debug symbols
 
 ---
 
-## Shared test utilities (`webui-test-utils`)
+## Shared test utilities (`webhub-test-utils`)
 
-The `webui-test-utils` crate provides common test helpers, builders, and fixtures.
+The `webhub-test-utils` crate provides common test helpers, builders, and fixtures.
 
-- Before writing new test helpers, check if `webui-test-utils` already has what you need.
-- New shared test utilities belong in `webui-test-utils`, not duplicated across crates.
-- Add it as a `[dev-dependencies]` entry: `webui-test-utils = { path = "../webui-test-utils" }`.
+- Before writing new test helpers, check if `webhub-test-utils` already has what you need.
+- New shared test utilities belong in `webhub-test-utils`, not duplicated across crates.
+- Add it as a `[dev-dependencies]` entry: `webhub-test-utils = { path = "../webhub-test-utils" }`.
 
 ---
 
@@ -253,7 +253,7 @@ All terminal output uses `console::style()` from the `console` crate. This is th
 - Use `console::style(text).dim()` for secondary/contextual info.
 - Use `console::style(text).bold()` for values (file names, counts, paths).
 - **Do not** create `Style` structs or `Printer` wrappers - use `console::style()` inline.
-- Semantic output helpers live as **free functions** in `webui-cli/src/utils/output.rs` (`header`, `field`, `success`, `finish`, `error`, `hint`).
+- Semantic output helpers live as **free functions** in `webhub-cli/src/utils/output.rs` (`header`, `field`, `success`, `finish`, `error`, `hint`).
 
 ---
 

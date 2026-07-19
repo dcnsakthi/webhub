@@ -1,6 +1,6 @@
 # Routing
 
-WebUI routes are **declared in HTML and compiled at build time**. The Rust compiler parses your `<route>` tree, validates every attribute, and bakes it all into the binary protocol. Cache tags, invalidation graphs, pending states, error boundaries - everything is known before a single request is served.
+webhub routes are **declared in HTML and compiled at build time**. The Rust compiler parses your `<route>` tree, validates every attribute, and bakes it all into the binary protocol. Cache tags, invalidation graphs, pending states, error boundaries - everything is known before a single request is served.
 
 This means:
 - **Zero runtime JavaScript for routing policy.** Cache semantics, invalidation rules, and loading states are HTML attributes - not framework configuration objects.
@@ -12,7 +12,7 @@ At its simplest, routing is three lines of HTML and one line of TypeScript. At i
 ## Installation
 
 ```bash
-npm install @microsoft/webui-router
+npm install @microsoft/webhub-router
 ```
 
 Only needed when your app has client-side navigation. Server-only apps with full page loads don't need it.
@@ -30,7 +30,7 @@ Only needed when your app has client-side navigation. Server-only apps with full
 </head>
 ```
 
-All WebUI apps with routes **must** include `<base href="/">`. Without it, relative asset paths (CSS, JS) break on nested routes — the browser resolves `app.css` against `/users/123/` → `/users/app.css` instead of `/app.css`.
+All webhub apps with routes **must** include `<base href="/">`. Without it, relative asset paths (CSS, JS) break on nested routes — the browser resolves `app.css` against `/users/123/` → `/users/app.css` instead of `/app.css`.
 
 **2. Declare routes in `index.html`:**
 
@@ -56,7 +56,7 @@ All WebUI apps with routes **must** include `<base href="/">`. Without it, relat
 **3. Start the router:**
 
 ```typescript
-import { Router } from '@microsoft/webui-router';
+import { Router } from '@microsoft/webhub-router';
 
 Router.start();
 ```
@@ -65,7 +65,7 @@ The server SSRs the matched route on first load. The router handles clicks on `<
 
 The router never imports framework code. Authored route components use their
 registered classes. When the application also loads
-`@microsoft/webui-framework`, HTML-only route templates can mount during soft
+`@microsoft/webhub-framework`, HTML-only route templates can mount during soft
 navigation without empty TypeScript modules. The router falls back to a full
 document request only when no runtime registers the destination tag.
 
@@ -137,7 +137,7 @@ Navigating to `/compose?action=reply&to=user@test.com` sets `action` and `to` as
 Declare `@attr` properties in the component to receive them:
 
 ```typescript
-export class ComposePage extends WebUIElement {
+export class ComposePage extends webhubElement {
   @attr action = '';
   @attr to = '';
   @attr subject = '';
@@ -169,17 +169,17 @@ When navigating from Mail to Calendar and back:
 | Local state | ✅ Preserved (scroll, input, timers, observables) | Lost |
 | Server state | **Skipped** - use a [loader](#route-loaders) to refresh | Loaded with the new component |
 
-<webui-blockquote appearance="tip" title="When to use" icon="💡">
+<webhub-blockquote appearance="tip" title="When to use" icon="💡">
 
 Use on routes with expensive UI (lists, grids, trees) that users switch between frequently. Leaf routes with simple data-driven content rarely benefit — they're cheap to recreate.
 
-</webui-blockquote>
+</webhub-blockquote>
 
-<webui-blockquote appearance="tip" title="Refreshing data on reactivation" icon="💡">
+<webhub-blockquote appearance="tip" title="Refreshing data on reactivation" icon="💡">
 
 If a keep-alive component needs fresh data when reactivated, define a static `loader()` method. The router calls it on every navigation, including reactivation, and uses the returned data to refresh the component.
 
-</webui-blockquote>
+</webhub-blockquote>
 
 ### Preload on Hover
 
@@ -205,10 +205,10 @@ preload listener or navigation cache implementation.
 Define a static `loader()` method on a component class to fetch data from a custom source instead of using server-provided state:
 
 ```typescript
-import { WebUIElement } from '@microsoft/webui-framework';
-import type { RouteLoaderContext } from '@microsoft/webui-router';
+import { webhubElement } from '@microsoft/webhub-framework';
+import type { RouteLoaderContext } from '@microsoft/webhub-router';
 
-export class LiveDashboard extends WebUIElement {
+export class LiveDashboard extends webhubElement {
   static async loader({ params, signal }: RouteLoaderContext) {
     const resp = await fetch(`/api/dashboard/${params.id}`, { signal });
     return resp.json();
@@ -295,11 +295,11 @@ Declare cache tags on routes as HTML attributes. Placeholders like `{threadId}` 
 | **Revisit** | Within `staleTime`, the cached response is used instantly - no network fetch |
 | **Server override** | The server can include `cacheControl: { staleTime: 60000 }` to override per-response |
 
-<webui-blockquote appearance="tip" title="Preload + cache interaction" icon="💡">
+<webhub-blockquote appearance="tip" title="Preload + cache interaction" icon="💡">
 
 When `preload: true` is enabled, hover fetches write to the same cache. Preloaded entries get a minimum 5-second freshness window even when `staleTime` is 0 (disabled).
 
-</webui-blockquote>
+</webhub-blockquote>
 
 ### Tag-Based Invalidation
 
@@ -328,10 +328,10 @@ Router.invalidate();                             // evict everything
 The write counterpart to `static loader()`. Components define `static action()` to handle form submissions, and the router auto-invalidates the cache. Enable this optional runtime with `Router.start({ actions: true })`:
 
 ```typescript
-import { WebUIElement } from '@microsoft/webui-framework';
-import type { RouteActionContext, RouteActionResult } from '@microsoft/webui-router';
+import { webhubElement } from '@microsoft/webhub-framework';
+import type { RouteActionContext, RouteActionResult } from '@microsoft/webhub-router';
 
-export class ComposePage extends WebUIElement {
+export class ComposePage extends webhubElement {
   static async action({ formData, params, signal }: RouteActionContext): Promise<RouteActionResult> {
     await fetch('/api/send', { method: 'POST', body: formData, signal });
     return {
@@ -346,12 +346,12 @@ The router intercepts `<form method="post">` submissions via a delegated listene
 
 | Step | What happens |
 |------|-------------|
-| **1. Intercept** | Walks `composedPath()` to find the form and nearest `<webui-route>` (shadow DOM safe) |
+| **1. Intercept** | Walks `composedPath()` to find the form and nearest `<webhub-route>` (shadow DOM safe) |
 | **2. Guard** | Skips forms with external `action` URLs or `target` other than `_self` |
 | **3. Call** | Invokes `static action({ formData, params, signal })` on the component class |
 | **4. Invalidate** | Merges the action's returned tags with the route's build-time `invalidates` attribute |
 | **5. Update** | Applies optimistic `result.state` if provided |
-| **6. Event** | Dispatches `webui:route:action-complete` on `window` |
+| **6. Event** | Dispatches `webhub:route:action-complete` on `window` |
 
 ### Pending UI
 
@@ -370,7 +370,7 @@ Show a loading component during slow navigations. The component is validated at 
 | **Keep-alive** | Skipped - keep-alive routes activate instantly from the DOM |
 | **Cached** | Skipped - cached navigations have no fetch delay |
 
-Pending components are normal WebUI components - SSR'd, compiled, and part of the protocol. No special API needed.
+Pending components are normal webhub components - SSR'd, compiled, and part of the protocol. No special API needed.
 
 ### Error Boundaries
 
@@ -384,7 +384,7 @@ Show an error component when navigation fails. Like `pending`, the component is 
 The error component receives details as state:
 
 ```typescript
-export class ErrorDisplay extends WebUIElement {
+export class ErrorDisplay extends webhubElement {
   @observable error = '';    // "Navigation failed"
   @observable status = 0;    // HTTP status code (0 if network error)
   @observable path = '';     // the path that failed
@@ -416,7 +416,7 @@ If no `error` attribute is declared on the route, the router falls back to its d
 
 #### SSR Output
 
-The server renders `<webui-route>` elements with these DOM attributes:
+The server renders `<webhub-route>` elements with these DOM attributes:
 
 | Attribute | Purpose |
 |-----------|---------|
@@ -428,12 +428,12 @@ The server renders `<webui-route>` elements with these DOM attributes:
 | `error` | Error component tag (if declared) |
 | `data-ri` | Route index for O(1) element binding during hydration |
 
-Build-time attributes like `query`, `keep-alive`, `cache-tags`, and `invalidates` are **not** emitted as DOM attributes on `<webui-route>` elements. The `<route>` source attributes remain valid and unchanged, while the rendered route elements expose only the runtime attributes needed for navigation.
+Build-time attributes like `query`, `keep-alive`, `cache-tags`, and `invalidates` are **not** emitted as DOM attributes on `<webhub-route>` elements. The `<route>` source attributes remain valid and unchanged, while the rendered route elements expose only the runtime attributes needed for navigation.
 
 The server also emits inert route bootstrap data so the client router can start without walking the DOM.
 
 ```html
-<script type="application/json" id="webui-data">
+<script type="application/json" id="webhub-data">
 {
   "chain": [
     { "component": "app-shell", "path": "/", "keepAlive": false },
@@ -455,7 +455,7 @@ inventory, and style list emitted by the server. That keeps hydration direct and
 avoids DOM walking or route-pattern recomputation on first load.
 
 The `state` field is **projected** to the hydratable surface rather than
-carrying your entire application state. At build time WebUI records which
+carrying your entire application state. At build time webhub records which
 properties each component actually hydrates — its template state roots plus any
 `@observable`/`@attr` fields — and at render time the server emits only those
 keys, dropping everything else (including server-only data). This keeps the
@@ -470,7 +470,7 @@ By default, `Router.start({ ssrFresh: true })` skips running route loaders on th
 Components that need to run their loader even during SSR bootstrap can opt in:
 
 ```typescript
-export class LiveDashboard extends WebUIElement {
+export class LiveDashboard extends webhubElement {
   static ssrLoader = true; // loader runs even on SSR boot
 
   static async loader({ params, signal }: RouteLoaderContext) {
@@ -573,11 +573,11 @@ needs them.
 Router.gc();
 ```
 
-<webui-blockquote appearance="tip" title="When to use this" icon="💡">
+<webhub-blockquote appearance="tip" title="When to use this" icon="💡">
 
 Most apps don't need this - the number of unique component templates is bounded by the route tree (typically 10-30). The server's inventory system already prevents duplicate downloads. Use `gc()` in long-lived SPAs with many routes where memory pressure is a concern.
 
-</webui-blockquote>
+</webhub-blockquote>
 
 ## Lazy Loading
 
@@ -623,16 +623,16 @@ Configure a custom template endpoint:
 
 ```typescript
 Router.start({
-  templateEndpoint: '/api/templates', // default: '/_webui/templates'
+  templateEndpoint: '/api/templates', // default: '/_webhub/templates'
 });
 ```
 
 On the server, use the loaded protocol's `renderComponentTemplates` method:
 
 ```javascript
-app.get('/_webui/templates', (req, res) => {
+app.get('/_webhub/templates', (req, res) => {
   const tags = (req.query.t ?? '').split(',').filter(Boolean);
-  const inv = req.get('X-WebUI-Inventory') ?? '';
+  const inv = req.get('X-webhub-Inventory') ?? '';
   res.type('json').send(protocol.renderComponentTemplates(tags, inv));
 });
 ```
@@ -640,11 +640,11 @@ app.get('/_webui/templates', (req, res) => {
 ## Navigation Events
 
 ```typescript
-window.addEventListener('webui:route:navigated', (event) => {
+window.addEventListener('webhub:route:navigated', (event) => {
   const { component, params, query, path } = event.detail;
 });
 
-window.addEventListener('webui:route:action-complete', (event) => {
+window.addEventListener('webhub:route:action-complete', (event) => {
   const { component, invalidatedTags, path } = event.detail;
 });
 ```
@@ -705,7 +705,7 @@ custom-element registration, not by a server `client` flag.
 | Header | Value | Purpose |
 |--------|-------|---------|
 | `Accept` | `application/x-ndjson, application/json` | Requests NDJSON streaming or JSON partial instead of HTML |
-| `X-WebUI-Inventory` | Hex bitmask | Templates the client already has — server skips re-sending them |
+| `X-webhub-Inventory` | Hex bitmask | Templates the client already has — server skips re-sending them |
 
 ### Full HTML (initial load)
 
@@ -754,19 +754,19 @@ const partialJson = protocol.renderPartial(
 ### Express Example
 
 ```javascript
-import { Protocol } from '@microsoft/webui';
+import { Protocol } from '@microsoft/webhub';
 import { readFileSync } from 'node:fs';
 
 const protocol = new Protocol(
   readFileSync('./dist/protocol.bin'),
-  { plugin: 'webui' },
+  { plugin: 'webhub' },
 );
 
 app.get('/users/:id', (req, res) => {
   const state = { name: getUser(req.params.id).name };
 
   if (req.accepts('json')) {
-    const inv = req.get('X-WebUI-Inventory') ?? '';
+    const inv = req.get('X-webhub-Inventory') ?? '';
     const partialJson = protocol.renderPartial(
       state,
       'index.html',
@@ -828,13 +828,13 @@ where only the `state` field of the JSON partial is transferred.
 
 ## Styling Route Outlets
 
-`<webui-route>` elements rendered by `<outlet />` are bare custom elements
+`<webhub-route>` elements rendered by `<outlet />` are bare custom elements
 with `display: inline` by default. If the outlet's parent uses flexbox or
 grid layout, you need to style the route element:
 
 ```css
 /* In the parent component's CSS */
-.content-area > webui-route {
+.content-area > webhub-route {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -845,7 +845,7 @@ Hidden routes use `style="display:none"` inline. If your CSS sets
 `display: flex`, add specificity to avoid showing hidden routes:
 
 ```css
-.content-area > webui-route:not([style*="display:none"]) {
+.content-area > webhub-route:not([style*="display:none"]) {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -884,9 +884,9 @@ Hidden routes use `style="display:none"` inline. If your CSS sets
 
 ```typescript
 // index.ts
-import { Router } from '@microsoft/webui-router';
+import { Router } from '@microsoft/webhub-router';
 
-window.addEventListener('webui:hydration-complete', () => {
+window.addEventListener('webhub:hydration-complete', () => {
   Router.start({
     loaders: {
       'home-page': () => import('./pages/home-page.js'),

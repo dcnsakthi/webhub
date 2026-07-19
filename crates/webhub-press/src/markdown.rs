@@ -91,7 +91,7 @@ impl Highlighter {
 fn emit_escaped(buf: &mut String, s: &str) {
     // Byte-scan: find the next char needing escape, bulk-copy the rest.
     // `{` and `}` are escaped so `{{...}}` inside code spans/blocks is not
-    // interpreted as a WebUI signal binding by the template parser.
+    // interpreted as a webhub signal binding by the template parser.
     let bytes = s.as_bytes();
     let mut start = 0;
     for (i, &b) in bytes.iter().enumerate() {
@@ -178,7 +178,7 @@ fn collect_node_text<'a>(
                 plain.push_str(&code.literal);
                 html.push_str("<code>");
                 // Escape HTML entities and template braces inside code spans
-                // so `{{...}}` is not interpreted as a WebUI signal binding.
+                // so `{{...}}` is not interpreted as a webhub signal binding.
                 emit_escaped(&mut html, &code.literal);
                 html.push_str("</code>");
             }
@@ -199,7 +199,7 @@ fn collect_node_text<'a>(
 /// Internal links (starting with `/`) are prefixed with `base_path`.
 ///
 /// `page_url` is the current page's canonical URL path (base-prefixed, with a
-/// trailing slash — e.g. `/webui/guide/`). In-page fragment links (heading
+/// trailing slash — e.g. `/webhub/guide/`). In-page fragment links (heading
 /// anchors and `[text](#section)` links) are emitted as absolute paths
 /// (`{page_url}#slug`) rather than bare `#slug`. A bare fragment would resolve
 /// against the document's `<base href>` — which points at the site root — and
@@ -222,7 +222,7 @@ pub fn render_markdown(
     // Multi-pass approach: collect node pointers first, then modify.
     // This avoids modifying the tree during iteration and lets heading
     // rendering see original code-span nodes before they are converted to raw
-    // HTML for WebUI template-signal escaping.
+    // HTML for webhub template-signal escaping.
 
     // Pass 1: Rewrite internal links before custom heading rendering.
     for node in root.descendants() {
@@ -296,7 +296,7 @@ pub fn render_markdown(
             }
             NodeValue::Code(ref code) => {
                 // Replace inline code with pre-escaped HTML so `{{...}}` inside
-                // code spans is not interpreted as a WebUI signal binding.
+                // code spans is not interpreted as a webhub signal binding.
                 let mut html = String::with_capacity(code.literal.len() + 13);
                 html.push_str("<code>");
                 emit_escaped(&mut html, &code.literal);
@@ -342,7 +342,7 @@ mod tests {
     #[test]
     fn inline_code_escapes_template_braces() {
         // `{{value}}` inside inline code (e.g. in markdown tables or prose)
-        // must not be interpreted as a WebUI signal binding by the template
+        // must not be interpreted as a webhub signal binding by the template
         // parser — escape `{` and `}` to HTML entities.
         let h = Highlighter::new();
         let html = render_markdown("Use `{{value}}` for escaped output.", &h, "/", "/").unwrap();
@@ -382,17 +382,17 @@ mod tests {
         let html = render_markdown(
             "# Hello\n\nSee [below](#hello).\n",
             &h,
-            "/webui/",
-            "/webui/guide/",
+            "/webhub/",
+            "/webhub/guide/",
         )
         .unwrap();
 
         assert!(
-            html.contains(r##"href="/webui/guide/#hello""##),
+            html.contains(r##"href="/webhub/guide/#hello""##),
             "heading anchor should be absolute to the page: {html}"
         );
         assert!(
-            html.contains(r##"<a href="/webui/guide/#hello">below</a>"##),
+            html.contains(r##"<a href="/webhub/guide/#hello">below</a>"##),
             "in-content fragment link should be absolute to the page: {html}"
         );
     }

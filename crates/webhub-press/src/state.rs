@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Shared state loading and merge policy for WebUI Press builds.
+//! Shared state loading and merge policy for webhub Press builds.
 
 use std::collections::HashMap;
 use std::fs;
@@ -264,7 +264,7 @@ mod tests {
     fn temp_config_dir(name: &str) -> TestResult<PathBuf> {
         let id = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
         let dir =
-            std::env::temp_dir().join(format!("webui-press-{name}-{}-{id}", std::process::id()));
+            std::env::temp_dir().join(format!("webhub-press-{name}-{}-{id}", std::process::id()));
         fs::create_dir_all(&dir)?;
         Ok(dir)
     }

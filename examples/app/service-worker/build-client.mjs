@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { runWebUIClientBuild } from "../../build-client.mjs";
+import { runwebhubClientBuild } from "../../build-client.mjs";
 
-await runWebUIClientBuild({
+await runwebhubClientBuild({
   entryPoints: ["src/app.ts", "src/service-worker.ts"],
   outdir: "public",
   target: "es2022",
-  external: ["./wasm/handler/webui_wasm_handler.js"],
+  external: ["./wasm/handler/webhub_wasm_handler.js"],
 });

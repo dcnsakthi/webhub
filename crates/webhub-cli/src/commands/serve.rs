@@ -15,15 +15,15 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio_stream::StreamExt;
-use webui::streaming::StreamingWriter;
-use webui::{Diagnostic, Protocol, WebUIHandler};
-use webui_dev_server::{spawn_watcher, sse_handler, LiveReload, WatchConfig};
-use webui_handler::plugin::fast_v2::FastV2HydrationPlugin;
-use webui_handler::plugin::fast_v3::FastV3HydrationPlugin;
-use webui_handler::plugin::webui::WebUIHydrationPlugin;
-use webui_handler::{encode_safe, RenderOptions, ResponseWriter};
+use webhub::streaming::StreamingWriter;
+use webhub::{Diagnostic, Protocol, webhubHandler};
+use webhub_dev_server::{spawn_watcher, sse_handler, LiveReload, WatchConfig};
+use webhub_handler::plugin::fast_v2::FastV2HydrationPlugin;
+use webhub_handler::plugin::fast_v3::FastV3HydrationPlugin;
+use webhub_handler::plugin::webhub::webhubHydrationPlugin;
+use webhub_handler::{encode_safe, RenderOptions, ResponseWriter};
 #[cfg(test)]
-use webui_protocol::WebUIProtocol;
+use webhub_protocol::webhubProtocol;
 
 use super::common::*;
 use crate::utils::error::CliError;
@@ -55,18 +55,18 @@ pub struct ServeArgs {
     pub api_port: Option<u16>,
 
     /// Design token theme: a path to a JSON file or an npm package name
-    /// (e.g., `@microsoft/webui-examples-theme`). Resolved from node_modules
+    /// (e.g., `@microsoft/webhub-examples-theme`). Resolved from node_modules
     /// when the value doesn't point to a file on disk. Missing unresolved CSS
     /// tokens fail the build.
     #[arg(long)]
     pub theme: Option<String>,
 
     /// Comma-separated root component tags to emit as static CDN-loadable
-    /// assets, matching `webui build --emit-component-assets`. Their templates
+    /// assets, matching `webhub build --emit-component-assets`. Their templates
     /// and CSS are parsed and validated (theme tokens, HTML) on every build —
     /// even though they are not part of the initial SSR tree — so authoring
     /// errors in lazily loaded components surface in the dev server. The
-    /// compiled `<tag>.webui.js` modules are served from memory.
+    /// compiled `<tag>.webhub.js` modules are served from memory.
     #[arg(long, value_delimiter = ',', value_name = "TAGS")]
     pub emit_component_assets: Vec<String>,
 
@@ -77,7 +77,7 @@ pub struct ServeArgs {
     pub base_path: Option<String>,
 }
 
-/// Resolved paths for `webui serve`.
+/// Resolved paths for `webhub serve`.
 #[derive(Clone)]
 struct ServePaths {
     app_dir: PathBuf,
@@ -189,7 +189,7 @@ impl ServePaths {
 struct SharedState {
     rendered_html: String,
     css_files: HashMap<String, String>,
-    /// In-memory static component assets (`<tag>.webui.js`) emitted by
+    /// In-memory static component assets (`<tag>.webhub.js`) emitted by
     /// `--emit-component-assets`, served from memory like generated CSS.
     component_assets: HashMap<String, String>,
     protocol: Option<Arc<Protocol>>,
@@ -214,26 +214,26 @@ impl MemoryWriter {
 }
 
 impl ResponseWriter for MemoryWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.buf.push_str(content);
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
 
 /// SSE endpoint path. Root-relative so the script works under any
 /// `<base href>` and across sub-path deployments.
-const HMR_ENDPOINT: &str = "/__webui/livereload";
+const HMR_ENDPOINT: &str = "/__webhub/livereload";
 
 /// Environment variable that, when set to a non-empty / non-"0" value,
 /// suppresses `--watch` mode at runtime. Used by `xtask e2e` so that
 /// shared `start:server` package.json scripts (which include `--watch`
 /// for dev) don't enable filesystem watching during E2E test runs,
 /// where spurious rebuilds reload the page mid-test.
-const WATCH_DISABLE_ENV: &str = "WEBUI_NO_WATCH";
+const WATCH_DISABLE_ENV: &str = "webhub_NO_WATCH";
 
 fn watch_disabled_by_env() -> bool {
     match std::env::var(WATCH_DISABLE_ENV) {
@@ -278,7 +278,7 @@ fn run(args: &ServeArgs) -> Result<()> {
         base_path: args.base_path.clone(),
     };
 
-    output::header("WebUI Dev Server");
+    output::header("webhub Dev Server");
     output::field("App", &paths.app_dir.display());
     match &paths.state_file {
         Some(f) => output::field("State", &f.display()),
@@ -305,7 +305,7 @@ fn run(args: &ServeArgs) -> Result<()> {
     if watch_enabled {
         output::field("HMR", &format!("enabled (SSE {HMR_ENDPOINT})"));
     } else if args.watch {
-        output::field("HMR", &"disabled (WEBUI_NO_WATCH)");
+        output::field("HMR", &"disabled (webhub_NO_WATCH)");
     } else {
         output::field("HMR", &"disabled (pass --watch to enable)");
     }
@@ -339,7 +339,7 @@ fn run(args: &ServeArgs) -> Result<()> {
 
         // Also watch local path component sources
         for extra_dir in
-            webui_discovery::collect_watch_paths(&args.app_args.components, &paths.app_dir)
+            webhub_discovery::collect_watch_paths(&args.app_args.components, &paths.app_dir)
         {
             watch_paths_list.push(extra_dir);
         }
@@ -376,7 +376,7 @@ fn run(args: &ServeArgs) -> Result<()> {
         base_path: args.base_path.clone(),
         // Pool sized for typical concurrent renders × channel capacity.
         // 256 buffers × 5 KiB ≈ 1.25 MiB peak pool memory — bounded.
-        chunk_pool: Arc::new(webui::streaming::ChunkPool::new(
+        chunk_pool: Arc::new(webhub::streaming::ChunkPool::new(
             256,
             StreamingWriter::CHUNK_TARGET + 1024,
         )),
@@ -405,7 +405,7 @@ fn run(args: &ServeArgs) -> Result<()> {
 
                 app = app
                     .route(
-                        "/_webui/templates",
+                        "/_webhub/templates",
                         web::get().to(handle_component_templates),
                     )
                     .route("/{tail:.*}", web::get().to(handle_asset))
@@ -446,7 +446,7 @@ struct RenderConfig {
     app_dir: PathBuf,
     state_file: Option<PathBuf>,
     /// Loaded theme file used to validate and resolve tokens on each build.
-    token_file: Option<webui::TokenFile>,
+    token_file: Option<webhub::TokenFile>,
     /// Root component tags emitted as static assets (`--emit-component-assets`).
     /// Parsed and validated on every build so their authoring errors surface in
     /// the dev server, even though they are not part of the initial SSR tree.
@@ -459,7 +459,7 @@ struct RenderConfig {
 struct BuildRenderResult {
     html: String,
     css_files: HashMap<String, String>,
-    /// Static component assets (`<tag>.webui.js`) keyed by filename.
+    /// Static component assets (`<tag>.webhub.js`) keyed by filename.
     component_assets: HashMap<String, String>,
     protocol: Arc<Protocol>,
     state_data: Value,
@@ -480,10 +480,10 @@ fn build_and_render(
     // errors in lazily loaded components (which are not in the SSR tree) fail
     // the dev build instead of being silently skipped.
     build_options.component_asset_roots = config.component_asset_roots.clone();
-    let build_result = webui::build(build_options).with_context(|| "Build failed")?;
+    let build_result = webhub::build(build_options).with_context(|| "Build failed")?;
     let token_css = match config.token_file.as_ref() {
         Some(token_file) => Some(
-            webui_tokens::resolve_tokens(&build_result.protocol.tokens, token_file)
+            webhub_tokens::resolve_tokens(&build_result.protocol.tokens, token_file)
                 .with_context(|| "Token resolution failed")?
                 .css,
         ),
@@ -502,7 +502,7 @@ fn build_and_render(
 
     // Inject resolved token CSS into state
     if let Some(ref token_css) = token_css {
-        webui_tokens::inject_token_css(&mut state, token_css);
+        webhub_tokens::inject_token_css(&mut state, token_css);
     }
 
     // Inject basePath into state so templates can use {{basePath}}.
@@ -549,16 +549,16 @@ fn build_and_render(
     })
 }
 
-fn create_handler(plugin: Option<Plugin>) -> WebUIHandler {
+fn create_handler(plugin: Option<Plugin>) -> webhubHandler {
     match plugin {
         Some(Plugin::Fast | Plugin::FastV2) => {
-            WebUIHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()))
+            webhubHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()))
         }
         Some(Plugin::FastV3) => {
-            WebUIHandler::with_plugin(|| Box::new(FastV3HydrationPlugin::new()))
+            webhubHandler::with_plugin(|| Box::new(FastV3HydrationPlugin::new()))
         }
-        Some(Plugin::WebUI) => WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new())),
-        None => WebUIHandler::new(),
+        Some(Plugin::webhub) => webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new())),
+        None => webhubHandler::new(),
     }
 }
 
@@ -569,7 +569,7 @@ fn rebuild_error_response(message: &str, livereload: Option<&LiveReload>) -> Htt
         let mut body = String::with_capacity(message.len() + script.len() + 160);
         body.push_str("<!doctype html><html><head><meta charset=\"utf-8\"><title>");
         body.push_str(
-            "WebUI rebuild failed</title></head><body><h1>WebUI rebuild failed</h1><pre>",
+            "webhub rebuild failed</title></head><body><h1>webhub rebuild failed</h1><pre>",
         );
         body.push_str(&escaped);
         body.push_str("</pre>");
@@ -581,7 +581,7 @@ fn rebuild_error_response(message: &str, livereload: Option<&LiveReload>) -> Htt
     }
 
     let mut body = String::with_capacity(message.len() + 22);
-    body.push_str("WebUI rebuild failed\n\n");
+    body.push_str("webhub rebuild failed\n\n");
     body.push_str(message);
     HttpResponse::InternalServerError()
         .content_type("text/plain; charset=utf-8")
@@ -591,7 +591,7 @@ fn rebuild_error_response(message: &str, livereload: Option<&LiveReload>) -> Htt
 fn rebuild_error_json_response(message: &str) -> HttpResponse {
     let escaped = match serde_json::to_string(message) {
         Ok(value) => value,
-        Err(_) => "\"WebUI rebuild failed\"".to_string(),
+        Err(_) => "\"webhub rebuild failed\"".to_string(),
     };
     let mut body = String::with_capacity(escaped.len() + 11);
     body.push_str("{\"error\":");
@@ -615,7 +615,7 @@ struct ServerContext {
     /// Shared chunk-buffer pool. One pool per server; recycled across
     /// every streaming render so steady-state RPS does not allocate
     /// fresh chunk buffers per flush.
-    chunk_pool: Arc<webui::streaming::ChunkPool>,
+    chunk_pool: Arc<webhub::streaming::ChunkPool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -708,7 +708,7 @@ async fn resolve_state(context: &ServerContext, request_path: &str) -> Value {
     // /*{{{tokens.light}}}*/ resolve at render time, regardless of
     // whether state came from a static file or the API server.
     if let Some(ref token_css) = token_css {
-        webui_tokens::inject_token_css(&mut state, token_css);
+        webhub_tokens::inject_token_css(&mut state, token_css);
     }
 
     // Inject basePath into state — default "/" for correct CSS resolution.
@@ -754,7 +754,7 @@ async fn render_page_response(
     // Inject route params (nested) into state for SSR
     if let Value::Object(ref mut map) = state {
         let nested_params =
-            webui_handler::route_handler::collect_nested_route_params(&proto, &entry, route_path);
+            webhub_handler::route_handler::collect_nested_route_params(&proto, &entry, route_path);
         for (k, v) in &nested_params {
             map.insert(k.clone(), Value::String(v.clone()));
         }
@@ -797,7 +797,7 @@ async fn render_page_response(
             // emit a fixed HTML comment so an attacker-controlled
             // error message cannot break out of the comment via `-->`.
             log::error!("render failed for {route_path_for_log}: {e}");
-            let _ = ResponseWriter::write(&mut writer, "<!-- webui: render error -->");
+            let _ = ResponseWriter::write(&mut writer, "<!-- webhub: render error -->");
             if let Err(flush_error) = ResponseWriter::end(&mut writer) {
                 log::debug!("render stream truncated for {route_path_for_log}: {flush_error}");
             }
@@ -1007,7 +1007,7 @@ async fn handle_json_partial(
     // Inject route params into state from walking the fragment graph.
     if let Value::Object(ref mut map) = state_data {
         if let Some(proto) = &protocol {
-            let nested_params = webui_handler::route_handler::collect_nested_route_params(
+            let nested_params = webhub_handler::route_handler::collect_nested_route_params(
                 proto,
                 &entry,
                 &paths.route_path,
@@ -1021,7 +1021,7 @@ async fn handle_json_partial(
     // Get needed component templates via the handler's graph walk + inventory filter
     let client_inv_hex = req
         .headers()
-        .get("x-webui-inventory")
+        .get("x-webhub-inventory")
         .and_then(|v| v.to_str().ok())
         .unwrap_or_default()
         .to_string();
@@ -1057,7 +1057,7 @@ async fn handle_json_partial(
 
 #[cfg(test)]
 fn collect_needed_template_names(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     entry_fragment_id: &str,
     request_path: &str,
     inventory_hex: &str,
@@ -1162,7 +1162,7 @@ struct WatcherConfig {
 /// when template, data, or asset files change. The returned handle owns
 /// the background watcher thread; it must be kept alive for the lifetime
 /// of the server.
-fn start_file_watcher(config: WatcherConfig) -> Result<webui_dev_server::WatcherHandle> {
+fn start_file_watcher(config: WatcherConfig) -> Result<webhub_dev_server::WatcherHandle> {
     let WatcherConfig {
         watch_paths,
         projection_manifests,
@@ -1186,7 +1186,7 @@ fn start_file_watcher(config: WatcherConfig) -> Result<webui_dev_server::Watcher
     let mut seen: HashSet<String> = initial_warnings.into_iter().collect();
     let state_for_rebuild = Arc::clone(&state);
     let retry_state = Arc::clone(&state);
-    let tick_tx = webui_dev_server::spawn_rebuild_worker(livereload, move || {
+    let tick_tx = webhub_dev_server::spawn_rebuild_worker(livereload, move || {
         let warnings =
             rebuild_and_update_state(&render_config, &lr_for_inject, &state_for_rebuild)?;
         Ok(take_new_warnings(&mut seen, warnings))
@@ -1197,7 +1197,7 @@ fn start_file_watcher(config: WatcherConfig) -> Result<webui_dev_server::Watcher
             .is_ok_and(|state| state.rebuild_error.is_some())
     });
 
-    let mut ignore = webui_dev_server::default_ignore_paths();
+    let mut ignore = webhub_dev_server::default_ignore_paths();
     // Also ignore the build output dir if it lives under a watched root.
     if let Ok(out_dir) = std::env::current_dir() {
         ignore.push(out_dir.join("dist"));
@@ -1247,7 +1247,7 @@ fn rebuild_and_update_state(
     render_config: &RenderConfig,
     livereload: &LiveReload,
     state: &Arc<Mutex<SharedState>>,
-) -> Result<Vec<Diagnostic>, webui_dev_server::RebuildError> {
+) -> Result<Vec<Diagnostic>, webhub_dev_server::RebuildError> {
     match build_and_render(render_config, Some(livereload)) {
         Ok(result) => match state.lock() {
             Ok(mut s) => {
@@ -1261,7 +1261,7 @@ fn rebuild_and_update_state(
                 // The rebuild worker prints these under the "rebuilt" line.
                 Ok(result.warnings)
             }
-            Err(_) => Err(webui_dev_server::RebuildError::plain(
+            Err(_) => Err(webhub_dev_server::RebuildError::plain(
                 "shared state mutex poisoned".to_owned(),
             )),
         },
@@ -1270,7 +1270,7 @@ fn rebuild_and_update_state(
             if let Ok(mut s) = state.lock() {
                 s.rebuild_error = Some(message.clone());
             }
-            Err(webui_dev_server::RebuildError::new(display, message))
+            Err(webhub_dev_server::RebuildError::new(display, message))
         }
     }
 }
@@ -1282,7 +1282,7 @@ mod tests {
     use actix_web::test as actix_test;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use tempfile::TempDir;
-    use webui_protocol::{FragmentList, WebUIFragment, WebUIProtocol, WebUiFragmentRoute};
+    use webhub_protocol::{FragmentList, webhubFragment, webhubProtocol, webhubFragmentRoute};
 
     fn create_app_dir(files: &[(&str, &str)]) -> TempDir {
         let dir = TempDir::new().unwrap();
@@ -1367,7 +1367,7 @@ mod tests {
     fn test_build_and_render_with_state() {
         let app = create_app_dir(&[
             ("index.html", "<p>{{name}}</p>"),
-            ("state.json", r#"{"name":"WebUI"}"#),
+            ("state.json", r#"{"name":"webhub"}"#),
         ]);
         let config = RenderConfig {
             app_args: AppArgs {
@@ -1390,7 +1390,7 @@ mod tests {
         };
         let hmr = LiveReload::new(HMR_ENDPOINT);
         let BuildRenderResult { html, .. } = build_and_render(&config, Some(&hmr)).unwrap();
-        assert!(html.contains("<p>WebUI</p>"));
+        assert!(html.contains("<p>webhub</p>"));
     }
 
     #[test]
@@ -1430,24 +1430,24 @@ mod tests {
         let fast = render(Some(Plugin::Fast));
         assert!(fast.contains("<!--fe-b$$start$$0$$name$$fe-b-->"));
         assert!(!fast.contains("<!--fe:b-->"));
-        assert!(fast.contains("id=\"webui-data\""));
-        assert!(!fast.contains("window.__webui"));
+        assert!(fast.contains("id=\"webhub-data\""));
+        assert!(!fast.contains("window.__webhub"));
         assert!(!fast.contains(r#""templates""#));
         assert!(!fast.contains("templateFns"));
 
         let fast_v2 = render(Some(Plugin::FastV2));
         assert!(fast_v2.contains("<!--fe-b$$start$$0$$name$$fe-b-->"));
         assert!(!fast_v2.contains("<!--fe:b-->"));
-        assert!(fast_v2.contains("id=\"webui-data\""));
-        assert!(!fast_v2.contains("window.__webui"));
+        assert!(fast_v2.contains("id=\"webhub-data\""));
+        assert!(!fast_v2.contains("window.__webhub"));
         assert!(!fast_v2.contains(r#""templates""#));
         assert!(!fast_v2.contains("templateFns"));
 
         let fast_v3 = render(Some(Plugin::FastV3));
         assert!(fast_v3.contains("<!--fe:b-->"));
         assert!(!fast_v3.contains("<!--fe-b$$start$$"));
-        assert!(fast_v3.contains("id=\"webui-data\""));
-        assert!(!fast_v3.contains("window.__webui"));
+        assert!(fast_v3.contains("id=\"webhub-data\""));
+        assert!(!fast_v3.contains("window.__webhub"));
         assert!(!fast_v3.contains(r#""templates""#));
         assert!(!fast_v3.contains("templateFns"));
     }
@@ -1600,22 +1600,22 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-app")],
+                fragments: vec![webhubFragment::component("mp-app")],
             },
         );
         fragments.insert(
             "mp-app".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::component("mp-category-nav"),
-                    WebUIFragment::route_from(WebUiFragmentRoute {
+                    webhubFragment::component("mp-category-nav"),
+                    webhubFragment::route_from(webhubFragmentRoute {
                         path: "/search/:category".to_string(),
                         fragment_id: "mp-page-search".to_string(),
                         exact: true,
                         keep_alive: false,
                         ..Default::default()
                     }),
-                    WebUIFragment::route_from(WebUiFragmentRoute {
+                    webhubFragment::route_from(webhubFragmentRoute {
                         path: "/product/:handle".to_string(),
                         fragment_id: "mp-page-product".to_string(),
                         exact: true,
@@ -1628,35 +1628,35 @@ mod tests {
         fragments.insert(
             "mp-category-nav".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<nav></nav>")],
+                fragments: vec![webhubFragment::raw("<nav></nav>")],
             },
         );
         fragments.insert(
             "mp-page-search".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-product-grid")],
+                fragments: vec![webhubFragment::component("mp-product-grid")],
             },
         );
         fragments.insert(
             "mp-product-grid".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div></div>")],
+                fragments: vec![webhubFragment::raw("<div></div>")],
             },
         );
         fragments.insert(
             "mp-page-product".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-product-detail")],
+                fragments: vec![webhubFragment::component("mp-product-detail")],
             },
         );
         fragments.insert(
             "mp-product-detail".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<article></article>")],
+                fragments: vec![webhubFragment::raw("<article></article>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         protocol
             .components
             .entry("mp-page-search".to_string())
@@ -1783,7 +1783,7 @@ mod tests {
         };
         let lr = LiveReload::new(HMR_ENDPOINT);
         let BuildRenderResult { html, .. } = build_and_render(&config, Some(&lr)).unwrap();
-        assert!(html.contains("Hello, WebUI!"));
+        assert!(html.contains("Hello, webhub!"));
         assert!(html.contains("Ali"));
         assert!(html.contains("Mohamed Mansour"));
         // HMR script should be injected
@@ -1810,7 +1810,7 @@ mod tests {
             api_port: None,
             plugin: None,
             base_path: None,
-            chunk_pool: Arc::new(webui::streaming::ChunkPool::new(
+            chunk_pool: Arc::new(webhub::streaming::ChunkPool::new(
                 4,
                 StreamingWriter::CHUNK_TARGET + 1024,
             )),
@@ -1884,7 +1884,7 @@ mod tests {
             api_port: None,
             plugin: None,
             base_path: None,
-            chunk_pool: Arc::new(webui::streaming::ChunkPool::new(
+            chunk_pool: Arc::new(webhub::streaming::ChunkPool::new(
                 4,
                 StreamingWriter::CHUNK_TARGET + 1024,
             )),
@@ -1952,7 +1952,7 @@ mod tests {
             api_port: Some(port),
             plugin: None,
             base_path: None,
-            chunk_pool: Arc::new(webui::streaming::ChunkPool::new(
+            chunk_pool: Arc::new(webhub::streaming::ChunkPool::new(
                 4,
                 StreamingWriter::CHUNK_TARGET + 1024,
             )),
@@ -2025,7 +2025,7 @@ mod tests {
             api_port: Some(port),
             plugin: None,
             base_path: None,
-            chunk_pool: Arc::new(webui::streaming::ChunkPool::new(
+            chunk_pool: Arc::new(webhub::streaming::ChunkPool::new(
                 4,
                 StreamingWriter::CHUNK_TARGET + 1024,
             )),
@@ -2074,7 +2074,7 @@ mod tests {
             },
             app_dir: app.path().to_path_buf(),
             state_file: None,
-            token_file: Some(webui::TokenFile {
+            token_file: Some(webhub::TokenFile {
                 themes: HashMap::from([(
                     "light".to_string(),
                     HashMap::from([("token-b".to_string(), "green".to_string())]),
@@ -2142,7 +2142,7 @@ mod tests {
             },
             app_dir: app.path().to_path_buf(),
             state_file: None,
-            token_file: Some(webui::TokenFile {
+            token_file: Some(webhub::TokenFile {
                 themes: HashMap::from([(
                     "light".to_string(),
                     HashMap::from([("color-brand".to_string(), "#abc".to_string())]),
@@ -2206,7 +2206,7 @@ mod tests {
             },
             app_dir: app.path().to_path_buf(),
             state_file: None,
-            token_file: Some(webui::TokenFile {
+            token_file: Some(webhub::TokenFile {
                 themes: HashMap::from([(
                     "light".to_string(),
                     HashMap::from([("brand".to_string(), "var(--missing)".to_string())]),
@@ -2243,7 +2243,7 @@ mod tests {
                 entry: "index.html".to_string(),
                 css: CssStrategy::Link,
                 dom: DomStrategy::Shadow,
-                plugin: Some(Plugin::WebUI),
+                plugin: Some(Plugin::webhub),
                 components: Vec::new(),
                 projection_manifests: Vec::new(),
                 asset_file_name_template: DEFAULT_ASSET_FILE_NAME_TEMPLATE.to_string(),
@@ -2259,14 +2259,14 @@ mod tests {
         let result = build_and_render(&config, None).unwrap();
         let asset = result
             .component_assets
-            .get("lazy-panel.webui.js")
+            .get("lazy-panel.webhub.js")
             .unwrap_or_else(|| {
                 panic!(
-                    "expected lazy-panel.webui.js; got {:?}",
+                    "expected lazy-panel.webhub.js; got {:?}",
                     result.component_assets.keys().collect::<Vec<_>>()
                 )
             });
-        assert!(asset.contains("webui-component-asset"), "asset: {asset}");
+        assert!(asset.contains("webhub-component-asset"), "asset: {asset}");
     }
 
     #[test]
@@ -2288,7 +2288,7 @@ mod tests {
                 entry: "index.html".to_string(),
                 css: CssStrategy::Link,
                 dom: DomStrategy::Shadow,
-                plugin: Some(Plugin::WebUI),
+                plugin: Some(Plugin::webhub),
                 components: Vec::new(),
                 projection_manifests: Vec::new(),
                 asset_file_name_template: DEFAULT_ASSET_FILE_NAME_TEMPLATE.to_string(),
@@ -2297,7 +2297,7 @@ mod tests {
             },
             app_dir: app.path().to_path_buf(),
             state_file: None,
-            token_file: Some(webui::TokenFile {
+            token_file: Some(webhub::TokenFile {
                 themes: HashMap::from([(
                     "light".to_string(),
                     HashMap::from([("brand-other".to_string(), "#000".to_string())]),
@@ -2335,8 +2335,8 @@ mod tests {
                 rendered_html: String::new(),
                 css_files: HashMap::new(),
                 component_assets: HashMap::from([(
-                    "lazy-panel.webui.js".to_string(),
-                    "export default {\"type\":\"webui-component-asset\"};".to_string(),
+                    "lazy-panel.webhub.js".to_string(),
+                    "export default {\"type\":\"webhub-component-asset\"};".to_string(),
                 )]),
                 protocol: None,
                 state_data: None,
@@ -2349,7 +2349,7 @@ mod tests {
             api_port: None,
             plugin: None,
             base_path: None,
-            chunk_pool: Arc::new(webui::streaming::ChunkPool::new(
+            chunk_pool: Arc::new(webhub::streaming::ChunkPool::new(
                 4,
                 StreamingWriter::CHUNK_TARGET + 1024,
             )),
@@ -2365,7 +2365,7 @@ mod tests {
         let response = actix_test::call_service(
             &app,
             actix_test::TestRequest::get()
-                .uri("/lazy-panel.webui.js")
+                .uri("/lazy-panel.webhub.js")
                 .to_request(),
         )
         .await;

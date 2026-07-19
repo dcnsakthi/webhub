@@ -1,18 +1,18 @@
-# What is WebUI Framework?
+# What is webhub Framework?
 
-WebUI is a **language-agnostic server-side rendering framework** that compiles HTML templates into a binary protocol at build time and uses **Web Components Islands Architecture** for client-side interactivity. There is no JavaScript runtime on the server - rendering is Rust-native, sub-millisecond, and available from any backend language.
+webhub is a **language-agnostic server-side rendering framework** that compiles HTML templates into a binary protocol at build time and uses **Web Components Islands Architecture** for client-side interactivity. There is no JavaScript runtime on the server - rendering is Rust-native, sub-millisecond, and available from any backend language.
 
-At its core, WebUI separates **static content** from **dynamic content** at build time. At runtime, the server fills in state data. On the client, Web Components hydrate as **interactive islands** - only components that need interactivity ship JavaScript. Static content stays static.
+At its core, webhub separates **static content** from **dynamic content** at build time. At runtime, the server fills in state data. On the client, Web Components hydrate as **interactive islands** - only components that need interactivity ship JavaScript. Static content stays static.
 
-> **New here?** Jump straight into the [Playground](/playground/) or follow the [Hello World Tutorial](/tutorials/hello-world). For the design rationale, see [Why WebUI?](./why).
+> **New here?** Jump straight into the [Playground](/playground/) or follow the [Hello World Tutorial](/tutorials/hello-world). For the design rationale, see [Why webhub?](./why).
 
-## How WebUI Works
+## How webhub Works
 
-WebUI splits the work into three phases:
+webhub splits the work into three phases:
 
 ### 1. Build - Compile templates to binary
 
-The CLI (`webui build`) parses your HTML templates, discovers Web Components, evaluates static content, and compiles everything into a compact **Protocol Buffer binary**. Static fragments are pre-serialized. Dynamic fragments (expressions, conditionals, loops) are recorded as lightweight instructions. This happens **once**, ahead of time.
+The CLI (`webhub build`) parses your HTML templates, discovers Web Components, evaluates static content, and compiles everything into a compact **Protocol Buffer binary**. Static fragments are pre-serialized. Dynamic fragments (expressions, conditionals, loops) are recorded as lightweight instructions. This happens **once**, ahead of time.
 
 ### 2. Render - Fill in state data from any backend
 
@@ -39,12 +39,12 @@ On the client, only **Web Components marked as interactive** hydrate. Each compo
   ┌──────────────────────────────────────┐    ┌──────────────────────────────────────┐
   │                                      │    │                                      │
   │  ┌────────────┐    ┌──────────────┐  │    │  ┌────────────┐    ┌──────────────┐  │
-  │  │ HTML + CSS │───▶│ webui build  │  │    │  │ JSON state │───▶│   handler    │  │
+  │  │ HTML + CSS │───▶│ webhub build  │  │    │  │ JSON state │───▶│   handler    │  │
   │  │ templates  │    │  (compile)   │  │    │  │ (per req)  │    │  (any lang)  │  │
   │  └────────────┘    └──────┬───────┘  │    │  └────────────┘    └──────┬───────┘  │
   │                           │          │    │                           │          │
   │                    ┌──────▼───────┐  │    │                    ┌──────▼───────┐  │
-  │                    │ .webui bin   │──╋────╋───────────────────▶│ rendered HTML│  │
+  │                    │ .webhub bin   │──╋────╋───────────────────▶│ rendered HTML│  │
   │                    │ (protocol)   │  │    │                    └──────┬───────┘  │
   │                    └──────────────┘  │    │                           │          │
   └──────────────────────────────────────┘    └──────────────────────────────────────┘
@@ -63,6 +63,6 @@ On the client, only **Web Components marked as interactive** hydrate. Each compo
 ## Ready to Try It?
 
 - **[Playground](/playground/)** - Experiment in the browser with zero setup.
-- **[Installation Guide](./installation)** - Set up WebUI locally.
-- **[Hello World Tutorial](/tutorials/hello-world)** - Build your first WebUI app step by step.
-- **[Why WebUI?](./why)** - Understand the architecture and performance benefits in depth.
+- **[Installation Guide](./installation)** - Set up webhub locally.
+- **[Hello World Tutorial](/tutorials/hello-world)** - Build your first webhub app step by step.
+- **[Why webhub?](./why)** - Understand the architecture and performance benefits in depth.

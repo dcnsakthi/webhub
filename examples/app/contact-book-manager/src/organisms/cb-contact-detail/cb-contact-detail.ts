@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '@microsoft/webui-framework';
+import { webhubElement, observable } from '@microsoft/webhub-framework';
 
-export class CbContactDetail extends WebUIElement {
+export class CbContactDetail extends webhubElement {
   @observable id!: string;
   @observable favorite!: boolean;
 

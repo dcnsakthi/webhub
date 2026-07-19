@@ -22,7 +22,7 @@ const CHECKED_EXTENSIONS: &[&str] = &["rs", "ts", "js", "cs", "h", "proto"];
 
 /// Individual tracked files to skip (relative to workspace root).
 /// Generated files that are checked in but not hand-authored belong here.
-const SKIP_FILES: &[&str] = &["crates/webui-ffi/include/webui_ffi.h"];
+const SKIP_FILES: &[&str] = &["crates/webhub-ffi/include/webhub_ffi.h"];
 
 // ── Public API ──────────────────────────────────────────────────────────
 
@@ -176,7 +176,7 @@ mod tests {
 
     fn temp_dir() -> PathBuf {
         let id = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("webui_license_header_tests_{id}"));
+        let dir = std::env::temp_dir().join(format!("webhub_license_header_tests_{id}"));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).expect("create temp dir");
         dir
@@ -255,9 +255,9 @@ mod tests {
     #[test]
     fn skip_file_detection() {
         assert!(is_skipped_file(Path::new(
-            "crates/webui-ffi/include/webui_ffi.h"
+            "crates/webhub-ffi/include/webhub_ffi.h"
         )));
-        assert!(!is_skipped_file(Path::new("crates/webui/src/lib.rs")));
+        assert!(!is_skipped_file(Path::new("crates/webhub/src/lib.rs")));
     }
 
     #[test]

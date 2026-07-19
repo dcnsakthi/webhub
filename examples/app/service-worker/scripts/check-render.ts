@@ -6,12 +6,12 @@ import assert from "node:assert/strict";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { sanitizePayload } from "../src/payload.js";
-import initWasm, { Protocol } from "../public/wasm/handler/webui_wasm_handler.js";
+import initWasm, { Protocol } from "../public/wasm/handler/webhub_wasm_handler.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const exampleRoot = resolve(here, "..");
 const protocolPath = resolve(exampleRoot, "public/protocol.bin");
-const wasmPath = resolve(exampleRoot, "public/wasm/handler/webui_wasm_handler_bg.wasm");
+const wasmPath = resolve(exampleRoot, "public/wasm/handler/webhub_wasm_handler_bg.wasm");
 const themeCssPath = resolve(exampleRoot, "public/theme.css");
 const apiFiles = ["shell", "hero", "metrics", "activity"];
 const baseUrl = new URL("http://localhost:4175/");
@@ -20,7 +20,7 @@ await initWasm({ module_or_path: await readFile(wasmPath) });
 
 const protocol = new Protocol(
   new Uint8Array(await readFile(protocolPath)),
-  "webui",
+  "webhub",
 );
 
 for (const name of apiFiles) {
@@ -50,11 +50,11 @@ for (const name of apiFiles) {
 
 const bootstrapHtml = await readFile(resolve(exampleRoot, "public/index.html"), "utf-8");
 assert.match(bootstrapHtml, /--color-brand-primary: #0078d4;/);
-assert.doesNotMatch(bootstrapHtml, /WEBUI_THEME_(LIGHT|DARK)/);
+assert.doesNotMatch(bootstrapHtml, /webhub_THEME_(LIGHT|DARK)/);
 
 const themeCss = await readFile(themeCssPath, "utf-8");
 assert.match(themeCss, /--color-brand-primary: #0078d4;/);
-assert.doesNotMatch(themeCss, /WEBUI_THEME_(LIGHT|DARK)/);
+assert.doesNotMatch(themeCss, /webhub_THEME_(LIGHT|DARK)/);
 
 assert.throws(
   () =>

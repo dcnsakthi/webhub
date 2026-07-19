@@ -212,7 +212,7 @@ See `skills/diagnostics/SKILL.md` for the full workflow. On review, check:
 |---------|-----------|
 | `panic!`/`unwrap` on recoverable (template/CLI/state) input | **Banned.** Return `Result` - `panic = "abort"` kills FFI/WASM/Node hosts. Authoring mistakes return `ParserError::Template(Box<Diagnostic>)`. |
 | Authoring error without a stable `code`, location, or `help:` | A `Diagnostic` must carry a `diagnostic::codes` constant, `--> owner:line:column`, snippet, and an actionable `help:`. Codes are a **stable API** - flag renames. |
-| Color/ANSI in a library, host, browser, or JSON channel | Color belongs **only** in `webui-cli` (`console::style()`). Libraries emit plain data; FFI/WASM/Node/browser get plain `Display`. Split terminal-vs-machine renderings (e.g. `RebuildError { display, message }`) rather than leaking ANSI. |
+| Color/ANSI in a library, host, browser, or JSON channel | Color belongs **only** in `webhub-cli` (`console::style()`). Libraries emit plain data; FFI/WASM/Node/browser get plain `Display`. Split terminal-vs-machine renderings (e.g. `RebuildError { display, message }`) rather than leaking ANSI. |
 | A single SGR span wrapping newlines | Style each line independently - a span across `\n` bleeds when lines are re-prefixed (`[server]`). |
 | Error construction inlined into a hot function | Mark error builders `#[cold]`/`#[inline(never)]`; keep the hot fast-path inlinable. Layout perturbation from cold error code is a real regression - confirm with `cargo bench` vs the base branch. |
 | `serde_json::json!` macro in CLI output | Use the `serde_json::Map` API; the macro `unwrap`s internally and trips `disallowed_methods`. |
@@ -290,7 +290,7 @@ When the change touches `.proto` files, serialization, or the binary protocol:
 
 ## 10b - FFI boundary safety
 
-When the change touches `crates/webui-ffi` or C ABI signatures:
+When the change touches `crates/webhub-ffi` or C ABI signatures:
 
 | Check | Why |
 |-------|-----|
@@ -300,7 +300,7 @@ When the change touches `crates/webui-ffi` or C ABI signatures:
 | **Validate all foreign inputs** | Null pointers, invalid UTF-8, out-of-range values - check before dereferencing. |
 | **No `unwrap()` or `expect()`** | Anywhere in the FFI code path, including error-handling helpers. |
 | **Minimal stable surface** | Prefer opaque pointers and integer error codes over exposing Rust layouts. |
-| **Header sync** | If any `#[no_mangle]` signature changes, verify `crates/webui-ffi/include/webui_ffi.h`. |
+| **Header sync** | If any `#[no_mangle]` signature changes, verify `crates/webhub-ffi/include/webhub_ffi.h`. |
 
 ---
 

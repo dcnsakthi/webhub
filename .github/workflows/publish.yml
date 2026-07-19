@@ -73,17 +73,17 @@ jobs:
         run: >
           cargo build --release
           --target x86_64-unknown-linux-gnu
-          -p microsoft-webui-cli
-          -p microsoft-webui-ffi
-          -p microsoft-webui-node
+          -p microsoft-webhub-cli
+          -p microsoft-webhub-ffi
+          -p microsoft-webhub-node
 
       - name: Build arm64 (cross)
         run: >
           cargo build --release
           --target aarch64-unknown-linux-gnu
-          -p microsoft-webui-cli
-          -p microsoft-webui-ffi
-          -p microsoft-webui-node
+          -p microsoft-webhub-cli
+          -p microsoft-webhub-ffi
+          -p microsoft-webhub-node
 
       - name: Stage native artifacts
         run: cargo xtask publish-stage --target all --profile release --native-only
@@ -94,8 +94,8 @@ jobs:
           name: stage-linux
           path: |
             publish/native/
-            packages/webui-linux-x64/
-            packages/webui-linux-arm64/
+            packages/webhub-linux-x64/
+            packages/webhub-linux-arm64/
             dotnet/runtimes/linux-x64/
             dotnet/runtimes/linux-arm64/
           retention-days: 1
@@ -117,17 +117,17 @@ jobs:
         run: >
           cargo build --release
           --target aarch64-apple-darwin
-          -p microsoft-webui-cli
-          -p microsoft-webui-ffi
-          -p microsoft-webui-node
+          -p microsoft-webhub-cli
+          -p microsoft-webhub-ffi
+          -p microsoft-webhub-node
 
       - name: Build x64 (cross)
         run: >
           cargo build --release
           --target x86_64-apple-darwin
-          -p microsoft-webui-cli
-          -p microsoft-webui-ffi
-          -p microsoft-webui-node
+          -p microsoft-webhub-cli
+          -p microsoft-webhub-ffi
+          -p microsoft-webhub-node
 
       - name: Stage native artifacts
         run: cargo xtask publish-stage --target all --profile release --native-only
@@ -138,8 +138,8 @@ jobs:
           name: stage-macos
           path: |
             publish/native/
-            packages/webui-darwin-arm64/
-            packages/webui-darwin-x64/
+            packages/webhub-darwin-arm64/
+            packages/webhub-darwin-x64/
             dotnet/runtimes/osx-arm64/
             dotnet/runtimes/osx-x64/
           retention-days: 1
@@ -161,17 +161,17 @@ jobs:
         run: >
           cargo build --release
           --target x86_64-pc-windows-msvc
-          -p microsoft-webui-cli
-          -p microsoft-webui-ffi
-          -p microsoft-webui-node
+          -p microsoft-webhub-cli
+          -p microsoft-webhub-ffi
+          -p microsoft-webhub-node
 
       - name: Build arm64 (cross)
         run: >
           cargo build --release
           --target aarch64-pc-windows-msvc
-          -p microsoft-webui-cli
-          -p microsoft-webui-ffi
-          -p microsoft-webui-node
+          -p microsoft-webhub-cli
+          -p microsoft-webhub-ffi
+          -p microsoft-webhub-node
 
       - name: Stage native artifacts
         run: cargo xtask publish-stage --target all --profile release --native-only
@@ -182,8 +182,8 @@ jobs:
           name: stage-windows
           path: |
             publish/native/
-            packages/webui-win32-x64/
-            packages/webui-win32-arm64/
+            packages/webhub-win32-x64/
+            packages/webhub-win32-arm64/
             dotnet/runtimes/win-x64/
             dotnet/runtimes/win-arm64/
           retention-days: 1

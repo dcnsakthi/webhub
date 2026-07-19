@@ -1,10 +1,10 @@
-# microsoft-webui-handler
+# microsoft-webhub-handler
 
-High-performance template renderer for the [WebUI](https://github.com/microsoft/webui) framework. Consumes the compiled binary protocol and produces HTML output at request time.
+High-performance template renderer for the [webhub](https://github.com/microsoft/webhub) framework. Consumes the compiled binary protocol and produces HTML output at request time.
 
 ## Overview
 
-`microsoft-webui-handler` evaluates expressions, resolves state bindings, and renders full or partial HTML responses from pre-compiled WebUI protocol buffers — with no JavaScript runtime required.
+`microsoft-webhub-handler` evaluates expressions, resolves state bindings, and renders full or partial HTML responses from pre-compiled webhub protocol buffers — with no JavaScript runtime required.
 
 ## Key Functions
 
@@ -23,11 +23,11 @@ let result = protocol.render_component_templates(
 // Returns: { templates: [...], templateStyles: [...], inventory: "..." }
 ```
 
-Available via all bindings: Rust (`Protocol::render_component_templates`), Node/WASM/npm (`Protocol.renderComponentTemplates`), and FFI (`webui_protocol_render_component_templates`).
+Available via all bindings: Rust (`Protocol::render_component_templates`), Node/WASM/npm (`Protocol.renderComponentTemplates`), and FFI (`webhub_protocol_render_component_templates`).
 
 ## Documentation
 
-See the [WebUI repository](https://github.com/microsoft/webui) for full usage guides and examples.
+See the [webhub repository](https://github.com/microsoft/webhub) for full usage guides and examples.
 
 ## License
 

@@ -10,8 +10,8 @@ path = "src/main.rs"
 
 [dependencies]
 serde = { workspace = true }
-microsoft-webui = { path = "../../../../crates/webui" }
-microsoft-webui-handler = { path = "../../../../crates/webui-handler" }
+microsoft-webhub = { path = "../../../../crates/webhub" }
+microsoft-webhub-handler = { path = "../../../../crates/webhub-handler" }
 actix-web = { workspace = true }
 anyhow = { workspace = true }
 bytes = { workspace = true }

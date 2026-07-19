@@ -60,7 +60,7 @@ fn resolve_out(out: &Path) -> (PathBuf, OsString) {
 
 fn validate_output_file_names(
     protocol_name: &std::ffi::OsStr,
-    result: &webui::BuildResult,
+    result: &webhub::BuildResult,
 ) -> Result<()> {
     let mut names =
         HashSet::with_capacity(1 + result.css_files.len() + result.component_asset_files.len());
@@ -121,7 +121,7 @@ fn run(args: &BuildArgs) -> Result<()> {
     let (out_dir, protocol_name) = resolve_out(&out);
     let protocol_path = out_dir.join(&protocol_name);
 
-    output::header("WebUI Build");
+    output::header("webhub Build");
     output::field("App", &app.display());
     output::field("Entry", &args.app_args.entry);
     output::field("Output", &protocol_path.display());
@@ -147,7 +147,7 @@ fn run(args: &BuildArgs) -> Result<()> {
         .as_deref()
         .map(|theme| load_theme(theme, &app))
         .transpose()?;
-    let result = webui::build(build_options).with_context(|| "Build failed")?;
+    let result = webhub::build(build_options).with_context(|| "Build failed")?;
     validate_output_file_names(&protocol_name, &result)?;
 
     fs::create_dir_all(&out_dir)
@@ -251,8 +251,8 @@ mod tests {
     use std::fs;
     use std::path::Path;
     use tempfile::TempDir;
-    use webui_protocol::web_ui_fragment::Fragment;
-    use webui_protocol::WebUIProtocol;
+    use webhub_protocol::web_ui_fragment::Fragment;
+    use webhub_protocol::webhubProtocol;
 
     fn create_app_dir(files: &[(&str, &str)]) -> TempDir {
         let dir = TempDir::new().unwrap();
@@ -277,7 +277,7 @@ mod tests {
         assert!(protocol_path.exists());
 
         let bytes = fs::read(&protocol_path).unwrap();
-        let protocol = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let protocol = webhubProtocol::from_protobuf(&bytes).unwrap();
         assert!(protocol.fragments.contains_key("index.html"));
     }
 
@@ -296,7 +296,7 @@ mod tests {
         build(app_dir.path(), out_dir.path(), "index.html").unwrap();
 
         let bytes = fs::read(out_dir.path().join("protocol.bin")).unwrap();
-        let protocol = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let protocol = webhubProtocol::from_protobuf(&bytes).unwrap();
 
         let index = &protocol.fragments["index.html"].fragments;
         assert!(index
@@ -379,7 +379,7 @@ mod tests {
                 entry: "index.html".to_string(),
                 css: CssStrategy::Link,
                 dom: DomStrategy::Shadow,
-                plugin: Some(Plugin::WebUI),
+                plugin: Some(Plugin::webhub),
                 components: Vec::new(),
                 projection_manifests: Vec::new(),
                 asset_file_name_template: DEFAULT_ASSET_FILE_NAME_TEMPLATE.to_string(),
@@ -392,11 +392,11 @@ mod tests {
         })
         .unwrap();
 
-        let asset_path = out_dir.path().join("mail-thread.webui.js");
+        let asset_path = out_dir.path().join("mail-thread.webhub.js");
         assert!(asset_path.exists());
 
         let bytes = fs::read(out_dir.path().join("protocol.bin")).unwrap();
-        let protocol = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let protocol = webhubProtocol::from_protobuf(&bytes).unwrap();
         let index_fragments = &protocol.fragments["index.html"].fragments;
         assert!(
             !index_fragments.iter().any(|fragment| matches!(
@@ -407,7 +407,7 @@ mod tests {
         );
 
         let asset = fs::read_to_string(asset_path).unwrap();
-        assert!(asset.contains(r#""type":"webui-component-asset""#));
+        assert!(asset.contains(r#""type":"webhub-component-asset""#));
         assert!(asset.contains(r#""version":1"#));
         assert!(!asset.contains(r#""plugin""#));
         assert!(!asset.contains(r#""inventory""#));
@@ -433,7 +433,7 @@ mod tests {
                 entry: "index.html".to_string(),
                 css: CssStrategy::Link,
                 dom: DomStrategy::Shadow,
-                plugin: Some(Plugin::WebUI),
+                plugin: Some(Plugin::webhub),
                 components: Vec::new(),
                 projection_manifests: Vec::new(),
                 asset_file_name_template: DEFAULT_ASSET_FILE_NAME_TEMPLATE.to_string(),
@@ -477,10 +477,10 @@ mod tests {
         })
         .unwrap();
 
-        let asset_path = out_dir.path().join("fast-card.webui.js");
+        let asset_path = out_dir.path().join("fast-card.webhub.js");
         assert!(asset_path.exists());
         let asset = fs::read_to_string(asset_path).unwrap();
-        assert!(asset.contains(r#""type":"webui-component-asset""#));
+        assert!(asset.contains(r#""type":"webhub-component-asset""#));
         assert!(asset.contains(r#""version":1"#));
         assert!(!asset.contains(r#""plugin""#));
         assert!(!asset.contains(r#""templateFunctionModule""#));
@@ -504,7 +504,7 @@ mod tests {
                 entry: "index.html".to_string(),
                 css: CssStrategy::Link,
                 dom: DomStrategy::Shadow,
-                plugin: Some(Plugin::WebUI),
+                plugin: Some(Plugin::webhub),
                 components: Vec::new(),
                 projection_manifests: Vec::new(),
                 asset_file_name_template: "[name]-[hash].[ext]".to_string(),
@@ -523,7 +523,7 @@ mod tests {
                 let entry = entry.unwrap();
                 let name = entry.file_name();
                 let name = name.to_string_lossy();
-                if name.ends_with(".webui.js") {
+                if name.ends_with(".webhub.js") {
                     Some(name.into_owned())
                 } else {
                     None
@@ -533,8 +533,8 @@ mod tests {
 
         assert_eq!(asset_names.len(), 1);
         assert!(asset_names[0].starts_with("mail-thread-"));
-        assert!(asset_names[0].ends_with(".webui.js"));
-        assert_ne!(asset_names[0], "mail-thread-.webui.js");
+        assert!(asset_names[0].ends_with(".webhub.js"));
+        assert_ne!(asset_names[0], "mail-thread-.webhub.js");
     }
 
     #[test]
@@ -574,7 +574,7 @@ mod tests {
         build(app_dir.path(), out_dir.path(), "index.html").unwrap();
 
         let bytes = fs::read(out_dir.path().join("protocol.bin")).unwrap();
-        let protocol = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let protocol = webhubProtocol::from_protobuf(&bytes).unwrap();
         assert!(protocol.fragments.contains_key("index.html"));
     }
 
@@ -587,7 +587,7 @@ mod tests {
         build(&app_dir, out_dir.path(), "index.html").unwrap();
 
         let bytes = fs::read(out_dir.path().join("protocol.bin")).unwrap();
-        let protocol = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let protocol = webhubProtocol::from_protobuf(&bytes).unwrap();
         let index = &protocol.fragments["index.html"].fragments;
 
         assert!(index
@@ -609,7 +609,7 @@ mod tests {
         build(app_dir.path(), out_dir.path(), "page.html").unwrap();
 
         let bytes = fs::read(out_dir.path().join("protocol.bin")).unwrap();
-        let protocol = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let protocol = webhubProtocol::from_protobuf(&bytes).unwrap();
         assert!(protocol.fragments.contains_key("page.html"));
         assert!(!protocol.fragments.contains_key("index.html"));
     }
@@ -673,7 +673,7 @@ mod tests {
 
         // Create the npm package files
         fs::write(
-            pkg_dir.join("template-webui.html"),
+            pkg_dir.join("template-webhub.html"),
             "<button><slot></slot></button>",
         )
         .unwrap();
@@ -700,7 +700,7 @@ mod tests {
             "version": "1.0.0",
             "customElements": "./custom-elements.json",
             "exports": {
-                "./template-webui.html": "./template-webui.html",
+                "./template-webhub.html": "./template-webhub.html",
                 "./styles.css": "./styles.css"
             }
         });
@@ -763,7 +763,7 @@ mod tests {
             let pkg_dir = scope_dir.join(sub);
             fs::create_dir_all(&pkg_dir).unwrap();
 
-            fs::write(pkg_dir.join("template-webui.html"), html).unwrap();
+            fs::write(pkg_dir.join("template-webhub.html"), html).unwrap();
 
             let manifest = serde_json::json!({
                 "schemaVersion": "1.0.0",
@@ -783,7 +783,7 @@ mod tests {
                 "version": "1.0.0",
                 "customElements": "./custom-elements.json",
                 "exports": {
-                    "./template-webui.html": "./template-webui.html"
+                    "./template-webhub.html": "./template-webhub.html"
                 }
             });
             fs::write(
@@ -841,7 +841,7 @@ mod tests {
         build(app_dir.path(), out_dir.path(), "index.html").unwrap();
 
         let bytes = fs::read(out_dir.path().join("protocol.bin")).unwrap();
-        let protocol = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let protocol = webhubProtocol::from_protobuf(&bytes).unwrap();
 
         assert_eq!(protocol.tokens, vec!["spacing-m", "text-color"]);
     }
@@ -924,7 +924,7 @@ mod tests {
 
         // The bytes are a valid protocol.
         let bytes = fs::read(&custom_path).unwrap();
-        let protocol = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let protocol = webhubProtocol::from_protobuf(&bytes).unwrap();
         assert!(protocol.fragments.contains_key("index.html"));
 
         // CSS files are emitted next to the renamed protocol.
@@ -1001,7 +1001,7 @@ mod tests {
         build(app_dir.path(), out_dir.path(), "index.html").unwrap();
 
         let bytes = fs::read(out_dir.path().join("protocol.bin")).unwrap();
-        let protocol = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let protocol = webhubProtocol::from_protobuf(&bytes).unwrap();
 
         // Both tokens are defined in entry :root — should not be in protocol
         assert!(

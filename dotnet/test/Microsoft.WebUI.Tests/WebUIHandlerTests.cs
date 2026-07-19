@@ -5,27 +5,27 @@ using System;
 using System.IO;
 using Xunit;
 
-namespace Microsoft.WebUI.Tests;
+namespace Microsoft.webhub.Tests;
 
-public class WebUIHandlerTests
+public class webhubHandlerTests
 {
     [Fact]
     public void Handler_CreateAndDispose_DoesNotThrow()
     {
-        using var handler = new WebUIHandler();
+        using var handler = new webhubHandler();
         // Handler created successfully — dispose should clean up
     }
 
     [Fact]
     public void Handler_CreateWithPlugin_DoesNotThrow()
     {
-        using var handler = new WebUIHandler("fast");
+        using var handler = new webhubHandler("fast");
     }
 
     [Fact]
     public void Handler_DoubleDispose_DoesNotThrow()
     {
-        var handler = new WebUIHandler();
+        var handler = new webhubHandler();
         handler.Dispose();
         handler.Dispose(); // Should not throw
     }
@@ -36,7 +36,7 @@ public class WebUIHandlerTests
         byte[] protocolBytes = File.ReadAllBytes(
             Path.Combine(AppContext.BaseDirectory, "fixtures", "projection-app", "protocol.bin"));
         using var protocol = new Protocol(protocolBytes);
-        var handler = new WebUIHandler();
+        var handler = new webhubHandler();
         handler.Dispose();
 
         Assert.Throws<ObjectDisposedException>(() =>
@@ -50,7 +50,7 @@ public class WebUIHandlerTests
             Path.Join(AppContext.BaseDirectory, "fixtures", "projection-app", "protocol.bin"));
 
         using var protocol = new Protocol(protocolBytes);
-        using var handler = new WebUIHandler("webui");
+        using var handler = new webhubHandler("webhub");
         string html = handler.Render(
             protocol,
             "{\"kept\":\"KEPT_VALUE\",\"dropped\":\"DROPPED_VALUE\"}",
@@ -68,7 +68,7 @@ public class WebUIHandlerTests
             Path.Combine(AppContext.BaseDirectory, "fixtures", "projection-app", "protocol.bin"));
 
         using var protocol = new Protocol(protocolBytes);
-        using var handler = new WebUIHandler("webui");
+        using var handler = new webhubHandler("webhub");
 
         string first = handler.Render(
             protocol,
@@ -95,7 +95,7 @@ public class WebUIHandlerTests
         var protocol = new Protocol(protocolBytes);
         protocol.Dispose();
 
-        using var handler = new WebUIHandler();
+        using var handler = new webhubHandler();
         Assert.Throws<ObjectDisposedException>(() =>
             handler.Render(protocol, "{}", "index.html", "/"));
     }

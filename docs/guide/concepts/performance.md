@@ -1,13 +1,13 @@
 # Performance
 
-WebUI is designed for performance at every layer of the stack - from build-time
+webhub is designed for performance at every layer of the stack - from build-time
 compilation to binary serialization to streaming output. This page explains the
 design decisions, shares real benchmark data, and shows you how to measure
 performance in your own applications.
 
 ## Performance by Design
 
-Five architectural choices keep WebUI fast without any tuning:
+Five architectural choices keep webhub fast without any tuning:
 
 - **No recursion** - all algorithms are iterative, making them stack-safe even
   for large documents with deeply nested components.
@@ -31,13 +31,13 @@ loops, conditionals, and component composition.
 
 | Framework           | Avg Latency | p50    | p99    | Req/Sec   | Throughput   |
 | ------------------- | ----------- | ------ | ------ | --------- | ------------ |
-| **WebUI (Rust)**    | **21.7 ms** | **18 ms** | **52 ms** | **4,511** | **684 MB/s** |
+| **webhub (Rust)**    | **21.7 ms** | **18 ms** | **52 ms** | **4,511** | **684 MB/s** |
 | Fastify (Node.js)   | 93.4 ms     | 92 ms  | 118 ms | 1,061     | 209 MB/s     |
 | React SSR (Node.js) | 179.2 ms    | 180 ms | 210 ms | 552       | 78.5 MB/s    |
 
-WebUI is **4.3× faster** than Fastify and **8.2× faster** than React SSR.
-Notably, WebUI's p99 latency (52 ms) is lower than Fastify's *median* (92 ms),
-meaning WebUI's worst case outperforms Fastify's typical case.
+webhub is **4.3× faster** than Fastify and **8.2× faster** than React SSR.
+Notably, webhub's p99 latency (52 ms) is lower than Fastify's *median* (92 ms),
+meaning webhub's worst case outperforms Fastify's typical case.
 
 ## Contact Book Benchmark
 
@@ -54,14 +54,14 @@ with avatars, metadata, and action buttons.
 
 Hydration marker overhead is small in this fixture. Browser state is a separate
 cost: serializing a large server state object can dominate a small render.
-WebUI sends only the state needed by authored components on the active route.
+webhub sends only the state needed by authored components on the active route.
 
 ## Hydration Startup and Protocol Reuse
 
 With a validated projection manifest, the initial page contains only top-level
 `@observable` and `@attr` values needed by reachable authored components.
 Template-only values and inactive routes do not enlarge startup state. Without
-a manifest, WebUI preserves full state.
+a manifest, webhub preserves full state.
 
 Representative final release-mode Criterion results on a 1 MiB state object:
 
@@ -104,7 +104,7 @@ serialization from every request.
 Every host should load `protocol.bin` once at startup:
 
 - Rust: construct `Protocol`
-- C: use `webui_protocol_create` and pass the handle to every protocol operation
+- C: use `webhub_protocol_create` and pass the handle to every protocol operation
 - .NET: construct `Protocol` and reuse it with the handler
 - WASM: construct the exported `Protocol`
 - Node: construct `Protocol` with the bytes and plugin, then release or reuse
@@ -131,18 +131,18 @@ Never put credentials, private tokens, or other secrets in state rendered to
 the browser.
 :::
 
-## Why WebUI is Fast
+## Why webhub is Fast
 
 Each layer of the architecture contributes to the overall performance profile:
 
 - **Build-time compilation.** Template parsing, component discovery, and
-  expression compilation all happen once during `webui build` (or on the fly
-  with `webui serve` in development). At runtime, the server only performs
+  expression compilation all happen once during `webhub build` (or on the fly
+  with `webhub serve` in development). At runtime, the server only performs
   state interpolation against a pre-compiled binary protocol - no syntax
   parsing, no AST walking.
 
 - **Bundler-proven state projection.** The application bundler records exact
-  decorated state ownership and emitted chunk membership. WebUI validates that
+  decorated state ownership and emitted chunk membership. webhub validates that
   sidecar once, stores compact surfaces in `protocol.bin`, and projects request
   state without running TypeScript analysis in Rust.
 
@@ -151,7 +151,7 @@ Each layer of the architecture contributes to the overall performance profile:
   build deterministic indices once at startup rather than repeating that work
   per request.
 
-- **Streaming output with backpressure.** The `webui::streaming::StreamingWriter`
+- **Streaming output with backpressure.** The `webhub::streaming::StreamingWriter`
   coalesces handler writes into ~4 KB chunks and pushes them through a
   bounded `tokio::mpsc` channel, so the browser starts parsing while
   the server is still serializing. A shared lock-free `ChunkPool`
@@ -197,7 +197,7 @@ data from a 2,400-component email client:
 Build with the `--dom=light` flag:
 
 ```bash
-webui build ./src --out ./dist --dom=light
+webhub build ./src --out ./dist --dom=light
 ```
 
 In Rust handlers, use `DomStrategy::Light`:
@@ -213,7 +213,7 @@ CSS differences:
 
 ## Performance Rules
 
-The following rules are enforced throughout the WebUI codebase to maintain
+The following rules are enforced throughout the webhub codebase to maintain
 consistent performance:
 
 - **No cloning large state trees** - pass by reference and capture borrows.
@@ -246,13 +246,13 @@ cargo xtask bench protocol
 cargo xtask bench state
 
 # Hydration-state projection and partial-state serialization
-cargo bench -p microsoft-webui-handler --bench bootstrap_state_bench
+cargo bench -p microsoft-webhub-handler --bench bootstrap_state_bench
 
 # Loaded versus per-request FFI protocol startup cost
-cargo bench -p microsoft-webui-ffi --bench protocol_bench
+cargo bench -p microsoft-webhub-ffi --bench protocol_bench
 
 # Contact book end-to-end benchmark
-cargo bench -p microsoft-webui --bench contact_book_bench
+cargo bench -p microsoft-webhub --bench contact_book_bench
 
 # Results with HTML reports
 ls target/criterion/report/index.html
@@ -264,26 +264,26 @@ detection, and comparison against previous runs.
 
 ## Measuring Hydration Performance
 
-WebUI emits a `webui:hydration-complete` event after all components have been
+webhub emits a `webhub:hydration-complete` event after all components have been
 hydrated on the client. Use the Performance API to inspect per-component
 timing:
 
 ```typescript
-window.addEventListener('webui:hydration-complete', () => {
+window.addEventListener('webhub:hydration-complete', () => {
   for (const entry of performance.getEntriesByType('measure')) {
-    if (entry.name.startsWith('webui:hydrate:')) {
+    if (entry.name.startsWith('webhub:hydrate:')) {
       console.log(`${entry.name}: ${entry.duration.toFixed(1)}ms`);
     }
   }
 });
 ```
 
-Each hydrated component produces a `webui:hydrate:<tag>` measure entry (where
+Each hydrated component produces a `webhub:hydrate:<tag>` measure entry (where
 `<tag>` is the custom element tag name), making it straightforward to identify
 slow components and optimize them individually.
 
 ## Learn More
 
-- [SSR showdown source](https://github.com/microsoft/webui/tree/main/examples/integration/ssr-performance-showdown) - full benchmark harness and reproduction steps
-- [Contact book benchmark](https://github.com/microsoft/webui/tree/main/crates/webui/benches) - real-world application benchmark
-- [DESIGN.md](https://github.com/microsoft/webui/blob/main/DESIGN.md) - architectural performance principles
+- [SSR showdown source](https://github.com/microsoft/webhub/tree/main/examples/integration/ssr-performance-showdown) - full benchmark harness and reproduction steps
+- [Contact book benchmark](https://github.com/microsoft/webhub/tree/main/crates/webhub/benches) - real-world application benchmark
+- [DESIGN.md](https://github.com/microsoft/webhub/blob/main/DESIGN.md) - architectural performance principles

@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr, observable } from '@microsoft/webui-framework';
+import { webhubElement, attr, observable } from '@microsoft/webhub-framework';
 
 import '#molecules/mp-search-bar/mp-search-bar.js';
 
-export class MpMobileMenu extends WebUIElement {
+export class MpMobileMenu extends webhubElement {
   @attr({ attribute: 'search-query' }) searchQuery = '';
   @observable open = false;
   panelEl!: HTMLElement;

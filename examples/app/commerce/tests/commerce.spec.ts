@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 /**
- * End-to-end tests for the WebUI commerce demo.
+ * End-to-end tests for the webhub commerce demo.
  *
  * Tests SSR (direct page loads), client-side navigation, sort filtering,
  * category switching, product pages, and visual regression screenshots.
@@ -32,13 +32,13 @@ async function expectSoftNavigation(
   action: () => Promise<unknown>,
 ): Promise<void> {
   await page.evaluate(() => {
-    (window as Window & { webuiSoftNavigationSentinel?: boolean })
-      .webuiSoftNavigationSentinel = true;
+    (window as Window & { webhubSoftNavigationSentinel?: boolean })
+      .webhubSoftNavigationSentinel = true;
   });
   await action();
   await expect.poll(() => page.evaluate(
-    () => (window as Window & { webuiSoftNavigationSentinel?: boolean })
-      .webuiSoftNavigationSentinel,
+    () => (window as Window & { webhubSoftNavigationSentinel?: boolean })
+      .webhubSoftNavigationSentinel,
   )).toBe(true);
 }
 

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Component registry for WebUI framework.
+//! Component registry for webhub framework.
 //!
 //! This module manages the registry of web components used in the application.
 
@@ -333,7 +333,7 @@ impl ComponentRegistry {
 #[allow(clippy::disallowed_methods)]
 mod tests {
     use super::*;
-    use webui_test_utils::TestFileSystem;
+    use webhub_test_utils::TestFileSystem;
 
     #[test]
     fn test_register_component() {

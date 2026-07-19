@@ -8,7 +8,7 @@ import { resolve, platformKey, packageName } from "./platform.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const binDir = path.resolve(__dirname, "..", "bin");
-const binName = process.platform === "win32" ? "webui.exe" : "webui";
+const binName = process.platform === "win32" ? "webhub.exe" : "webhub";
 const binDest = path.join(binDir, binName);
 
 // Locate the platform binary and copy it into bin/ so the package.json
@@ -31,16 +31,16 @@ try {
   pkg = packageName();
 } catch {
   console.warn(
-    `[webui] Warning: Unsupported platform ${key}. ` +
-      `The webui CLI will not be available. ` +
-      `Set WEBUI_BINARY_PATH to use a custom binary.`,
+    `[webhub] Warning: Unsupported platform ${key}. ` +
+      `The webhub CLI will not be available. ` +
+      `Set webhub_BINARY_PATH to use a custom binary.`,
   );
   process.exit(0);
 }
 
 console.warn(
-  `[webui] Warning: Platform package ${pkg!} was not installed. ` +
+  `[webhub] Warning: Platform package ${pkg!} was not installed. ` +
     `This usually means your package manager was run with --no-optional. ` +
-    `The webui CLI and native addon will not be available.\n` +
-    `To fix: reinstall without --no-optional, or set WEBUI_BINARY_PATH.`,
+    `The webhub CLI and native addon will not be available.\n` +
+    `To fix: reinstall without --no-optional, or set webhub_BINARY_PATH.`,
 );

@@ -12,24 +12,24 @@
  *   Both mid and grandchild are initially hidden.
  */
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
-export class TestChildComp extends WebUIElement {
+export class TestChildComp extends webhubElement {
   @observable label = 'Child Active';
 }
 TestChildComp.define('test-child-comp');
 
-export class TestGrandchildComp extends WebUIElement {
+export class TestGrandchildComp extends webhubElement {
   @observable message = 'Grandchild Active';
 }
 TestGrandchildComp.define('test-grandchild-comp');
 
-export class TestMidComp extends WebUIElement {
+export class TestMidComp extends webhubElement {
   @observable inner = true;
 }
 TestMidComp.define('test-mid-comp');
 
-export class TestCondParent extends WebUIElement {
+export class TestCondParent extends webhubElement {
   @observable show = false;
 
   toggleShow(): void {
@@ -38,7 +38,7 @@ export class TestCondParent extends WebUIElement {
 }
 TestCondParent.define('test-cond-parent');
 
-export class TestNestedCondParent extends WebUIElement {
+export class TestNestedCondParent extends webhubElement {
   @observable show = false;
 
   toggleShow(): void {

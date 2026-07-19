@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '@microsoft/webui-framework';
-import type { RouteLoaderContext } from '@microsoft/webui-router';
+import { webhubElement, observable } from '@microsoft/webhub-framework';
+import type { RouteLoaderContext } from '@microsoft/webhub-router';
 
-export class PageLoader extends WebUIElement {
+export class PageLoader extends webhubElement {
   @observable source = '';
   @observable loaderMessage = '';
 

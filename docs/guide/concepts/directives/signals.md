@@ -1,6 +1,6 @@
 # Signal Directives
 
-WebUI provides two types of signals for inserting dynamic values into your templates: escaped signals and raw signals.
+webhub provides two types of signals for inserting dynamic values into your templates: escaped signals and raw signals.
 
 ## Escaped Signals: `{{}}`
 
@@ -62,7 +62,7 @@ You can access nested properties using dot notation:
 
 ## Special Values
 
-WebUI provides special values for arrays:
+webhub provides special values for arrays:
 
 - `array.length` - Returns the number of items in the array
 
@@ -73,7 +73,7 @@ Example:
 
 ## Body Signals
 
-WebUI automatically injects two special signals around `<body>` content:
+webhub automatically injects two special signals around `<body>` content:
 
 - **`body_start`** - injected immediately after the `<body>` opening tag
 - **`body_end`** - injected immediately before the `</body>` closing tag

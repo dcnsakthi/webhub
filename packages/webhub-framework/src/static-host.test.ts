@@ -58,7 +58,7 @@ Object.defineProperty(globalThis, 'CustomEvent', {
 
 Object.defineProperty(globalThis, 'window', {
   value: {
-    __webui: { templates: {} },
+    __webhub: { templates: {} },
     addEventListener(type: string, listener: (event: Event) => void) {
       const listeners = windowListeners.get(type);
       if (listeners) {
@@ -80,8 +80,8 @@ Object.defineProperty(globalThis, 'window', {
 const { installTemplateElementRuntime } = await import('./static-host.js');
 
 function registerTemplate(tag: string, meta: TemplateMeta): TemplateMeta {
-  const webui = window.__webui ?? (window.__webui = {});
-  const templates = webui.templates ?? (webui.templates = {});
+  const webhub = window.__webhub ?? (window.__webhub = {});
+  const templates = webhub.templates ?? (webhub.templates = {});
   templates[tag] = meta;
   return meta;
 }
@@ -138,7 +138,7 @@ describe('dormant template host runtime', () => {
     const tag = `event-unit-${Date.now()}`;
     const meta = registerTemplate(tag, { h: '<p></p>', th: 1 });
 
-    window.dispatchEvent(new CustomEvent('webui:templates-registered', {
+    window.dispatchEvent(new CustomEvent('webhub:templates-registered', {
       detail: { templates: { [tag]: meta } },
     }));
 
@@ -148,9 +148,9 @@ describe('dormant template host runtime', () => {
   test('does not claim tags reserved for authored lazy loaders', () => {
     const tag = `loader-unit-${Date.now()}`;
     const meta = registerTemplate(tag, { h: '<p></p>', th: 1 });
-    window.__webui!.templateHostExclusions = new Set([tag]);
+    window.__webhub!.templateHostExclusions = new Set([tag]);
 
-    window.dispatchEvent(new CustomEvent('webui:templates-registered', {
+    window.dispatchEvent(new CustomEvent('webhub:templates-registered', {
       detail: { templates: { [tag]: meta } },
     }));
 

@@ -1,11 +1,11 @@
 # Serverless Architecture
 
-The [`examples/app/service-worker`](https://github.com/microsoft/webui/tree/main/examples/app/service-worker)
-example demonstrates a high-value WebUI architecture: cache the UI on a CDN and
+The [`examples/app/service-worker`](https://github.com/microsoft/webhub/tree/main/examples/app/service-worker)
+example demonstrates a high-value webhub architecture: cache the UI on a CDN and
 pay dynamic compute cost only for state.
 
 The expensive part of SSR is usually rebuilding the same page shell over and
-over. WebUI changes that split. The HTML structure and component styles compile
+over. webhub changes that split. The HTML structure and component styles compile
 once into `protocol.bin`, which can be cached next to the handler-only WASM
 bundle. On each navigation, the browser service worker fetches only public JSON
 state, renders fragments locally with the lightweight WASM handler, and streams
@@ -18,7 +18,7 @@ cache.
 ## Sequence
 
 ```text
-Browser        Service Worker        CDN / Edge Cache        Public APIs        webui_wasm_handler
+Browser        Service Worker        CDN / Edge Cache        Public APIs        webhub_wasm_handler
    |                 |                       |                    |                    |
    | GET /           |                       |                    |                    |
    |---------------------------------------->|                    |                    |
@@ -52,7 +52,7 @@ Browser        Service Worker        CDN / Edge Cache        Public APIs        
 
 ## Why this is different
 
-| Traditional SSR | WebUI service worker streaming |
+| Traditional SSR | webhub service worker streaming |
 |-----------------|--------------------------------|
 | Server renders HTML per request | CDN serves cached protocol and WASM |
 | Dynamic compute repeats the UI shell | Dynamic compute returns only JSON state |
@@ -67,18 +67,18 @@ where the UI changes far less often than the state.
 
 | Path | What to inspect |
 |------|-----------------|
-| `examples/app/service-worker/src/*.html` | WebUI fragments compiled into `protocol.bin` |
+| `examples/app/service-worker/src/*.html` | webhub fragments compiled into `protocol.bin` |
 | `examples/app/service-worker/src/*.css` | Component CSS embedded into streamed light-DOM fragments |
 | `examples/app/service-worker/src/bootstrap.html` | Static first-load page stamped with build-time theme declarations |
 | `examples/app/service-worker/src/service-worker.ts` | Navigation interception, state fetches, WASM render callback, `ReadableStream` writes |
 | `examples/app/service-worker/src/payload.ts` | Public API payload validation and URL sanitization |
-| `examples/app/service-worker/scripts/inject-theme.ts` | Build-time equivalent of `webui serve --theme` token injection |
+| `examples/app/service-worker/scripts/inject-theme.ts` | Build-time equivalent of `webhub serve --theme` token injection |
 | `examples/app/service-worker/public/api/*.json` | Demo public state APIs |
 | `examples/app/service-worker/tests/service-worker.spec.ts` | Browser test for service worker control and stream order |
 
 ## Key design choices
 
-1. **Handler-only WASM.** The browser uses `webui_wasm_handler`, not the parser
+1. **Handler-only WASM.** The browser uses `webhub_wasm_handler`, not the parser
    bundle. Parsing happens at build time.
 2. **Cached UI protocol.** `protocol.bin` is a static artifact. It can be served
    with long-lived CDN caching and invalidated only when UI changes.
@@ -91,7 +91,7 @@ where the UI changes far less often than the state.
 5. **Light DOM fragments.** The example builds with `--dom light` because the
    service worker appends independent fragments into a single document stream.
 6. **Shared theme tokens.** `scripts/inject-theme.ts` mirrors
-   `webui serve --theme=@microsoft/webui-examples-theme` at build time. It reads
+   `webhub serve --theme=@microsoft/webhub-examples-theme` at build time. It reads
    `protocol.bin`, gets the protocol token list, and writes trusted token
    declarations into `public/index.html` and `public/theme.css`.
 7. **State validation boundary.** Public API state is validated before render.

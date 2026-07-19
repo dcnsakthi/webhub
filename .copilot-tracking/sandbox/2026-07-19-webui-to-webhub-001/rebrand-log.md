@@ -1,6 +1,6 @@
-# Rebrand Log: webui -> webhub
+# Rebrand Log: webhub -> webhub
 
-Source spec: `prompts/rebrand-webui-to-webhub.prompt.md`
+Source spec: `prompts/rebrand-webhub-to-webhub.prompt.md`
 
 Parameters:
 - repoOwner: `dcnsakthi`
@@ -10,10 +10,10 @@ Parameters:
 
 ## Step 1: Inventory References
 
-Case variants searched: `webui`, `WebUI`, `WEBUI`, `Webui`, `web-ui` (case-insensitive scan, case-sensitive replacement planned).
+Case variants searched: `webhub`, `webhub`, `webhub`, `webhub`, `web-ui` (case-insensitive scan, case-sensitive replacement planned).
 
 Tracked files total: 1196
-Files matching `webui|web-ui` (case-insensitive, any location): 503
+Files matching `webhub|web-ui` (case-insensitive, any location): 503
 
 ### By ecosystem (file-content matches, case-insensitive)
 
@@ -24,33 +24,33 @@ Files matching `webui|web-ui` (case-insensitive, any location): 503
 | .NET | `dotnet/*` | 22 |
 | docs/examples/markdown | `docs/*`, `examples/*`, `**/*.md` | 228 (overlaps with above) |
 | CI | `azure-pipelines-cd.yml`, `.github/workflows/*`, `.github/actions/*` | 7 |
-| misc | `.github/copilot-instructions.md`, `.github/skills/webui-dev/SKILL.md`, `.github/ISSUE_TEMPLATE/*`, `Cargo.toml`, `package.json`, `pnpm-workspace.yaml` | 8 |
+| misc | `.github/copilot-instructions.md`, `.github/skills/webhub-dev/SKILL.md`, `.github/ISSUE_TEMPLATE/*`, `Cargo.toml`, `package.json`, `pnpm-workspace.yaml` | 8 |
 
 ### Directories to rename
 
-**Rust crates (`crates/`):** webui, webui-cli, webui-dev-server, webui-discovery, webui-expressions, webui-ffi, webui-handler, webui-node, webui-parser, webui-press, webui-protocol, webui-state, webui-test-utils, webui-tokens, webui-wasm
+**Rust crates (`crates/`):** webhub, webhub-cli, webhub-dev-server, webhub-discovery, webhub-expressions, webhub-ffi, webhub-handler, webhub-node, webhub-parser, webhub-press, webhub-protocol, webhub-state, webhub-test-utils, webhub-tokens, webhub-wasm
 
-**npm packages (`packages/`):** webui, webui-darwin-arm64, webui-darwin-x64, webui-examples-theme, webui-framework, webui-linux-arm64, webui-linux-x64, webui-router, webui-test-support, webui-win32-arm64, webui-win32-x64
+**npm packages (`packages/`):** webhub, webhub-darwin-arm64, webhub-darwin-x64, webhub-examples-theme, webhub-framework, webhub-linux-arm64, webhub-linux-x64, webhub-router, webhub-test-support, webhub-win32-arm64, webhub-win32-x64
 
 **.NET (`dotnet/`):**
-- `dotnet/Microsoft.WebUI.sln`
-- `dotnet/src/Microsoft.WebUI/`
-- `dotnet/test/Microsoft.WebUI.Tests/`
-- `dotnet/tool/Microsoft.WebUI.Tool/`
-- `dotnet/runtime/Microsoft.WebUI.Runtime.{linux-arm64,linux-x64,osx-arm64,osx-x64,win-arm64,win-x64}/`
+- `dotnet/Microsoft.webhub.sln`
+- `dotnet/src/Microsoft.webhub/`
+- `dotnet/test/Microsoft.webhub.Tests/`
+- `dotnet/tool/Microsoft.webhub.Tool/`
+- `dotnet/runtime/Microsoft.webhub.Runtime.{linux-arm64,linux-x64,osx-arm64,osx-x64,win-arm64,win-x64}/`
 
-**Misc:** `webui.code-workspace` -> `webhub.code-workspace` (no textual "webui" inside the file itself, only the filename; pending unrelated `chat.agentSkillsLocations` settings block will be preserved).
+**Misc:** `webhub.code-workspace` -> `webhub.code-workspace` (no textual "webhub" inside the file itself, only the filename; pending unrelated `chat.agentSkillsLocations` settings block will be preserved).
 
 ### Individual files (non-directory-covered) needing filename rename
 
 42 files, notably:
-- `crates/webui-ffi/include/webui_ffi.h`, `crates/webui-ffi/tests/csharp/WebUIFFITest.{cs,csproj}`, `crates/webui-ffi/tests/go/webui_ffi{,_test}.go`, `crates/webui-ffi/tests/python/test_webui_ffi.py`
-- `crates/webui-handler/src/plugin/webui.rs`, `crates/webui-parser/src/plugin/webui.rs`, `crates/webui-protocol/src/plugin/webui.rs`, `crates/webui-protocol/proto/webui.proto`, `crates/webui-protocol/src/gen_webui.rs`
-- `crates/webui-press/components/webui-*/webui-*.{css,html,ts}` (4 components x 3 files)
-- `dotnet/**/Microsoft.WebUI*.csproj`, `dotnet/src/Microsoft.WebUI/WebUIException.cs`, `WebUIHandler.cs`, `dotnet/test/.../WebUIHandlerTests.cs`
-- `examples/app/routes/tests/routes-webui.spec.ts`, `examples/app/service-worker/src/wasm/handler/webui_wasm_handler.d.ts`, `examples/app/todo-webui/tests/todo-webui.spec.ts`
-- `packages/webui-framework/tests/fixtures/{css-module,hydration-mismatch}/webui.config.json` (CLI project-config filename convention - the "webui.config.json" name itself is a convention the CLI looks for; will confirm in code before renaming to `webhub.config.json`)
-- `webui.code-workspace`
+- `crates/webhub-ffi/include/webhub_ffi.h`, `crates/webhub-ffi/tests/csharp/webhubFFITest.{cs,csproj}`, `crates/webhub-ffi/tests/go/webhub_ffi{,_test}.go`, `crates/webhub-ffi/tests/python/test_webhub_ffi.py`
+- `crates/webhub-handler/src/plugin/webhub.rs`, `crates/webhub-parser/src/plugin/webhub.rs`, `crates/webhub-protocol/src/plugin/webhub.rs`, `crates/webhub-protocol/proto/webhub.proto`, `crates/webhub-protocol/src/gen_webhub.rs`
+- `crates/webhub-press/components/webhub-*/webhub-*.{css,html,ts}` (4 components x 3 files)
+- `dotnet/**/Microsoft.webhub*.csproj`, `dotnet/src/Microsoft.webhub/webhubException.cs`, `webhubHandler.cs`, `dotnet/test/.../webhubHandlerTests.cs`
+- `examples/app/routes/tests/routes-webhub.spec.ts`, `examples/app/service-worker/src/wasm/handler/webhub_wasm_handler.d.ts`, `examples/app/todo-webhub/tests/todo-webhub.spec.ts`
+- `packages/webhub-framework/tests/fixtures/{css-module,hydration-mismatch}/webhub.config.json` (CLI project-config filename convention - the "webhub.config.json" name itself is a convention the CLI looks for; will confirm in code before renaming to `webhub.config.json`)
+- `webhub.code-workspace`
 
 ### Lockfiles / generated artifacts (will be regenerated, not hand-edited)
 
@@ -59,8 +59,8 @@ Files matching `webui|web-ui` (case-insensitive, any location): 503
 
 ### Intentionally unchanged (to confirm during Step 3)
 
-- Third-party license text (none found referencing "webui" specifically; MIT license boilerplate only).
-- External URLs to unrelated third-party "webui" projects, if any are found during replacement - will be logged here with reasons.
+- Third-party license text (none found referencing "webhub" specifically; MIT license boilerplate only).
+- External URLs to unrelated third-party "webhub" projects, if any are found during replacement - will be logged here with reasons.
 
 ## Step 2: Rename Folders and Files
 

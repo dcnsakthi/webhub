@@ -37,18 +37,18 @@
   display: inline-flex;
   justify-content: center;
   border-radius: 9999px;
-  border: 1px solid var(--webui-border);
+  border: 1px solid var(--webhub-border);
   background: #171717;
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
   font-weight: 400;
   line-height: 1.25rem;
-  color: var(--webui-text);
+  color: var(--webhub-text);
   cursor: pointer;
   transition: box-shadow 0.15s, opacity 0.15s;
 
   &[active] {
-    box-shadow: 0 0 0 1px var(--webui-accent);
+    box-shadow: 0 0 0 1px var(--webhub-accent);
     cursor: default;
   }
 
@@ -64,12 +64,12 @@
       left: 15%;
       right: 15%;
       height: 1px;
-      background: var(--webui-text-secondary);
+      background: var(--webhub-text-secondary);
       transform: rotate(-12deg);
     }
   }
 
   &:not(:disabled):not([active]):hover {
-    box-shadow: 0 0 0 1px var(--webui-accent);
+    box-shadow: 0 0 0 1px var(--webhub-accent);
   }
 }

@@ -14,7 +14,7 @@
 //!     the corresponding live-reload event.
 //!
 //! The closure is the only thing that varies between consumers
-//! (webui-cli builds and renders an app, webui-press rebuilds a docs
+//! (webhub-cli builds and renders an app, webhub-press rebuilds a docs
 //! site). It returns `Result<Vec<String>, RebuildError>`: the `Ok` value is a
 //! list of plain advisory lines to print under the rebuild line, and the `Err`
 //! lets the worker print a terminal rendering and broadcast a plain one to

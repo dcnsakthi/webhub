@@ -1,18 +1,18 @@
-# WebUI SSR Performance Test
+# webhub SSR Performance Test
 
 Rust server that renders a spiral pattern of ~2400 tiles entirely on the
 server, comparable to the `fastify-html` entry in the
 [ssr-performance-showdown](https://github.com/nicolo-ribaudo/ssr-performance-showdown) benchmark.
 
-The template is compiled once with `webui build` into a `protocol.bin`.
+The template is compiled once with `webhub build` into a `protocol.bin`.
 On every request the server computes the tile positions and passes them
-as state to `WebUIHandler`, which streams the final HTML.
+as state to `webhubHandler`, which streams the final HTML.
 
 ## Usage
 
 ```bash
 # From this folder
-cargo run -p microsoft-webui-cli --release -- build app --out dist
+cargo run -p microsoft-webhub-cli --release -- build app --out dist
 
 # Run the server frrm this location
 cargo run -p ssr-performance-showdown --release                 # listen on :3000
@@ -23,7 +23,7 @@ cargo run -p ssr-performance-showdown --release -- --port 3001  # custom port
 ## Results
 Using `autocannon` we can run with warmup `npx autocannon -c 100 -d 10 -w 2 http://localhost:3000`:
 
-**webui-rust**
+**webhub-rust**
 ```
 ┌─────────┬───────┬───────┬───────┬───────┬──────────┬─────────┬───────┐
 │ Stat    │ 2.5%  │ 50%   │ 97.5% │ 99%   │ Avg      │ Stdev   │ Max   │

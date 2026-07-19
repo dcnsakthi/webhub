@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 /**
- * Shared runtime types for the WebUI element system.
+ * Shared runtime types for the webhub element system.
  *
  * These types define the binding data structures that are created once during
  * hydration and then read on every reactive update.  Each binding holds a
@@ -119,7 +119,7 @@ export interface RepeatItemInstance {
  *
  * Repeat functions need access to host capabilities (value resolution,
  * block lookup, instance management) without depending on the full
- * WebUIElement class.
+ * webhubElement class.
  */
 export interface RepeatHost {
   $resolveValue(path: string, scope?: ScopeFrame): unknown;

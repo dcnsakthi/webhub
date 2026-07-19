@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 /**
- * Stylesheet management for WebUI components.
+ * Stylesheet management for webhub components.
  *
  * Three CSS strategies are supported:
  *

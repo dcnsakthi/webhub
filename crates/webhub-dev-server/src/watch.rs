@@ -52,7 +52,7 @@ pub struct WatchConfig {
     pub debounce: Duration,
     /// Optional predicate that allows byte-identical file events through.
     ///
-    /// `webui serve --watch` uses this while a rebuild error is active so a
+    /// `webhub serve --watch` uses this while a rebuild error is active so a
     /// no-op save can retry transient failures. When the predicate returns
     /// `false` (the common clean state), identical saves are still dropped.
     pub retry_unchanged_when: Option<Arc<dyn Fn() -> bool + Send + Sync>>,
@@ -314,7 +314,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let dist = dir.path().join("dist");
         std::fs::create_dir(&dist).unwrap();
-        let manifest = dist.join("webui-projection.json");
+        let manifest = dist.join("webhub-projection.json");
         let bundle = dist.join("index.js");
         std::fs::write(&manifest, "{}").unwrap();
         std::fs::write(&bundle, "export {};").unwrap();

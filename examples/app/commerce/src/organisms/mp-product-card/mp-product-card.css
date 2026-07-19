@@ -12,15 +12,15 @@
   display: block;
   height: 100%;
   overflow: hidden;
-  border-radius: var(--webui-radius-lg);
-  border: 1px solid var(--webui-border);
+  border-radius: var(--webhub-radius-lg);
+  border: 1px solid var(--webhub-border);
   text-decoration: none;
-  color: var(--webui-text);
+  color: var(--webhub-text);
   transition: border-color 0.2s ease;
 }
 
 .card:hover {
-  border-color: var(--webui-accent);
+  border-color: var(--webhub-accent);
 }
 
 .media {

@@ -3,7 +3,7 @@
 
 //! Build-time consumption of bundler-neutral state projection manifests.
 
-use crate::error::WebUIError;
+use crate::error::webhubError;
 use crate::ProjectionManifestSource;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -11,8 +11,8 @@ use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use webui_parser::Diagnostic;
-use webui_protocol::projection_manifest::{self, ProjectionComponent, ProjectionManifest};
+use webhub_parser::Diagnostic;
+use webhub_protocol::projection_manifest::{self, ProjectionComponent, ProjectionManifest};
 
 /// Stable machine-readable projection diagnostic codes.
 pub mod codes {
@@ -71,7 +71,7 @@ pub(crate) struct ProjectionSnapshot {
 /// Load, validate, and merge all disk manifest fragments.
 pub(crate) fn load_and_merge(
     sources: &[ProjectionManifestSource],
-) -> Result<Option<Arc<ProjectionSnapshot>>, WebUIError> {
+) -> Result<Option<Arc<ProjectionSnapshot>>, webhubError> {
     if sources.is_empty() {
         return Ok(None);
     }
@@ -101,7 +101,7 @@ pub(crate) fn load_and_merge(
     })))
 }
 
-fn load_source(source: &ProjectionManifestSource) -> Result<Arc<ProjectionSnapshot>, WebUIError> {
+fn load_source(source: &ProjectionManifestSource) -> Result<Arc<ProjectionSnapshot>, webhubError> {
     match source {
         ProjectionManifestSource::Path(path) => load_fragment_path(path).map(Arc::new),
         ProjectionManifestSource::Inline {
@@ -115,7 +115,7 @@ fn load_source(source: &ProjectionManifestSource) -> Result<Arc<ProjectionSnapsh
     }
 }
 
-fn load_fragment_path(path: &Path) -> Result<ProjectionSnapshot, WebUIError> {
+fn load_fragment_path(path: &Path) -> Result<ProjectionSnapshot, webhubError> {
     let metadata = std::fs::metadata(path).map_err(|_| manifest_unreadable(path))?;
     if metadata.len() > MAX_MANIFEST_BYTES {
         return Err(projection_error(
@@ -133,7 +133,7 @@ fn load_fragment_path(path: &Path) -> Result<ProjectionSnapshot, WebUIError> {
     load_fragment_bytes(path, &bytes)
 }
 
-fn load_fragment_bytes(path: &Path, bytes: &[u8]) -> Result<ProjectionSnapshot, WebUIError> {
+fn load_fragment_bytes(path: &Path, bytes: &[u8]) -> Result<ProjectionSnapshot, webhubError> {
     if bytes.len() > MAX_MANIFEST_BYTES_USIZE {
         return Err(projection_error(
             codes::MANIFEST_TOO_LARGE,
@@ -179,7 +179,7 @@ fn load_fragment_bytes(path: &Path, bytes: &[u8]) -> Result<ProjectionSnapshot, 
     })
 }
 
-fn canonical_manifest_location(path: &Path) -> Result<PathBuf, WebUIError> {
+fn canonical_manifest_location(path: &Path) -> Result<PathBuf, webhubError> {
     if let Ok(canonical) = std::fs::canonicalize(path) {
         return Ok(canonical);
     }
@@ -192,7 +192,7 @@ fn canonical_manifest_location(path: &Path) -> Result<PathBuf, WebUIError> {
     Ok(parent.join(file_name))
 }
 
-fn resolve_root(manifest_path: &Path, raw: &str) -> Result<PathBuf, WebUIError> {
+fn resolve_root(manifest_path: &Path, raw: &str) -> Result<PathBuf, webhubError> {
     if raw.contains('\\') || raw.is_empty() {
         return Err(path_error(manifest_path, raw));
     }
@@ -251,7 +251,7 @@ fn validate_files(
     root: &Path,
     declared: BTreeMap<String, String>,
     kind: ArtifactKind,
-) -> Result<ValidatedFiles, WebUIError> {
+) -> Result<ValidatedFiles, webhubError> {
     let mut values = BTreeMap::new();
     let mut identities = BTreeMap::new();
 
@@ -326,7 +326,7 @@ fn validate_components(
     declared: BTreeMap<String, ProjectionComponent>,
     inputs: &BTreeMap<String, String>,
     outputs: &BTreeMap<String, String>,
-) -> Result<BTreeMap<String, ProjectionComponent>, WebUIError> {
+) -> Result<BTreeMap<String, ProjectionComponent>, webhubError> {
     let mut validated = BTreeMap::new();
     for (tag, entry) in declared {
         if projection_manifest::is_virtual_key(&entry.module)
@@ -360,7 +360,7 @@ fn validate_components(
 fn merge_artifacts(
     target: &mut BTreeMap<ArtifactIdentity, String>,
     source: BTreeMap<ArtifactIdentity, String>,
-) -> Result<(), WebUIError> {
+) -> Result<(), webhubError> {
     for (identity, hash) in source {
         if let Some(existing) = target.get(&identity) {
             if existing != &hash {
@@ -376,7 +376,7 @@ fn merge_artifacts(
 fn merge_artifact_refs(
     target: &mut BTreeMap<ArtifactIdentity, String>,
     source: &BTreeMap<ArtifactIdentity, String>,
-) -> Result<(), WebUIError> {
+) -> Result<(), webhubError> {
     for (identity, hash) in source {
         if let Some(existing) = target.get(identity) {
             if existing != hash {
@@ -391,7 +391,7 @@ fn merge_artifact_refs(
 
 #[cold]
 #[inline(never)]
-fn conflicting_artifact_hash() -> WebUIError {
+fn conflicting_artifact_hash() -> webhubError {
     projection_error(
         codes::CONFLICTING_HASH,
         "projection manifest fragments observed one canonical artifact with conflicting hashes",
@@ -403,7 +403,7 @@ fn conflicting_artifact_hash() -> WebUIError {
 pub(crate) fn validate_coverage(
     merged: &BTreeMap<String, ComponentEntry>,
     scripted_tags: &[&str],
-) -> Result<(), WebUIError> {
+) -> Result<(), webhubError> {
     let mut missing: Vec<&str> = scripted_tags
         .iter()
         .copied()
@@ -487,14 +487,14 @@ fn projection_error(
     code: &'static str,
     title: impl Into<String>,
     help: impl Into<String>,
-) -> WebUIError {
+) -> webhubError {
     let diagnostic = Diagnostic::error(title.into()).code(code).help(help.into());
-    WebUIError::Projection(Box::new(diagnostic))
+    webhubError::Projection(Box::new(diagnostic))
 }
 
 #[cold]
 #[inline(never)]
-fn manifest_unreadable(path: &Path) -> WebUIError {
+fn manifest_unreadable(path: &Path) -> webhubError {
     projection_error(
         codes::MANIFEST_UNREADABLE,
         format!(
@@ -510,7 +510,7 @@ fn manifest_unreadable(path: &Path) -> WebUIError {
 fn shared_manifest_error(
     path: &Path,
     source: &projection_manifest::ProjectionManifestError,
-) -> WebUIError {
+) -> webhubError {
     projection_error(
         source.code(),
         format!(
@@ -523,20 +523,20 @@ fn shared_manifest_error(
 
 #[cold]
 #[inline(never)]
-fn invalid_field(path: &Path, detail: &str) -> WebUIError {
+fn invalid_field(path: &Path, detail: &str) -> webhubError {
     projection_error(
         codes::INVALID_FIELD,
         format!(
             "projection manifest '{}' has an invalid field: {detail}",
             path.display()
         ),
-        "Regenerate the manifest with a compatible @microsoft/webui projection adapter.",
+        "Regenerate the manifest with a compatible @microsoft/webhub projection adapter.",
     )
 }
 
 #[cold]
 #[inline(never)]
-fn invalid_hash(path: &Path, field: &str) -> WebUIError {
+fn invalid_hash(path: &Path, field: &str) -> webhubError {
     projection_error(
         codes::INVALID_HASH_FORMAT,
         format!(
@@ -549,7 +549,7 @@ fn invalid_hash(path: &Path, field: &str) -> WebUIError {
 
 #[cold]
 #[inline(never)]
-fn path_error(path: &Path, field: &str) -> WebUIError {
+fn path_error(path: &Path, field: &str) -> webhubError {
     projection_error(
         codes::PATH_TRAVERSAL,
         format!(
@@ -562,7 +562,7 @@ fn path_error(path: &Path, field: &str) -> WebUIError {
 
 #[cold]
 #[inline(never)]
-fn missing_artifact(path: &Path, kind: ArtifactKind, key: &str) -> WebUIError {
+fn missing_artifact(path: &Path, kind: ArtifactKind, key: &str) -> webhubError {
     projection_error(
         codes::MANIFEST_UNREADABLE,
         format!(
@@ -577,11 +577,11 @@ fn missing_artifact(path: &Path, kind: ArtifactKind, key: &str) -> WebUIError {
 /// Build the incompatible-plugin diagnostic.
 #[cold]
 #[inline(never)]
-pub(crate) fn incompatible_plugin_error() -> WebUIError {
+pub(crate) fn incompatible_plugin_error() -> webhubError {
     projection_error(
         codes::INCOMPATIBLE_PLUGIN,
-        "projection manifests require the WebUI plugin",
-        "Select Plugin::WebUI or remove projection_manifests; default and FAST plugins preserve full state.",
+        "projection manifests require the webhub plugin",
+        "Select Plugin::webhub or remove projection_manifests; default and FAST plugins preserve full state.",
     )
 }
 
@@ -589,7 +589,7 @@ pub(crate) fn incompatible_plugin_error() -> WebUIError {
 pub(crate) mod test_support {
     use super::*;
     use std::fs;
-    use webui_protocol::projection_manifest::{ProjectionAdapter, ProjectionProducer};
+    use webhub_protocol::projection_manifest::{ProjectionAdapter, ProjectionProducer};
 
     pub(crate) fn write_manifest(dir: &Path, name: &str, contents: &str) -> PathBuf {
         let path = dir.join(name);
@@ -670,7 +670,7 @@ mod tests {
     use super::*;
     use std::fs;
     use tempfile::TempDir;
-    use webui_protocol::projection_manifest::{ProjectionAdapter, ProjectionProducer};
+    use webhub_protocol::projection_manifest::{ProjectionAdapter, ProjectionProducer};
 
     #[test]
     fn loads_valid_exact_and_empty_surfaces() {
@@ -867,7 +867,7 @@ mod tests {
         let duplicate_key = write_manifest(
             dir.path(),
             "duplicate-key.json",
-            r#"{"schema":"webui.state-projection/v1","schema":"webui.state-projection/v1"}"#,
+            r#"{"schema":"webhub.state-projection/v1","schema":"webhub.state-projection/v1"}"#,
         );
         assert_error_code(
             &load_and_merge(&[duplicate_key.into()]).unwrap_err(),
@@ -990,8 +990,8 @@ mod tests {
         );
     }
 
-    fn assert_error_code(error: &WebUIError, expected: &str) {
-        let WebUIError::Projection(diagnostic) = error else {
+    fn assert_error_code(error: &webhubError, expected: &str) {
+        let webhubError::Projection(diagnostic) = error else {
             panic!("expected projection error, got {error:?}");
         };
         assert_eq!(diagnostic.error_code(), Some(expected));

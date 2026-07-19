@@ -5,13 +5,13 @@ edition = "2021"
 publish = false
 
 [[bin]]
-name = "webui-ssr-test"
+name = "webhub-ssr-test"
 path = "src/main.rs"
 
 [dependencies]
 serde_json = { workspace = true }
-microsoft-webui-protocol = { path = "../../../crates/webui-protocol" }
-microsoft-webui-handler = { path = "../../../crates/webui-handler" }
+microsoft-webhub-protocol = { path = "../../../crates/webhub-protocol" }
+microsoft-webhub-handler = { path = "../../../crates/webhub-handler" }
 actix-web = { workspace = true }
 anyhow = { workspace = true }
 

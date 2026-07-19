@@ -84,13 +84,13 @@ import type {
 // Type-only import: erased at compile time, so it never creates a runtime edge
 // to the diagnostic module. That module's runtime code is reached solely through
 // the dynamic `import()` in `$checkHydrationMismatch`, which is what lets a
-// production bundler drop it (see the `__WEBUI_DEV__` note below).
+// production bundler drop it (see the `__webhub_DEV__` note below).
 import type { MismatchContext } from './hydration-mismatch.js';
 
 // ── Development build flag ──────────────────────────────────────
-// `__WEBUI_DEV__` is a compile-time constant a bundler folds to a literal
-// (`esbuild --define:__WEBUI_DEV__=false`, webpack/rspack `DefinePlugin`, Vite
-// and Rollup/rolldown `define`, swc `globals.vars`). `webui-press` folds it to
+// `__webhub_DEV__` is a compile-time constant a bundler folds to a literal
+// (`esbuild --define:__webhub_DEV__=false`, webpack/rspack `DefinePlugin`, Vite
+// and Rollup/rolldown `define`, swc `globals.vars`). `webhub-press` folds it to
 // `false` for `build` (production) and leaves it undefined for `serve` (dev).
 //
 // When it folds to `false`, `DEV` folds too: every `if (DEV)` / `if (!DEV)
@@ -109,8 +109,8 @@ import type { MismatchContext } from './hydration-mismatch.js';
 // consumed module-locally on purpose — esbuild folds a module-local `const`
 // reliably, whereas an imported constant is not inlined across module
 // boundaries, which would defeat the stripping.
-declare const __WEBUI_DEV__: boolean;
-const DEV: boolean = typeof __WEBUI_DEV__ === 'undefined' || __WEBUI_DEV__;
+declare const __webhub_DEV__: boolean;
+const DEV: boolean = typeof __webhub_DEV__ === 'undefined' || __webhub_DEV__;
 
 // ── Caches ──────────────────────────────────────────────────────
 
@@ -148,7 +148,7 @@ function getTplOrdinals(tplNode: Node): Map<number, [number, number]> {
 const EMPTY_ARR: readonly never[] = [];
 const EMPTY_SET: Set<string> = Object.freeze(new Set<string>()) as Set<string>;
 /** Branded single-key state writer used by framework bindings, not public duck typing. */
-const WEBUI_SET_STATE_KEY = Symbol.for('microsoft.webui.setStateKey');
+const webhub_SET_STATE_KEY = Symbol.for('microsoft.webhub.setStateKey');
 
 const templateMetaByCtor = new WeakMap<Function, TemplateMeta>();
 let domReadyQueue: Array<() => void> | null = null;
@@ -267,7 +267,7 @@ function hasAuthoredMember(instance: object, key: string): boolean {
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Compiled WebUI rendering core.
+ * Compiled webhub rendering core.
  *
  * This class hydrates SSR output, creates client-side template instances, keeps
  * template-only state for omitted `@observable` / `@attr` fields, and updates
@@ -313,7 +313,7 @@ export class TemplateElement extends HTMLElement {
   } | null;
 
   /** Internal single-key state hook used by compiled parent-to-child bindings. */
-  [WEBUI_SET_STATE_KEY](key: string, value: unknown): boolean {
+  [webhub_SET_STATE_KEY](key: string, value: unknown): boolean {
     const wasDeferred = this.$deferredSSR;
     this.$beforeExternalStateWrite();
     const owned = this.$setStateKey(key, value);
@@ -351,8 +351,8 @@ export class TemplateElement extends HTMLElement {
     const meta = getTemplate(tag);
     if (!meta) {
       console.warn(
-        `[WebUI] Template metadata for <${tag}> not found. ` +
-        `Ensure the component is included in the SSR output or registered via __webui.templates.`,
+        `[webhub] Template metadata for <${tag}> not found. ` +
+        `Ensure the component is included in the SSR output or registered via __webhub.templates.`,
       );
       return;
     }
@@ -434,7 +434,7 @@ export class TemplateElement extends HTMLElement {
     // SSR only: warn when a pre-ready write left an observable disagreeing
     // with the server-rendered DOM. Client-created components have no SSR
     // content to diverge from. `DEV` gates the call so production bundles
-    // (`--define:__WEBUI_DEV__=false`) drop it entirely.
+    // (`--define:__webhub_DEV__=false`) drop it entirely.
     if (isSSR && DEV) this.$checkHydrationMismatch();
     else this.$preReadyWrites = null;
 
@@ -466,7 +466,7 @@ export class TemplateElement extends HTMLElement {
 
   /**
    * Permanently destroy this component's own bindings and DOM references.
-   * Each component is responsible for its own cleanup — child WebUI
+   * Each component is responsible for its own cleanup — child webhub
    * elements handle theirs via their own `disconnectedCallback`.
    */
   $destroy(): void {
@@ -669,10 +669,10 @@ export class TemplateElement extends HTMLElement {
   }
 
   /**
-   * Apply SSR state from `window.__webui.state`.
+   * Apply SSR state from `window.__webhub.state`.
    *
    * The handler emits all SSR metadata in a single consolidated
-   * `window.__webui` script block. State lives at `.state`; the build-time
+   * `window.__webhub` script block. State lives at `.state`; the build-time
    * hydration keys contain only explicit `@observable`/`@attr` properties.
    * Template-only roots remain absent because their initial values are already
    * represented by the trusted SSR DOM.
@@ -681,7 +681,7 @@ export class TemplateElement extends HTMLElement {
    * reactive updates before bindings are wired.
    */
   private $applySSRState(): void {
-    const state = window.__webui?.state;
+    const state = window.__webhub?.state;
     if (!state || typeof state !== 'object') return;
     const observableNames = this.$observableNames();
     const keys = Object.keys(state);
@@ -781,12 +781,12 @@ export class TemplateElement extends HTMLElement {
   //
   // Production stripping: the comparators and message string live in
   // `hydration-mismatch.ts`, reached only through the dynamic `import()` in
-  // `$checkHydrationMismatch`. When a bundler folds `__WEBUI_DEV__` to `false`,
+  // `$checkHydrationMismatch`. When a bundler folds `__webhub_DEV__` to `false`,
   // `DEV` becomes a constant, the `if (!DEV) return` empties this method, and
   // the now-dead `import()` is DCE'd — orphaning the diagnostic chunk so the
   // bundler drops it. The `if (!DEV) return` is load-bearing: class methods are
   // never tree-shaken, so without it the method body (and its `import()`) would
-  // survive. See the `__WEBUI_DEV__` note near the top of this file.
+  // survive. See the `__webhub_DEV__` note near the top of this file.
 
   private $recordPreReadyWrite(path: string): void {
     if (!this.$preReadyWrites) this.$preReadyWrites = new Set();
@@ -813,7 +813,7 @@ export class TemplateElement extends HTMLElement {
     // microtask on which the import resolves, so the result is unaffected by the
     // deferral. In production `DEV` folds to `false`, so this method's body — and
     // therefore this sole `import()` — is eliminated, dropping the diagnostic
-    // module from the bundle (see the `__WEBUI_DEV__` note near the top).
+    // module from the bundle (see the `__webhub_DEV__` note near the top).
     void import('./hydration-mismatch.js').then((m) =>
       m.reportHydrationMismatch(tag, writes, index, ctx),
     );
@@ -1258,7 +1258,7 @@ export class TemplateElement extends HTMLElement {
             && itemMarkers.length !== items.length
           ) {
             console.warn(
-              `[webui] hydration: repeat marker count (${itemMarkers.length}) ≠ data length (${items.length}) for "${collection}"`,
+              `[webhub] hydration: repeat marker count (${itemMarkers.length}) ≠ data length (${items.length}) for "${collection}"`,
             );
           }
           for (let j = 0; j < itemMarkers.length; j++) {
@@ -1527,7 +1527,7 @@ export class TemplateElement extends HTMLElement {
 
   /**
    * Hook for wiring interactivity (events + refs). This template-only base class
-   * does nothing here; the interactive {@link WebUIElement} subclass overrides
+   * does nothing here; the interactive {@link webhubElement} subclass overrides
    * it.
    */
   protected $finalize(
@@ -1741,7 +1741,7 @@ export class TemplateElement extends HTMLElement {
       case ATTR_KIND_COMPLEX: {
         const v = this.$resolveValue(b.path!, b.scope);
         const target = el as unknown as Record<string | symbol, unknown>;
-        const setStateKey = target[WEBUI_SET_STATE_KEY];
+        const setStateKey = target[webhub_SET_STATE_KEY];
         if (typeof setStateKey === 'function') {
           if ((setStateKey as (key: string, value: unknown) => boolean).call(el, b.name, v)) {
             const flush = target['$flushUpdates'];

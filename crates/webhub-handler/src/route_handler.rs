@@ -18,7 +18,7 @@ use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::sync::RwLock;
-use webui_protocol::{web_ui_fragment::Fragment, WebUIFragmentRoute, WebUIProtocol};
+use webhub_protocol::{web_ui_fragment::Fragment, webhubFragmentRoute, webhubProtocol};
 
 // ── Protocol Index ──────────────────────────────────────────────────────
 
@@ -32,7 +32,7 @@ use webui_protocol::{web_ui_fragment::Fragment, WebUIFragmentRoute, WebUIProtoco
 /// populated lazily behind a read-write lock whose scope is limited to
 /// individual metadata lookups.
 pub struct Protocol {
-    protocol: WebUIProtocol,
+    protocol: webhubProtocol,
     component_index: HashMap<String, u32>,
     route_index: CompiledRouteIndex,
     template_metadata_cache: RwLock<HashMap<String, Value>>,
@@ -43,14 +43,14 @@ impl Protocol {
     ///
     /// # Errors
     ///
-    /// Returns a protocol error when `bytes` is not a valid WebUI protobuf.
-    pub fn from_protobuf(bytes: &[u8]) -> std::result::Result<Self, webui_protocol::ProtocolError> {
-        WebUIProtocol::from_protobuf(bytes).map(Self::new)
+    /// Returns a protocol error when `bytes` is not a valid webhub protobuf.
+    pub fn from_protobuf(bytes: &[u8]) -> std::result::Result<Self, webhub_protocol::ProtocolError> {
+        webhubProtocol::from_protobuf(bytes).map(Self::new)
     }
 
     /// Create a reusable runtime protocol from an already decoded document.
     #[must_use]
-    pub fn new(protocol: WebUIProtocol) -> Self {
+    pub fn new(protocol: webhubProtocol) -> Self {
         let component_index = build_component_index(&protocol);
         let route_index = CompiledRouteIndex::new(&protocol);
         Self {
@@ -61,7 +61,7 @@ impl Protocol {
         }
     }
 
-    pub(crate) fn protocol(&self) -> &WebUIProtocol {
+    pub(crate) fn protocol(&self) -> &webhubProtocol {
         &self.protocol
     }
 
@@ -150,7 +150,7 @@ struct ProtocolIndex {
     pub component_index: HashMap<String, u32>,
     /// Authored route template patterns compiled once.
     pub route_index: CompiledRouteIndex,
-    /// Parsed WebUI template metadata keyed by component tag.
+    /// Parsed webhub template metadata keyed by component tag.
     template_metadata_cache: HashMap<String, Value>,
 }
 
@@ -164,7 +164,7 @@ struct ComponentAssets {
 impl ProtocolIndex {
     /// Build a protocol index from a compiled protocol.
     #[must_use]
-    pub(crate) fn new(protocol: &WebUIProtocol) -> Self {
+    pub(crate) fn new(protocol: &webhubProtocol) -> Self {
         Self {
             component_index: build_component_index(protocol),
             route_index: CompiledRouteIndex::new(protocol),
@@ -203,7 +203,7 @@ struct RequestProtocolIndex<'a> {
 /// is the source of truth regardless of whether a plugin populated
 /// `protocol.components`. Components are sorted alphabetically; index =
 /// position in that order.
-pub(crate) fn build_component_index(protocol: &WebUIProtocol) -> HashMap<String, u32> {
+pub(crate) fn build_component_index(protocol: &webhubProtocol) -> HashMap<String, u32> {
     let mut sorted: Vec<&String> = protocol
         .fragments
         .keys()
@@ -246,7 +246,7 @@ pub fn parse_inventory(hex: &str) -> Result<Vec<u8>, HandlerError> {
     }
     if !hex.len().is_multiple_of(2) {
         return Err(HandlerError::Protocol(
-            webui_protocol::ProtocolError::Validation(format!(
+            webhub_protocol::ProtocolError::Validation(format!(
                 "inventory hex has odd length: {}",
                 hex.len()
             )),
@@ -256,13 +256,13 @@ pub fn parse_inventory(hex: &str) -> Result<Vec<u8>, HandlerError> {
     let mut chars = hex.bytes();
     while let (Some(hi), Some(lo)) = (chars.next(), chars.next()) {
         let h = route_matcher::hex_val(hi).ok_or_else(|| {
-            HandlerError::Protocol(webui_protocol::ProtocolError::Validation(format!(
+            HandlerError::Protocol(webhub_protocol::ProtocolError::Validation(format!(
                 "invalid hex digit in inventory: {:#04x}",
                 hi
             )))
         })?;
         let l = route_matcher::hex_val(lo).ok_or_else(|| {
-            HandlerError::Protocol(webui_protocol::ProtocolError::Validation(format!(
+            HandlerError::Protocol(webhub_protocol::ProtocolError::Validation(format!(
                 "invalid hex digit in inventory: {:#04x}",
                 lo
             )))
@@ -302,7 +302,7 @@ pub(crate) fn encode_component_inventory(
 ///
 /// Returns `(needed_names, updated_inventory_hex)`.
 pub fn get_needed_components(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     entry_id: &str,
     inventory_hex: &str,
     component_index: &HashMap<String, u32>,
@@ -318,7 +318,7 @@ pub fn get_needed_components(
 ///
 /// Returns `(needed_names, updated_inventory_hex)`.
 pub(crate) fn get_needed_components_for_request(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     entry_id: &str,
     request_path: &str,
     inventory_hex: &str,
@@ -657,7 +657,7 @@ fn partial_response_not_object() -> HandlerError {
 
 /// Collect all route-reachable inventoryable components for the request path.
 pub(crate) fn collect_reachable_components_for_request(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     entry_id: &str,
     request_path: &str,
     route_index: &CompiledRouteIndex,
@@ -704,7 +704,7 @@ pub fn filter_needed_components(
     Ok((needed, encode_inventory(&updated_inv)))
 }
 
-fn has_template_payload(component: &webui_protocol::ComponentData) -> bool {
+fn has_template_payload(component: &webhub_protocol::ComponentData) -> bool {
     !component.template_json.is_empty() || !component.template.is_empty()
 }
 
@@ -720,7 +720,7 @@ struct QueuedFragment {
 /// to stay within the 5-argument clippy limit.
 struct ChildWalkCtx<'a> {
     request_path: &'a str,
-    protocol: &'a WebUIProtocol,
+    protocol: &'a webhubProtocol,
     route_index: &'a CompiledRouteIndex,
 }
 
@@ -735,7 +735,7 @@ struct ChildWalkCtx<'a> {
 /// in `protocol.components` with a non-empty template payload — these are the
 /// components whose client metadata the browser may need during navigation.
 fn collect_inventoryable_components(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     entry_id: &str,
     request_path: Option<&str>,
     root_inventoryable: bool,
@@ -883,7 +883,7 @@ fn collect_inventoryable_components(
 /// Returns the index and match result of the highest-specificity match,
 /// preserving first-match-wins for equal specificity (declaration order).
 fn select_best_child_route(
-    children: &[WebUIFragmentRoute],
+    children: &[webhubFragmentRoute],
     request_path: &str,
     route_base: &str,
     route_index: &CompiledRouteIndex,
@@ -912,7 +912,7 @@ fn select_best_child_route(
 /// Walk nested route children to find matched routes and add their
 /// components to the inventory stack. Mirrors the handler's outlet rendering.
 fn walk_route_children(
-    children: &[WebUIFragmentRoute],
+    children: &[webhubFragmentRoute],
     route_base: &str,
     stack: &mut Vec<QueuedFragment>,
     ctx: &mut ChildWalkCtx<'_>,
@@ -983,12 +983,12 @@ fn walk_route_children(
 /// for any navigable sibling — not only the currently active route. The walk is
 /// iterative because the framework forbids recursion in core paths.
 fn collect_route_boundary_components(
-    routes: &[WebUIFragmentRoute],
+    routes: &[webhubFragmentRoute],
     route_base: &str,
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     stack: &mut Vec<QueuedFragment>,
 ) {
-    let mut remaining: Vec<&WebUIFragmentRoute> = routes.iter().collect();
+    let mut remaining: Vec<&webhubFragmentRoute> = routes.iter().collect();
     while let Some(route) = remaining.pop() {
         for component in [&route.pending_component, &route.error_component] {
             if component.is_empty() {
@@ -1092,7 +1092,7 @@ pub fn collect_nested_route_params(
 
 /// Iteratively collect route params from nested route children.
 fn collect_params_from_children(
-    children: &[WebUIFragmentRoute],
+    children: &[webhubFragmentRoute],
     request_path: &str,
     route_base: &str,
     all_params: &mut HashMap<String, String>,
@@ -1160,7 +1160,7 @@ fn resolve_tag_templates(templates: &[String], params: &HashMap<String, String>)
 /// and the matched route chain. Eliminates the duplicate graph traversal
 /// that previously existed in `render_partial`.
 fn collect_inventory_and_chain(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     entry_id: &str,
     request_path: &str,
     index: &mut RequestProtocolIndex<'_>,
@@ -1305,7 +1305,7 @@ fn collect_inventory_and_chain(
 
 /// Walk nested route children, collecting both inventory and chain entries.
 fn walk_children_for_inventory_and_chain(
-    children: &[WebUIFragmentRoute],
+    children: &[webhubFragmentRoute],
     route_base: &str,
     stack: &mut Vec<QueuedFragment>,
     chain: &mut Vec<RouteChainEntry>,
@@ -1374,7 +1374,7 @@ fn walk_children_for_inventory_and_chain(
 /// - `cacheTags`: resolved cache tags from the full route chain (union of all levels)
 #[cfg(test)]
 fn render_partial_metadata(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     entry_id: &str,
     request_path: &str,
     inventory_hex: &str,
@@ -1398,7 +1398,7 @@ fn render_partial_metadata(
 /// templates use compiled template roots.
 #[cfg(test)]
 fn render_partial(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     state: Value,
     entry_id: &str,
     request_path: &str,
@@ -1422,7 +1422,7 @@ fn render_partial(
 
 #[cfg(test)]
 fn render_partial_indexed(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     entry_id: &str,
     request_path: &str,
     inventory_hex: &str,
@@ -1433,7 +1433,7 @@ fn render_partial_indexed(
 }
 
 fn render_partial_indexed_with_state<'a>(
-    protocol: &'a WebUIProtocol,
+    protocol: &'a webhubProtocol,
     entry_id: &str,
     request_path: &str,
     inventory_hex: &str,
@@ -1514,7 +1514,7 @@ fn select_owned_state(state: Value, selection: &StateSelection<'_>) -> Value {
 /// - `path`: the request path
 #[cfg(test)]
 fn render_action_response(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     state: Value,
     entry_id: &str,
     request_path: &str,
@@ -1526,7 +1526,7 @@ fn render_action_response(
 
 #[cfg(test)]
 fn render_action_response_indexed(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     state: Value,
     entry_id: &str,
     request_path: &str,
@@ -1571,7 +1571,7 @@ fn render_action_response_indexed(
 /// templates the client already has.
 #[cfg(test)]
 fn render_component_templates(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     component_tags: &[&str],
     inventory_hex: &str,
     index: &mut ProtocolIndex,
@@ -1581,7 +1581,7 @@ fn render_component_templates(
 }
 
 fn render_component_templates_indexed(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     component_tags: &[&str],
     inventory_hex: &str,
     index: &mut RequestProtocolIndex<'_>,
@@ -1609,7 +1609,7 @@ fn render_component_templates_indexed(
 
 /// Shared helper: collect templates and module CSS styles for a set of component tags.
 fn collect_component_assets(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     tags: &[&str],
     index: &mut RequestProtocolIndex<'_>,
 ) -> Result<ComponentAssets, HandlerError> {
@@ -1806,7 +1806,7 @@ impl RouteChainEntry {
 /// Walks the fragment graph from `entry_id`, follows the matched route at
 /// each nesting level, and returns a chain entry per matched level.
 pub(crate) fn collect_route_chain(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     entry_id: &str,
     request_path: &str,
     route_index: &CompiledRouteIndex,
@@ -1898,12 +1898,12 @@ pub(crate) fn collect_route_chain(
 
 /// Iteratively collect chain entries from nested route children.
 fn collect_chain_from_children(
-    children: &[WebUIFragmentRoute],
+    children: &[webhubFragmentRoute],
     route_base: &str,
     chain: &mut Vec<RouteChainEntry>,
     ctx: &mut ChildWalkCtx<'_>,
 ) {
-    let mut pending: Vec<(&[WebUIFragmentRoute], String)> =
+    let mut pending: Vec<(&[webhubFragmentRoute], String)> =
         vec![(children, route_base.to_string())];
 
     while let Some((current, base)) = pending.pop() {
@@ -1938,7 +1938,7 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::{Arc, Barrier};
     use std::thread;
-    use webui_protocol::{FragmentList, WebUIFragment, WebUiFragmentRoute};
+    use webhub_protocol::{FragmentList, webhubFragment, webhubFragmentRoute};
 
     #[test]
     fn protocol_decodes_once_and_exposes_tokens() {
@@ -1946,10 +1946,10 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Prepared</p>")],
+                fragments: vec![webhubFragment::raw("<p>Prepared</p>")],
             },
         );
-        let protocol = WebUIProtocol::with_tokens(fragments, vec!["colorBrand".to_string()]);
+        let protocol = webhubProtocol::with_tokens(fragments, vec!["colorBrand".to_string()]);
         let bytes = protocol.to_protobuf().unwrap();
         let prepared = Protocol::from_protobuf(&bytes).unwrap();
 
@@ -1963,16 +1963,16 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route("/", "home-page")],
+                fragments: vec![webhubFragment::route("/", "home-page")],
             },
         );
         fragments.insert(
             "home-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Home</p>")],
+                fragments: vec![webhubFragment::raw("<p>Home</p>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let mut direct_index = ProtocolIndex::new(&protocol);
         let direct =
             render_partial_metadata(&protocol, "index.html", "/", "", &mut direct_index).unwrap();
@@ -1990,19 +1990,19 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route("/", "home-page")],
+                fragments: vec![webhubFragment::route("/", "home-page")],
             },
         );
         fragments.insert(
             "home-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Home</p>")],
+                fragments: vec![webhubFragment::raw("<p>Home</p>")],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.components.insert(
             "home-page".to_string(),
-            webui_protocol::ComponentData {
+            webhub_protocol::ComponentData {
                 template_json: r#"{"h":"<p>Home</p>"}"#.to_string(),
                 ..Default::default()
             },
@@ -2036,26 +2036,26 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route("/", "home-page")],
+                fragments: vec![webhubFragment::route("/", "home-page")],
             },
         );
         fragments.insert(
             "home-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Home</p>")],
+                fragments: vec![webhubFragment::raw("<p>Home</p>")],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.components.insert(
             "home-page".to_string(),
-            webui_protocol::ComponentData {
+            webhub_protocol::ComponentData {
                 template_json: r#"{"h":"<p>Home</p>"}"#.to_string(),
-                hydration_mode: webui_protocol::StateProjectionMode::Keys as i32,
+                hydration_mode: webhub_protocol::StateProjectionMode::Keys as i32,
                 hydration_keys: hydration_keys
                     .iter()
                     .map(|key| (*key).to_string())
                     .collect(),
-                navigation_mode: webui_protocol::StateProjectionMode::Keys as i32,
+                navigation_mode: webhub_protocol::StateProjectionMode::Keys as i32,
                 navigation_keys: hydration_keys
                     .iter()
                     .map(|key| (*key).to_string())
@@ -2070,7 +2070,7 @@ mod tests {
         let mut prepared = prepared_partial_protocol(&[]);
         let protocol = &mut prepared.protocol;
         if let Some(component) = protocol.components.get_mut("home-page") {
-            component.navigation_mode = webui_protocol::StateProjectionMode::All as i32;
+            component.navigation_mode = webhub_protocol::StateProjectionMode::All as i32;
             component.navigation_keys.clear();
         }
         prepared
@@ -2119,7 +2119,7 @@ mod tests {
 
     #[test]
     fn partial_state_serialization_emits_empty_state_without_client_components() {
-        let prepared = Protocol::new(WebUIProtocol::default());
+        let prepared = Protocol::new(webhubProtocol::default());
         let output = prepared
             .render_partial(r#"{"serverOnly":"drop"}"#, "index.html", "/", "")
             .unwrap();
@@ -2258,17 +2258,17 @@ mod tests {
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-card")],
+                fragments: vec![webhubFragment::component("my-card")],
             },
         );
         fragments.insert(
             "my-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("card")],
+                fragments: vec![webhubFragment::raw("card")],
             },
         );
 
-        let protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let comp_index = build_component_index(&protocol);
         let (needed, _inv) =
             get_needed_components(&protocol, "app-shell", "", &comp_index).unwrap();
@@ -2282,17 +2282,17 @@ mod tests {
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-card")],
+                fragments: vec![webhubFragment::component("my-card")],
             },
         );
         fragments.insert(
             "my-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("card")],
+                fragments: vec![webhubFragment::raw("card")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         protocol
             .components
             .entry("app-shell".to_string())
@@ -2319,47 +2319,47 @@ mod tests {
             "app-shell".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::if_cond(
-                        webui_protocol::ConditionExpr::identifier("showNav"),
+                    webhubFragment::if_cond(
+                        webhub_protocol::ConditionExpr::identifier("showNav"),
                         "if-shell",
                     ),
-                    WebUIFragment::for_loop("item", "items", "for-items"),
-                    WebUIFragment::attribute_template("title", "attr-title"),
+                    webhubFragment::for_loop("item", "items", "for-items"),
+                    webhubFragment::attribute_template("title", "attr-title"),
                 ],
             },
         );
         fragments.insert(
             "if-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-category-nav")],
+                fragments: vec![webhubFragment::component("mp-category-nav")],
             },
         );
         fragments.insert(
             "for-items".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-product-card")],
+                fragments: vec![webhubFragment::component("mp-product-card")],
             },
         );
         fragments.insert(
             "attr-title".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("Products")],
+                fragments: vec![webhubFragment::raw("Products")],
             },
         );
         fragments.insert(
             "mp-category-nav".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<nav></nav>")],
+                fragments: vec![webhubFragment::raw("<nav></nav>")],
             },
         );
         fragments.insert(
             "mp-product-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<article></article>")],
+                fragments: vec![webhubFragment::raw("<article></article>")],
             },
         );
 
-        let protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let comp_index = build_component_index(&protocol);
         let needed: HashSet<String> =
             get_needed_components(&protocol, "app-shell", "", &comp_index)
@@ -2382,22 +2382,22 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-app")],
+                fragments: vec![webhubFragment::component("mp-app")],
             },
         );
         fragments.insert(
             "mp-app".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::component("mp-category-nav"),
-                    WebUIFragment::route_from(WebUiFragmentRoute {
+                    webhubFragment::component("mp-category-nav"),
+                    webhubFragment::route_from(webhubFragmentRoute {
                         path: "/search/:category".into(),
                         fragment_id: "mp-search-page".into(),
                         exact: true,
                         keep_alive: false,
                         ..Default::default()
                     }),
-                    WebUIFragment::route_from(WebUiFragmentRoute {
+                    webhubFragment::route_from(webhubFragmentRoute {
                         path: "/product/:handle".into(),
                         fragment_id: "mp-product-page".into(),
                         exact: true,
@@ -2410,35 +2410,35 @@ mod tests {
         fragments.insert(
             "mp-category-nav".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<nav></nav>")],
+                fragments: vec![webhubFragment::raw("<nav></nav>")],
             },
         );
         fragments.insert(
             "mp-search-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-product-grid")],
+                fragments: vec![webhubFragment::component("mp-product-grid")],
             },
         );
         fragments.insert(
             "mp-product-grid".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>grid</div>")],
+                fragments: vec![webhubFragment::raw("<div>grid</div>")],
             },
         );
         fragments.insert(
             "mp-product-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-product-detail")],
+                fragments: vec![webhubFragment::component("mp-product-detail")],
             },
         );
         fragments.insert(
             "mp-product-detail".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>detail</div>")],
+                fragments: vec![webhubFragment::raw("<div>detail</div>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         protocol
             .components
             .entry("mp-search-page".to_string())
@@ -2475,13 +2475,13 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-app")],
+                fragments: vec![webhubFragment::component("mp-app")],
             },
         );
         fragments.insert(
             "mp-app".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/account/*rest".into(),
                     fragment_id: "mp-account-shell".into(),
                     exact: false,
@@ -2494,15 +2494,15 @@ mod tests {
             "mp-account-shell".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::component("mp-account-nav"),
-                    WebUIFragment::route_from(WebUiFragmentRoute {
+                    webhubFragment::component("mp-account-nav"),
+                    webhubFragment::route_from(webhubFragmentRoute {
                         path: "/account/profile".into(),
                         fragment_id: "mp-profile-page".into(),
                         exact: true,
                         keep_alive: false,
                         ..Default::default()
                     }),
-                    WebUIFragment::route_from(WebUiFragmentRoute {
+                    webhubFragment::route_from(webhubFragmentRoute {
                         path: "/account/orders/:id".into(),
                         fragment_id: "mp-order-page".into(),
                         exact: true,
@@ -2515,29 +2515,29 @@ mod tests {
         fragments.insert(
             "mp-account-nav".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<nav></nav>")],
+                fragments: vec![webhubFragment::raw("<nav></nav>")],
             },
         );
         fragments.insert(
             "mp-profile-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<profile></profile>")],
+                fragments: vec![webhubFragment::raw("<profile></profile>")],
             },
         );
         fragments.insert(
             "mp-order-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-order-detail")],
+                fragments: vec![webhubFragment::component("mp-order-detail")],
             },
         );
         fragments.insert(
             "mp-order-detail".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<detail></detail>")],
+                fragments: vec![webhubFragment::raw("<detail></detail>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         protocol
             .components
             .entry("mp-account-shell".to_string())
@@ -2579,13 +2579,13 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-app")],
+                fragments: vec![webhubFragment::component("mp-app")],
             },
         );
         fragments.insert(
             "mp-app".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/search".into(),
                     fragment_id: "mp-search-page".into(),
                     exact: true,
@@ -2598,40 +2598,40 @@ mod tests {
             "mp-search-page".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::if_cond(
-                        webui_protocol::ConditionExpr::identifier("showFilters"),
+                    webhubFragment::if_cond(
+                        webhub_protocol::ConditionExpr::identifier("showFilters"),
                         "if-filters",
                     ),
-                    WebUIFragment::for_loop("item", "items", "item-loop"),
+                    webhubFragment::for_loop("item", "items", "item-loop"),
                 ],
             },
         );
         fragments.insert(
             "if-filters".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-filter-panel")],
+                fragments: vec![webhubFragment::component("mp-filter-panel")],
             },
         );
         fragments.insert(
             "item-loop".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-item-card")],
+                fragments: vec![webhubFragment::component("mp-item-card")],
             },
         );
         fragments.insert(
             "mp-filter-panel".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<filters></filters>")],
+                fragments: vec![webhubFragment::raw("<filters></filters>")],
             },
         );
         fragments.insert(
             "mp-item-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<item></item>")],
+                fragments: vec![webhubFragment::raw("<item></item>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         protocol
             .components
             .entry("mp-search-page".to_string())
@@ -2661,13 +2661,13 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-app")],
+                fragments: vec![webhubFragment::component("mp-app")],
             },
         );
         fragments.insert(
             "mp-app".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/search".into(),
                     fragment_id: "mp-search-page".into(),
                     exact: true,
@@ -2679,17 +2679,17 @@ mod tests {
         fragments.insert(
             "mp-search-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("mp-product-grid")],
+                fragments: vec![webhubFragment::component("mp-product-grid")],
             },
         );
         fragments.insert(
             "mp-product-grid".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<grid></grid>")],
+                fragments: vec![webhubFragment::raw("<grid></grid>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         for name in ["mp-app", "mp-search-page", "mp-product-grid"] {
             protocol
                 .components
@@ -2730,18 +2730,18 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/".into(),
                     fragment_id: "route-shell".into(),
                     children: vec![
-                        WebUiFragmentRoute {
+                        webhubFragmentRoute {
                             path: "slow".into(),
                             fragment_id: "page-slow".into(),
                             exact: true,
                             pending_component: "loading-skeleton".into(),
                             ..Default::default()
                         },
-                        WebUiFragmentRoute {
+                        webhubFragmentRoute {
                             path: "failing".into(),
                             fragment_id: "page-failing".into(),
                             exact: true,
@@ -2763,12 +2763,12 @@ mod tests {
             fragments.insert(
                 id.to_string(),
                 FragmentList {
-                    fragments: vec![WebUIFragment::raw("<x></x>")],
+                    fragments: vec![webhubFragment::raw("<x></x>")],
                 },
             );
         }
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         for id in [
             "route-shell",
             "page-slow",
@@ -2806,17 +2806,17 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-page")],
+                fragments: vec![webhubFragment::component("my-page")],
             },
         );
         fragments.insert(
             "my-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>page</p>")],
+                fragments: vec![webhubFragment::raw("<p>page</p>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let component = protocol
             .components
             .entry("my-page".to_string())
@@ -2859,17 +2859,17 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-page")],
+                fragments: vec![webhubFragment::component("my-page")],
             },
         );
         fragments.insert(
             "my-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>page</p>")],
+                fragments: vec![webhubFragment::raw("<p>page</p>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let component = protocol
             .components
             .entry("my-page".to_string())
@@ -2904,17 +2904,17 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-page")],
+                fragments: vec![webhubFragment::component("my-page")],
             },
         );
         fragments.insert(
             "my-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>page</p>")],
+                fragments: vec![webhubFragment::raw("<p>page</p>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let component = protocol
             .components
             .entry("my-page".to_string())
@@ -2954,17 +2954,17 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-page")],
+                fragments: vec![webhubFragment::component("my-page")],
             },
         );
         fragments.insert(
             "my-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>page</p>")],
+                fragments: vec![webhubFragment::raw("<p>page</p>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let component = protocol
             .components
             .entry("my-page".to_string())
@@ -2990,17 +2990,17 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-page")],
+                fragments: vec![webhubFragment::component("my-page")],
             },
         );
         fragments.insert(
             "my-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>page</p>")],
+                fragments: vec![webhubFragment::raw("<p>page</p>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let component = protocol
             .components
             .entry("my-page".to_string())
@@ -3050,7 +3050,7 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("app-shell")],
+                fragments: vec![webhubFragment::component("app-shell")],
             },
         );
 
@@ -3059,15 +3059,15 @@ mod tests {
             "app-shell".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::component("my-navbar"),
-                    WebUIFragment::route_from(WebUiFragmentRoute {
+                    webhubFragment::component("my-navbar"),
+                    webhubFragment::route_from(webhubFragmentRoute {
                         path: "/about".into(),
                         fragment_id: "page-about".into(),
                         exact: true,
                         keep_alive: false,
                         ..Default::default()
                     }),
-                    WebUIFragment::component("cart-panel"),
+                    webhubFragment::component("cart-panel"),
                 ],
             },
         );
@@ -3076,23 +3076,23 @@ mod tests {
         fragments.insert(
             "my-navbar".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<nav/>")],
+                fragments: vec![webhubFragment::raw("<nav/>")],
             },
         );
         fragments.insert(
             "page-about".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<h1>About</h1>")],
+                fragments: vec![webhubFragment::raw("<h1>About</h1>")],
             },
         );
         fragments.insert(
             "cart-panel".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<aside>Cart</aside>")],
+                fragments: vec![webhubFragment::raw("<aside>Cart</aside>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         for name in ["app-shell", "my-navbar", "page-about", "cart-panel"] {
             let comp = protocol.components.entry(name.to_string()).or_default();
             comp.template_json = format!(r#"{{"h":"<div class=\"{name}\"></div>"}}"#);
@@ -3174,11 +3174,11 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/".into(),
                     fragment_id: "app-shell".into(),
                     exact: false,
-                    children: vec![WebUiFragmentRoute {
+                    children: vec![webhubFragmentRoute {
                         path: "compose".into(),
                         fragment_id: "compose-page".into(),
                         exact: true,
@@ -3194,16 +3194,16 @@ mod tests {
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<h1>App</h1>"), WebUIFragment::outlet()],
+                fragments: vec![webhubFragment::raw("<h1>App</h1>"), webhubFragment::outlet()],
             },
         );
         fragments.insert(
             "compose-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Compose</p>")],
+                fragments: vec![webhubFragment::raw("<p>Compose</p>")],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol
             .components
             .entry("app-shell".into())
@@ -3234,7 +3234,7 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/items".into(),
                     fragment_id: "items-page".into(),
                     exact: true,
@@ -3245,15 +3245,15 @@ mod tests {
         fragments.insert(
             "items-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Items</p>")],
+                fragments: vec![webhubFragment::raw("<p>Items</p>")],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.components.insert(
             "items-page".to_string(),
-            webui_protocol::ComponentData {
+            webhub_protocol::ComponentData {
                 template_json: r#"{"h":"<p>Items</p>","th":1}"#.into(),
-                navigation_mode: webui_protocol::StateProjectionMode::Keys as i32,
+                navigation_mode: webhub_protocol::StateProjectionMode::Keys as i32,
                 navigation_keys: vec!["items".into(), "title".into()],
                 ..Default::default()
             },
@@ -3287,20 +3287,20 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("authored-card")],
+                fragments: vec![webhubFragment::component("authored-card")],
             },
         );
         fragments.insert(
             "authored-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Card</p>")],
+                fragments: vec![webhubFragment::raw("<p>Card</p>")],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.components.insert(
             "authored-card".to_string(),
-            webui_protocol::ComponentData {
-                hydration_mode: webui_protocol::StateProjectionMode::Keys as i32,
+            webhub_protocol::ComponentData {
+                hydration_mode: webhub_protocol::StateProjectionMode::Keys as i32,
                 hydration_keys: vec!["title".into()],
                 ..Default::default()
             },
@@ -3327,19 +3327,19 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("static-card")],
+                fragments: vec![webhubFragment::component("static-card")],
             },
         );
         fragments.insert(
             "static-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Static</p>")],
+                fragments: vec![webhubFragment::raw("<p>Static</p>")],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.components.insert(
             "static-card".to_string(),
-            webui_protocol::ComponentData {
+            webhub_protocol::ComponentData {
                 template_json: r#"{"h":"<p>Static</p>","th":1}"#.into(),
                 ..Default::default()
             },
@@ -3363,10 +3363,10 @@ mod tests {
         fragments.insert(
             "settings-dialog".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div class='dialog'>Settings</div>")],
+                fragments: vec![webhubFragment::raw("<div class='dialog'>Settings</div>")],
             },
         );
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let comp = protocol
             .components
             .entry("settings-dialog".to_string())
@@ -3409,10 +3409,10 @@ mod tests {
         fragments.insert(
             "my-dialog".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>Dialog</div>")],
+                fragments: vec![webhubFragment::raw("<div>Dialog</div>")],
             },
         );
-        let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
         let comp = protocol
             .components
             .entry("my-dialog".to_string())
@@ -3437,7 +3437,7 @@ mod tests {
     #[test]
     fn test_render_component_templates_unknown_component_returns_empty() {
         let fragments = HashMap::new();
-        let protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+        let protocol = webhubProtocol::with_tokens(fragments, Vec::new());
 
         let mut index = ProtocolIndex::new(&protocol);
         let result =
@@ -3452,19 +3452,19 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/".into(),
                     fragment_id: "app-shell".into(),
                     exact: false,
                     children: vec![
-                        WebUiFragmentRoute {
+                        webhubFragmentRoute {
                             path: "inbox".into(),
                             fragment_id: "inbox-page".into(),
                             exact: true,
                             pending_component: "inbox-loading".into(),
                             ..Default::default()
                         },
-                        WebUiFragmentRoute {
+                        webhubFragmentRoute {
                             path: "settings".into(),
                             fragment_id: "settings-page".into(),
                             exact: true,
@@ -3489,12 +3489,12 @@ mod tests {
             fragments.insert(
                 name.to_string(),
                 FragmentList {
-                    fragments: vec![WebUIFragment::raw(format!("<p>{name}</p>"))],
+                    fragments: vec![webhubFragment::raw(format!("<p>{name}</p>"))],
                 },
             );
         }
 
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         for name in [
             "app-shell",
             "inbox-page",
@@ -3623,11 +3623,11 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/".into(),
                     fragment_id: "app-shell".into(),
                     exact: false,
-                    children: vec![WebUiFragmentRoute {
+                    children: vec![webhubFragmentRoute {
                         path: "email/:threadId".into(),
                         fragment_id: "mail-thread".into(),
                         exact: true,
@@ -3642,16 +3642,16 @@ mod tests {
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<h1>App</h1>"), WebUIFragment::outlet()],
+                fragments: vec![webhubFragment::raw("<h1>App</h1>"), webhubFragment::outlet()],
             },
         );
         fragments.insert(
             "mail-thread".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Thread</p>")],
+                fragments: vec![webhubFragment::raw("<p>Thread</p>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
 
         let mut index = ProtocolIndex::new(&protocol);
         let partial =
@@ -3677,11 +3677,11 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/".into(),
                     fragment_id: "app-shell".into(),
                     exact: false,
-                    children: vec![WebUiFragmentRoute {
+                    children: vec![webhubFragmentRoute {
                         path: "compose".into(),
                         fragment_id: "compose-page".into(),
                         exact: true,
@@ -3699,16 +3699,16 @@ mod tests {
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<h1>App</h1>"), WebUIFragment::outlet()],
+                fragments: vec![webhubFragment::raw("<h1>App</h1>"), webhubFragment::outlet()],
             },
         );
         fragments.insert(
             "compose-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Compose</p>")],
+                fragments: vec![webhubFragment::raw("<p>Compose</p>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
 
         let mut index = ProtocolIndex::new(&protocol);
         let result = render_action_response(
@@ -3731,11 +3731,11 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/".into(),
                     fragment_id: "app-shell".into(),
                     exact: false,
-                    children: vec![WebUiFragmentRoute {
+                    children: vec![webhubFragmentRoute {
                         path: "email/:threadId/reply".into(),
                         fragment_id: "reply-page".into(),
                         exact: true,
@@ -3749,16 +3749,16 @@ mod tests {
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<h1>App</h1>"), WebUIFragment::outlet()],
+                fragments: vec![webhubFragment::raw("<h1>App</h1>"), webhubFragment::outlet()],
             },
         );
         fragments.insert(
             "reply-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Reply</p>")],
+                fragments: vec![webhubFragment::raw("<p>Reply</p>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
 
         let mut index = ProtocolIndex::new(&protocol);
         let result = render_action_response(

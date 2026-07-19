@@ -3,19 +3,19 @@
 
 using System;
 
-namespace Microsoft.WebUI;
+namespace Microsoft.webhub;
 
 /// <summary>
-/// Represents an error returned by the native WebUI library.
+/// Represents an error returned by the native webhub library.
 /// </summary>
-public class WebUIException : Exception
+public class webhubException : Exception
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="WebUIException"/> class
+    /// Initializes a new instance of the <see cref="webhubException"/> class
     /// with the specified error message.
     /// </summary>
     /// <param name="message">The error message from the native library.</param>
-    public WebUIException(string message) : base(message)
+    public webhubException(string message) : base(message)
     {
     }
 }

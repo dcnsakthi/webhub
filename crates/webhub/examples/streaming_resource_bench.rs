@@ -4,7 +4,7 @@
 //! Memory + CPU benchmark for the streaming render paths.
 //!
 //! Measures **per-render resource usage** — not just wall-clock time —
-//! across the five writer paths exercised by `crates/webui/benches/
+//! across the five writer paths exercised by `crates/webhub/benches/
 //! streaming_bench.rs`:
 //!
 //! 1. `string`                            — pre-allocated `String` buffer.
@@ -33,7 +33,7 @@
 //! Usage:
 //!
 //! ```sh
-//! cargo run --release --example streaming_resource_bench -p microsoft-webui
+//! cargo run --release --example streaming_resource_bench -p microsoft-webhub
 //! ```
 
 #![allow(missing_docs)]
@@ -53,9 +53,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
-use webui::streaming::{ChunkPool, StreamingWriter};
-use webui::{build, BuildOptions, CssStrategy, Protocol, ResponseWriter, WebUIHandler};
-use webui_handler::RenderOptions;
+use webhub::streaming::{ChunkPool, StreamingWriter};
+use webhub::{build, BuildOptions, CssStrategy, Protocol, ResponseWriter, webhubHandler};
+use webhub_handler::RenderOptions;
 
 // ── Counting allocator ────────────────────────────────────────────────
 
@@ -347,7 +347,7 @@ fn build_protocol() -> Protocol {
 }
 
 const HEAD_INJECT: &str = r#"<link rel="preload" as="image" href="/img/hero.jpg" fetchpriority="high"><link rel="preload" as="image" href="/img/p1.jpg"><link rel="preload" as="image" href="/img/p2.jpg">"#;
-const BODY_INJECT: &str = r#"<script>(function(){var e=new EventSource('/__webui/livereload');e.addEventListener('reload',function(){location.reload()})})();</script>"#;
+const BODY_INJECT: &str = r#"<script>(function(){var e=new EventSource('/__webhub/livereload');e.addEventListener('reload',function(){location.reload()})})();</script>"#;
 
 // ── Writers ────────────────────────────────────────────────────────────
 
@@ -362,11 +362,11 @@ impl StringWriter {
     }
 }
 impl ResponseWriter for StringWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.buf.push_str(content);
         Ok(())
     }
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -401,7 +401,7 @@ fn post_inject(html: &str, script: &str) -> String {
 // ── Per-path drivers ──────────────────────────────────────────────────
 
 fn run_string(protocol: &Protocol, state: &Value, output_size: usize) -> usize {
-    let h = WebUIHandler::new();
+    let h = webhubHandler::new();
     let mut w = StringWriter::with_capacity(output_size);
     h.render(
         protocol,
@@ -414,7 +414,7 @@ fn run_string(protocol: &Protocol, state: &Value, output_size: usize) -> usize {
 }
 
 fn run_streaming(protocol: &Protocol, state: &Value, output_size: usize) -> usize {
-    let h = WebUIHandler::new();
+    let h = webhubHandler::new();
     let cap = (output_size / StreamingWriter::CHUNK_TARGET) + 4;
     let (tx, rx) = mpsc::channel::<Bytes>(cap);
     let mut w = StreamingWriter::new(tx);
@@ -439,7 +439,7 @@ fn run_streaming(protocol: &Protocol, state: &Value, output_size: usize) -> usiz
 /// byte-scanner approach had to scan every output byte looking for
 /// never-present markers, costing ~14 µs of pure overhead.
 fn run_streaming_with_inject(protocol: &Protocol, state: &Value, output_size: usize) -> usize {
-    let h = WebUIHandler::new();
+    let h = webhubHandler::new();
     let cap = (output_size / StreamingWriter::CHUNK_TARGET) + 4;
     let (tx, rx) = mpsc::channel::<Bytes>(cap);
     let mut w = StreamingWriter::new(tx);
@@ -461,7 +461,7 @@ fn run_streaming_pooled_with_inject(
     output_size: usize,
     pool: &Arc<ChunkPool>,
 ) -> usize {
-    let h = WebUIHandler::new();
+    let h = webhubHandler::new();
     let cap = (output_size / StreamingWriter::CHUNK_TARGET) + 4;
     let (tx, rx) = mpsc::channel::<Bytes>(cap);
     let mut w = StreamingWriter::new_pooled(tx, Arc::clone(pool));
@@ -476,7 +476,7 @@ fn run_streaming_pooled_with_inject(
 }
 
 fn run_string_postinject(protocol: &Protocol, state: &Value, output_size: usize) -> usize {
-    let h = WebUIHandler::new();
+    let h = webhubHandler::new();
     let mut w = StringWriter::with_capacity(output_size);
     h.render(
         protocol,
@@ -582,7 +582,7 @@ fn format_total_rss(bytes: i64) -> String {
 }
 
 fn warmup_output_size(protocol: &Protocol, state: &Value) -> usize {
-    let h = WebUIHandler::new();
+    let h = webhubHandler::new();
     let mut w = StringWriter::with_capacity(128 * 1024);
     h.render(
         protocol,
@@ -813,7 +813,7 @@ fn main() {
     let scales = [10usize, 100, 1000];
     let iters_per_scale = 2_000;
 
-    println!("WebUI streaming resource benchmark");
+    println!("webhub streaming resource benchmark");
     println!("==================================");
     println!(
         "Build: {} | iterations per row: {}",

@@ -1,39 +1,39 @@
-# WebUI Rust Handler
+# webhub Rust Handler
 
-The `webui` crate provides high-performance build and rendering of WebUI protocols in Rust. It streams rendered HTML fragments via the `ResponseWriter` trait for progressive rendering with zero unnecessary allocations.
+The `webhub` crate provides high-performance build and rendering of webhub protocols in Rust. It streams rendered HTML fragments via the `ResponseWriter` trait for progressive rendering with zero unnecessary allocations.
 
 ## Installation
 
 ```toml
 [dependencies]
-microsoft-webui = "*" # see https://crates.io/crates/microsoft-webui for latest version
+microsoft-webhub = "*" # see https://crates.io/crates/microsoft-webhub for latest version
 serde_json = "1"
 ```
 
-The crate is published as `microsoft-webui` on crates.io; the bare `webui` name is owned by an unrelated project. Cargo's default rename rules mean items remain importable as `use webui::...` because the crate sets `[lib] name = "webui"` internally.
+The crate is published as `microsoft-webhub` on crates.io; the bare `webhub` name is owned by an unrelated project. Cargo's default rename rules mean items remain importable as `use webhub::...` because the crate sets `[lib] name = "webhub"` internally.
 
 ## Examples
 
-<webui-press-tabs>
-<webui-press-tab slot="tab" active>Actix Web</webui-press-tab>
-<webui-press-tab slot="tab">Axum</webui-press-tab>
-<webui-press-tab slot="tab">Hyper</webui-press-tab>
-<webui-press-tab-panel active>
+<webhub-press-tabs>
+<webhub-press-tab slot="tab" active>Actix Web</webhub-press-tab>
+<webhub-press-tab slot="tab">Axum</webhub-press-tab>
+<webhub-press-tab slot="tab">Hyper</webhub-press-tab>
+<webhub-press-tab-panel active>
 
 ```rust
 use actix_web::{web, App, HttpServer, HttpRequest, HttpResponse};
-use webui::{Protocol, WebUIHandler, RenderOptions, ResponseWriter};
+use webhub::{Protocol, webhubHandler, RenderOptions, ResponseWriter};
 use serde_json::json;
 use std::fs;
 
 struct StringWriter(String);
 
 impl ResponseWriter for StringWriter {
-    fn write(&mut self, content: &str) -> webui::HandlerResult<()> {
+    fn write(&mut self, content: &str) -> webhub::HandlerResult<()> {
         self.0.push_str(content);
         Ok(())
     }
-    fn end(&mut self) -> webui::HandlerResult<()> { Ok(()) }
+    fn end(&mut self) -> webhub::HandlerResult<()> { Ok(()) }
 }
 
 #[actix_web::main]
@@ -48,7 +48,7 @@ async fn main() -> std::io::Result<()> {
             .route("/{path:.*}", web::get().to(|proto: web::Data<Protocol>, req: HttpRequest| async move {
                 let state = json!({ "title": "Home" });
                 let mut writer = StringWriter(String::new());
-                let handler = WebUIHandler::new();
+                let handler = webhubHandler::new();
                 let options = RenderOptions::new("index.html", req.path());
                 handler.render(proto.get_ref(), &state, &options, &mut writer).unwrap();
                 HttpResponse::Ok().content_type("text/html").body(writer.0)
@@ -60,23 +60,23 @@ async fn main() -> std::io::Result<()> {
 }
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```rust
 use axum::{routing::get, Router, extract::{State, Request}};
-use webui::{Protocol, WebUIHandler, RenderOptions, ResponseWriter};
+use webhub::{Protocol, webhubHandler, RenderOptions, ResponseWriter};
 use serde_json::json;
 use std::{fs, sync::Arc};
 
 struct StringWriter(String);
 
 impl ResponseWriter for StringWriter {
-    fn write(&mut self, content: &str) -> webui::HandlerResult<()> {
+    fn write(&mut self, content: &str) -> webhub::HandlerResult<()> {
         self.0.push_str(content);
         Ok(())
     }
-    fn end(&mut self) -> webui::HandlerResult<()> { Ok(()) }
+    fn end(&mut self) -> webhub::HandlerResult<()> { Ok(()) }
 }
 
 #[tokio::main]
@@ -88,7 +88,7 @@ async fn main() {
         .route("/{*path}", get(|State(proto): State<Arc<Protocol>>, req: Request| async move {
             let state = json!({ "title": "Home" });
             let mut writer = StringWriter(String::new());
-            let handler = WebUIHandler::new();
+            let handler = webhubHandler::new();
             let options = RenderOptions::new("index.html", req.uri().path());
             handler.render(proto.as_ref(), &state, &options, &mut writer).unwrap();
             axum::response::Html(writer.0)
@@ -100,25 +100,25 @@ async fn main() {
 }
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```rust
 use hyper::{server::conn::http1, service::service_fn, body::Bytes, Request, Response};
 use hyper_util::rt::TokioIo;
 use http_body_util::Full;
-use webui::{Protocol, WebUIHandler, RenderOptions, ResponseWriter};
+use webhub::{Protocol, webhubHandler, RenderOptions, ResponseWriter};
 use serde_json::json;
 use std::{fs, sync::Arc};
 
 struct StringWriter(String);
 
 impl ResponseWriter for StringWriter {
-    fn write(&mut self, content: &str) -> webui::HandlerResult<()> {
+    fn write(&mut self, content: &str) -> webhub::HandlerResult<()> {
         self.0.push_str(content);
         Ok(())
     }
-    fn end(&mut self) -> webui::HandlerResult<()> { Ok(()) }
+    fn end(&mut self) -> webhub::HandlerResult<()> { Ok(()) }
 }
 
 #[tokio::main]
@@ -137,7 +137,7 @@ async fn main() {
                     async move {
                         let state = json!({ "title": "Home" });
                         let mut writer = StringWriter(String::new());
-                        let handler = WebUIHandler::new();
+                        let handler = webhubHandler::new();
                         let options = RenderOptions::new("index.html", req.uri().path());
                         handler.render(proto.as_ref(), &state, &options, &mut writer).unwrap();
                         Ok::<_, hyper::Error>(Response::new(Full::new(Bytes::from(writer.0))))
@@ -150,12 +150,12 @@ async fn main() {
 }
 ```
 
-</webui-press-tab-panel>
-</webui-press-tabs>
+</webhub-press-tab-panel>
+</webhub-press-tabs>
 
 ## Streaming SSR
 
-For production, prefer the framework-provided `webui::streaming::StreamingWriter` over a hand-rolled `String` buffer. It coalesces small writes into ~4 KB chunks, ships them over a **bounded** `tokio::mpsc` channel (backpressure on slow clients), and recycles chunk buffers through a shared `ChunkPool` so steady-state RPS does zero per-flush allocation.
+For production, prefer the framework-provided `webhub::streaming::StreamingWriter` over a hand-rolled `String` buffer. It coalesces small writes into ~4 KB chunks, ships them over a **bounded** `tokio::mpsc` channel (backpressure on slow clients), and recycles chunk buffers through a shared `ChunkPool` so steady-state RPS does zero per-flush allocation.
 
 ```rust
 use std::sync::Arc;
@@ -163,8 +163,8 @@ use std::time::Duration;
 use bytes::Bytes;
 use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
-use webui::streaming::{ChunkPool, StreamingWriter};
-use webui::{WebUIHandler, RenderOptions, ResponseWriter};
+use webhub::streaming::{ChunkPool, StreamingWriter};
+use webhub::{webhubHandler, RenderOptions, ResponseWriter};
 
 // One shared pool per server (constructed at startup, lives forever).
 let chunk_pool = Arc::new(ChunkPool::new(
@@ -202,7 +202,7 @@ HttpResponse::Ok()
 
 `with_head_inject` / `with_body_inject` splice host-provided HTML at the parser-synthesized `head_end` / `body_end` structural boundaries — zero scan cost, and cannot mis-fire on `</head>` / `</body>` literals appearing inside HTML comments, `<iframe srcdoc>`, or inline `<script>`. Typical uses: per-request `<link rel="preload">` hints, dev livereload script, OpenTelemetry trace IDs.
 
-> **Safety:** the HTML is written verbatim, no escaping. Untrusted input is a direct XSS vector. Pre-escape with `webui_handler::encode_safe` (re-exported for this purpose) if your content path may include user data.
+> **Safety:** the HTML is written verbatim, no escaping. Untrusted input is a direct XSS vector. Pre-escape with `webhub_handler::encode_safe` (re-exported for this purpose) if your content path may include user data.
 
 ### Typed streaming errors
 
@@ -228,7 +228,7 @@ HttpResponse::Ok()
 | `css` | `CssStrategy` | `Link` | CSS delivery: `Link`, `Style`, or `Module` |
 | `plugin` | `Option<String>` | `None` | Parser plugin name (see [Plugins](/guide/concepts/plugins/) for the available identifiers) |
 | `components` | `Vec<String>` | `[]` | External component sources |
-| `component_asset_roots` | `Vec<String>` | `[]` | Root component tags emitted as static `.webui.js` ESM assets |
+| `component_asset_roots` | `Vec<String>` | `[]` | Root component tags emitted as static `.webhub.js` ESM assets |
 | `projection_manifests` | `Vec<ProjectionManifestSource>` | `[]` | Disk, inline, or prepared projection fragments; empty preserves full state |
 | `css_file_name_template` | `String` | `"[name].[ext]"` | Emitted asset filename template for Link-mode CSS and component assets. Tokens: `[name]`, `[hash]`, `[ext]` |
 | `css_public_base` | `Option<String>` | `None` | Public URL/path prefix for Link-mode CSS hrefs |
@@ -239,7 +239,7 @@ modules. `build_to_disk()` validates `protocol.bin`, CSS files, and component
 assets as one output set before writing, so filename collisions fail without
 leaving partial output.
 
-Load themes with `webui::resolve_theme_path()` and `webui::load_token_file()`.
+Load themes with `webhub::resolve_theme_path()` and `webhub::load_token_file()`.
 When `theme` is set, missing required CSS tokens fail as parser diagnostics
 before the protocol is returned. Tokens used only with a literal `var()`
 fallback (e.g. `var(--brand, #000)`) are exempt; if such a token is also absent

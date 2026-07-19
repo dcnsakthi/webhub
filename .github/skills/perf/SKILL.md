@@ -1,11 +1,11 @@
 ---
 name: perf
-description: Speed and memory performance rules for Rust crates, webui-framework, and webui-router.
+description: Speed and memory performance rules for Rust crates, webhub-framework, and webhub-router.
 ---
 
 # Performance
 
-WebUI's value proposition is speed and low memory usage. Every change to core Rust crates, `@microsoft/webui-framework`, or `@microsoft/webui-router` must be evaluated through two lenses: **throughput** (how fast) and **memory** (how little).
+webhub's value proposition is speed and low memory usage. Every change to core Rust crates, `@microsoft/webhub-framework`, or `@microsoft/webhub-router` must be evaluated through two lenses: **throughput** (how fast) and **memory** (how little).
 
 Server memory is not cheap. Client memory is not unlimited. Every allocation that can be avoided is a win on both sides.
 
@@ -13,7 +13,7 @@ Use this skill when modifying any performance-sensitive code across the stack.
 
 ## Rust - speed rules
 
-These apply to `webui-handler`, `webui-state`, `webui-expressions`, `webui-parser`, `webui-protocol`, and `webui-ffi`.
+These apply to `webhub-handler`, `webhub-state`, `webhub-expressions`, `webhub-parser`, `webhub-protocol`, and `webhub-ffi`.
 
 1. **No `format!()` in writer output.** Use sequential `writer.write()` calls. `format!` allocates a temporary `String` every invocation.
 2. **No `.to_string()` on `Cow`.** Write `Cow<str>` directly to avoid defeating zero-copy.
@@ -36,9 +36,9 @@ These apply to `webui-handler`, `webui-state`, `webui-expressions`, `webui-parse
 7. **No deep-cloning protocol or state per request.** Use `Arc<T>` with clone-on-write or snapshot swapping.
 8. **Cap memory for untrusted inputs.** File reads during discovery must have size limits. A 100MB HTML file should not cause OOM.
 
-## TypeScript - `@microsoft/webui-framework` rules
+## TypeScript - `@microsoft/webhub-framework` rules
 
-These apply to `packages/webui-framework` (the client-side Web Component runtime).
+These apply to `packages/webhub-framework` (the client-side Web Component runtime).
 
 ### Speed
 
@@ -58,9 +58,9 @@ These apply to `packages/webui-framework` (the client-side Web Component runtime
 4. **Strip SSR markers after hydration.** Comment nodes used as markers are removed from the DOM once wiring is complete - they don't persist as memory overhead.
 5. **Scope frames are stack-allocated.** `<for>` loop item variables use a linked-list scope chain, not cloned Maps or Objects.
 
-## TypeScript - `@microsoft/webui-router` rules
+## TypeScript - `@microsoft/webhub-router` rules
 
-These apply to `packages/webui-router` (the client-side SPA router).
+These apply to `packages/webhub-router` (the client-side SPA router).
 
 ### Speed
 
@@ -93,8 +93,8 @@ These apply to `packages/webui-router` (the client-side SPA router).
 ### Rust benchmarks
 
 ```bash
-cargo bench -p microsoft-webui --bench contact_book_bench          # full run
-cargo bench -p microsoft-webui --bench contact_book_bench -- --test # quick validation
+cargo bench -p microsoft-webhub --bench contact_book_bench          # full run
+cargo bench -p microsoft-webhub --bench contact_book_bench -- --test # quick validation
 cargo xtask bench all                                               # all crates
 ```
 
@@ -103,9 +103,9 @@ Compare **Render/1000 P50** before and after. Verify output **Bytes** is unchang
 ### Client performance
 
 ```typescript
-window.addEventListener('webui:hydration-complete', () => {
+window.addEventListener('webhub:hydration-complete', () => {
   for (const entry of performance.getEntriesByType('measure')) {
-    if (entry.name.startsWith('webui:hydrate:')) {
+    if (entry.name.startsWith('webhub:hydrate:')) {
       console.log(`${entry.name}: ${entry.duration.toFixed(1)}ms`);
     }
   }

@@ -1,21 +1,21 @@
 # Language Integrations
 
-WebUI runs anywhere you can render text. The protocol is compiled once with `webui build` and rendered by a language-specific **handler**, the bridge between the WebUI protocol and the final HTML output.
+webhub runs anywhere you can render text. The protocol is compiled once with `webhub build` and rendered by a language-specific **handler**, the bridge between the webhub protocol and the final HTML output.
 
 Pick the handler that matches your stack:
 
 - [**Rust**](./rust), High-performance native rendering with the Rust programming language
 - [**Node**](./node), Buffered and streaming SSR via a native addon built with napi-rs for Node, Bun, and Deno
-- [**.NET**](/guide/installation#net), Managed `Microsoft.WebUI` NuGet bindings with transitive native runtime packages
-- [**Electron**](./electron), Desktop apps via Electron with custom `webui://` protocol
+- [**.NET**](/guide/installation#net), Managed `Microsoft.webhub` NuGet bindings with transitive native runtime packages
+- [**Electron**](./electron), Desktop apps via Electron with custom `webhub://` protocol
 - [**WebAssembly**](./wasm), Split parser, handler, and combined browser bundles
 - [**C / FFI**](./ffi), Shared library for Go, C#, Python, and any language with C interop
 
 ## How Handlers Work
 
-All WebUI handlers follow the same pattern:
+All webhub handlers follow the same pattern:
 
-1. They accept a loaded WebUI `Protocol`, decoded and indexed once at startup
+1. They accept a loaded webhub `Protocol`, decoded and indexed once at startup
 2. They process the protocol with the provided state data
 3. They render the final HTML output by evaluating directives and inserting dynamic content
 
@@ -33,7 +33,7 @@ render(protocol, state, options, writer)
 ```
 
 Where:
-- `protocol` is the WebUI protocol object
+- `protocol` is the webhub protocol object
 - `state` is the data object with values to be rendered
 - `options` specifies the entry fragment and request path for [route matching](/guide/concepts/routing)
 - `writer` is a callback or interface for writing the rendered output

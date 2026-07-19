@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! FAST 3 parser plugin for the WebUI parser.
+//! FAST 3 parser plugin for the webhub parser.
 //!
 //! Tracks component definitions during HTML parsing and returns `<f-template>`
-//! artifacts after parsing. Converts WebUI Framework template syntax (`<if>`, `<for>`, `{{}}`)
+//! artifacts after parsing. Converts webhub Framework template syntax (`<if>`, `<for>`, `{{}}`)
 //! into FAST-compatible syntax (`<f-when>`, `<f-repeat>`, `{}`).
 
 use super::{AttributeAction, ComponentTemplateArtifact, ParserPlugin, ParserPluginArtifacts};
 use crate::component_registry::Component;
 use crate::html_parser::{find_tag_close, opening_tag_name};
 use crate::{CssLinkOptions, CssStrategy, Result};
-use webui_protocol::FastElementData;
+use webhub_protocol::FastElementData;
 
 /// Information about a tracked component for `<f-template>` generation.
 struct TrackedComponent {
@@ -230,7 +230,7 @@ pub fn generate_f_template_with_css_options(
     output
 }
 
-/// Convert WebUI Framework template syntax to FAST syntax in HTML content.
+/// Convert webhub Framework template syntax to FAST syntax in HTML content.
 ///
 /// Performs the following transformations without regex:
 /// - `<if condition="EXPR">` → `<f-when value="{{EXPR}}">`
@@ -278,14 +278,14 @@ fn try_convert_tag(input: &str, pos: usize, result: &mut String) -> Option<usize
         result.push_str("</f-repeat>");
         return Some(6);
     }
-    // <route> in f-templates becomes empty <webui-route> (client router mounts components)
+    // <route> in f-templates becomes empty <webhub-route> (client router mounts components)
     if remaining.starts_with("</route>") {
-        result.push_str("</webui-route>");
+        result.push_str("</webhub-route>");
         return Some(8);
     }
 
     // <outlet /> is kept as a marker element in f-templates.
-    // The client router finds it and replaces it with <webui-route> stubs.
+    // The client router finds it and replaces it with <webhub-route> stubs.
     if starts_with_tag_name(remaining, "outlet") {
         if let Some(close) = find_tag_close(remaining) {
             result.push_str("<outlet></outlet>");
@@ -307,7 +307,7 @@ fn try_convert_tag(input: &str, pos: usize, result: &mut String) -> Option<usize
         }
     }
 
-    // Check for <route ...> → <webui-route ...> in f-templates
+    // Check for <route ...> → <webhub-route ...> in f-templates
     if starts_with_tag_name(remaining, "route") {
         if let Some(consumed) = convert_route_tag(remaining, result) {
             return Some(consumed);
@@ -369,15 +369,15 @@ fn convert_for_tag(tag_str: &str, result: &mut String) -> Option<usize> {
     Some(close + 1)
 }
 
-/// Convert `<route ...>` to `<webui-route ...>` in f-templates.
-/// Self-closing routes become `<webui-route ...></webui-route>` (empty).
+/// Convert `<route ...>` to `<webhub-route ...>` in f-templates.
+/// Self-closing routes become `<webhub-route ...></webhub-route>` (empty).
 /// The component attribute is preserved for the client router.
 fn convert_route_tag(tag_str: &str, result: &mut String) -> Option<usize> {
     let close = find_tag_close(tag_str)?;
     let is_self_closing = tag_str[..=close].ends_with("/>");
     let tag = &tag_str[..=close];
 
-    result.push_str("<webui-route");
+    result.push_str("<webhub-route");
 
     if let Some(v) = extract_attribute_value(tag, "path") {
         result.push_str(" path=\"");
@@ -413,7 +413,7 @@ fn convert_route_tag(tag_str: &str, result: &mut String) -> Option<usize> {
     result.push_str(" style=\"display:none\"");
 
     if is_self_closing {
-        result.push_str("></webui-route>");
+        result.push_str("></webhub-route>");
     } else {
         result.push('>');
     }
@@ -1233,26 +1233,26 @@ mod tests {
     fn route_tags_converted_to_f_route() {
         let input = r#"<route path="/home" name="home" exact><span>Home</span></route>"#;
         let output = convert_btr_to_fast(input);
-        assert!(output.starts_with("<webui-route"));
+        assert!(output.starts_with("<webhub-route"));
         assert!(output.contains(r#"path="/home""#));
         assert!(output.contains(r#"name="home""#));
         assert!(output.contains(" exact"));
         assert!(output.contains("style=\"display:none\""));
         assert!(output.contains("<span>Home</span>"));
-        assert!(output.ends_with("</webui-route>"));
+        assert!(output.ends_with("</webhub-route>"));
     }
 
     #[test]
     fn f_route_tags_pass_through() {
-        // <webui-route> tags emitted by the parser should pass through unchanged
-        let input = r#"<webui-route path="/" name="dashboard" component="cb-page-dashboard" exact style="display:none"></webui-route>"#;
+        // <webhub-route> tags emitted by the parser should pass through unchanged
+        let input = r#"<webhub-route path="/" name="dashboard" component="cb-page-dashboard" exact style="display:none"></webhub-route>"#;
         let output = convert_btr_to_fast(input);
         assert_eq!(output, input);
     }
 
     // --- End-to-end f-template regression tests ---
     // Verify that generated f-template blocks always use FAST syntax
-    // (<f-when>/<f-repeat>) instead of webui syntax (<if>/<for>).
+    // (<f-when>/<f-repeat>) instead of webhub syntax (<if>/<for>).
 
     #[test]
     fn ftemplate_for_loop_converted_to_f_repeat() {

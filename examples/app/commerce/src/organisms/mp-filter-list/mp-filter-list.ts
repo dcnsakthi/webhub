@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement } from '@microsoft/webui-framework';
+import { webhubElement } from '@microsoft/webhub-framework';
 
-export class MpFilterList extends WebUIElement {
+export class MpFilterList extends webhubElement {
   mobileDropdown!: HTMLDetailsElement;
 
   closeMobileDropdown(): void {

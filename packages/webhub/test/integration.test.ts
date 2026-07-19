@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 /**
- * Integration test for the @microsoft/webui npm package.
+ * Integration test for the @microsoft/webhub npm package.
  * Uses the built-in Node.js test runner.
  */
 
@@ -12,8 +12,8 @@ import {
   build,
   inspect,
   Protocol,
-} from '@microsoft/webui';
-import type { ComponentTemplatesResponse } from '@microsoft/webui';
+} from '@microsoft/webhub';
+import type { ComponentTemplatesResponse } from '@microsoft/webhub';
 import { existsSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -22,16 +22,16 @@ let appDir: string;
 
 before(() => {
   const addonName = process.platform === 'win32'
-    ? 'webui_node.dll'
+    ? 'webhub_node.dll'
     : process.platform === 'darwin'
-      ? 'libwebui_node.dylib'
-      : 'libwebui_node.so';
+      ? 'libwebhub_node.dylib'
+      : 'libwebhub_node.so';
   const workspaceAddon = join(process.cwd(), '..', '..', 'target', 'debug', addonName);
   if (existsSync(workspaceAddon)) {
-    process.env.WEBUI_ADDON_PATH = workspaceAddon;
+    process.env.webhub_ADDON_PATH = workspaceAddon;
   }
 
-  appDir = mkdtempSync(join(tmpdir(), 'webui-test-'));
+  appDir = mkdtempSync(join(tmpdir(), 'webhub-test-'));
 
   writeFileSync(join(appDir, 'index.html'), `
 <!DOCTYPE html>
@@ -84,12 +84,12 @@ describe('build', () => {
     const result = build({
       appDir,
       entry: 'index3.html',
-      plugin: 'webui',
+      plugin: 'webhub',
       componentAssetRoots: ['lazy-panel'],
     });
     assert.equal(result.componentAssetFiles.length, 2); // [filename, content]
-    assert.equal(result.componentAssetFiles[0], 'lazy-panel.webui.js');
-    assert.match(result.componentAssetFiles[1], /webui-component-asset/);
+    assert.equal(result.componentAssetFiles[0], 'lazy-panel.webhub.js');
+    assert.match(result.componentAssetFiles[1], /webhub-component-asset/);
   });
 
   test('throws on missing appDir', () => {
@@ -115,8 +115,8 @@ describe('render', () => {
   test('substitutes signals', () => {
     const result = build({ appDir });
     const protocol = new Protocol(result.protocol);
-    const html = protocol.render({ name: 'WebUI', items: ['a', 'b'], show: true });
-    assert.ok(html.includes('Hello, WebUI!'));
+    const html = protocol.render({ name: 'webhub', items: ['a', 'b'], show: true });
+    assert.ok(html.includes('Hello, webhub!'));
   });
 
   test('expands for-loop', () => {
@@ -217,8 +217,8 @@ describe('renderComponentTemplates', () => {
 
 describe('renderPartial', () => {
   test('preserves full state when projection metadata is absent', () => {
-    const result = build({ appDir, entry: 'index3.html', plugin: 'webui' });
-    const protocol = new Protocol(result.protocol, { plugin: 'webui' });
+    const result = build({ appDir, entry: 'index3.html', plugin: 'webhub' });
+    const protocol = new Protocol(result.protocol, { plugin: 'webhub' });
     const json = protocol.renderPartial(
       '{"name":"Partial","serverOnly":"drop"}',
       'index3.html',

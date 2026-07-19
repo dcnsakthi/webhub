@@ -3,7 +3,7 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use serde_json::json;
 use std::hint::black_box;
-use webui_state::find_value_by_dotted_path;
+use webhub_state::find_value_by_dotted_path;
 
 fn state_path_depth_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("state_path_depth");

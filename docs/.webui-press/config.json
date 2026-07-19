@@ -1,18 +1,18 @@
 {
   "site": {
-    "title": "WebUI Framework",
+    "title": "webhub Framework",
     "description": "SSR without JavaScript on the server. No virtual DOM. No JSX. Just HTML, streamed from any language."
   },
-  "basePath": "/webui/",
+  "basePath": "/webhub/",
   "contentDir": ".",
   "outDir": "./dist",
-  "publicDir": "./.webui-press/public",
+  "publicDir": "./.webhub-press/public",
   "head": [
     {
       "tag": "link",
       "attrs": {
         "rel": "icon",
-        "href": "/webui/favicon.ico"
+        "href": "/webhub/favicon.ico"
       }
     },
     {
@@ -24,9 +24,9 @@
     }
   ],
   "components": [
-    "./.webui-press/components"
+    "./.webhub-press/components"
   ],
-  "css": "./.webui-press/theme.css",
+  "css": "./.webhub-press/theme.css",
   "nav": [
     {
       "text": "Guide",
@@ -46,7 +46,7 @@
     },
     {
       "text": "GitHub",
-      "link": "https://github.com/microsoft/webui"
+      "link": "https://github.com/microsoft/webhub"
     }
   ],
   "sidebar": [],
@@ -56,11 +56,11 @@
         "title": "Getting Started",
         "items": [
           {
-            "text": "What is WebUI?",
+            "text": "What is webhub?",
             "link": "/guide/"
           },
           {
-            "text": "Why WebUI?",
+            "text": "Why webhub?",
             "link": "/guide/why"
           },
           {
@@ -165,16 +165,16 @@
             "link": "/guide/cli/",
             "items": [
               {
-                "text": "webui build",
-                "link": "/guide/cli/#webui-build"
+                "text": "webhub build",
+                "link": "/guide/cli/#webhub-build"
               },
               {
-                "text": "webui serve",
-                "link": "/guide/cli/#webui-serve"
+                "text": "webhub serve",
+                "link": "/guide/cli/#webhub-serve"
               },
               {
-                "text": "webui inspect",
-                "link": "/guide/cli/#webui-inspect"
+                "text": "webhub inspect",
+                "link": "/guide/cli/#webhub-inspect"
               }
             ]
           },
@@ -232,22 +232,22 @@
     "actions": [
       {
         "text": "Get Started →",
-        "link": "/webui/guide/",
+        "link": "/webhub/guide/",
         "brand": true
       },
       {
-        "text": "Why WebUI?",
-        "link": "/webui/guide/why/",
+        "text": "Why webhub?",
+        "link": "/webhub/guide/why/",
         "brand": false
       },
       {
         "text": "See benchmarks",
-        "link": "/webui/guide/concepts/performance/",
+        "link": "/webhub/guide/concepts/performance/",
         "brand": false
       },
       {
         "text": "GitHub",
-        "link": "https://github.com/microsoft/webui",
+        "link": "https://github.com/microsoft/webhub",
         "brand": false
       }
     ],
@@ -260,7 +260,7 @@
       {
         "icon": "🌐",
         "title": "Render from any language",
-        "description": "SSR has historically been a Node.js privilege. WebUI changes that. Stream pages from Rust, Go, Python, C#, Bun, Deno, Node.js, or WASM running at the edge or in the browser. The protocol is just bytes; any runtime that can read bytes and write strings can serve a site."
+        "description": "SSR has historically been a Node.js privilege. webhub changes that. Stream pages from Rust, Go, Python, C#, Bun, Deno, Node.js, or WASM running at the edge or in the browser. The protocol is just bytes; any runtime that can read bytes and write strings can serve a site."
       },
       {
         "icon": "🔄",
@@ -269,22 +269,22 @@
       },
       {
         "icon": "🧩",
-        "title": "webui-framework",
+        "title": "webhub-framework",
         "description": "A tiny client runtime for Web Components, tuned for rendering speed and low memory. Built on Declarative Shadow DOM and native browser APIs. No virtual DOM, no proprietary component model, no JSX."
       },
       {
         "icon": "🧭",
-        "title": "webui-router",
+        "title": "webhub-router",
         "description": "Routes declared in HTML and compiled at build time. The server matches every navigation and returns the route chain as JSON; the client diffs against the current chain and remounts only the level that changed. Tagged caching and invalidation graphs are validated by the compiler, not configured at runtime."
       },
       {
         "icon": "📰",
-        "title": "webui-press",
+        "title": "webhub-press",
         "description": "A blazing-fast static site generator powered by the framework itself. Compiles markdown and components in parallel into a fully static site. Perfect for GitHub Pages, CDNs, and anywhere that just serves files. (You are reading a site built with it.)"
       }
     ]
   },
   "footer": {
-    "html": "Released under the <a href=\"https://opensource.org/licenses/MIT\">MIT License</a>. Built with <a href=\"https://github.com/microsoft/webui/blob/main/crates/webui-press/README.md\">WebUI Framework Static Site Generator</a>."
+    "html": "Released under the <a href=\"https://opensource.org/licenses/MIT\">MIT License</a>. Built with <a href=\"https://github.com/microsoft/webhub/blob/main/crates/webhub-press/README.md\">webhub Framework Static Site Generator</a>."
   }
 }

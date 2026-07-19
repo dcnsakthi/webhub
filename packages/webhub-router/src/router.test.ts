@@ -6,7 +6,7 @@ import './browser-shim.js';
 
 import { strict as assert } from 'node:assert';
 import { describe, test, beforeEach, afterEach } from 'node:test';
-import { WebUIRouter } from './router.js';
+import { webhubRouter } from './router.js';
 import { parseQuery, filterQuery } from './route-element.js';
 import { resolveLoaders } from './loaders.js';
 import { ensureComponentLoaded } from './loaders.js';
@@ -29,14 +29,14 @@ interface RouterInternals {
   activeChain: RouteChainEntry[];
 }
 
-/** Cast a WebUIRouter to expose private fields for test setup. */
-function internals(router: WebUIRouter): RouterInternals {
+/** Cast a webhubRouter to expose private fields for test setup. */
+function internals(router: webhubRouter): RouterInternals {
   return router as unknown as RouterInternals;
 }
 
 /** Typed access to the global template registry. */
 interface TemplateRegistry {
-  __webui?: {
+  __webhub?: {
     templates?: Record<string, unknown>;
     templateFns?: Record<string, unknown>;
     [key: string]: unknown;
@@ -84,12 +84,12 @@ function hasBit(hex: string, name: string): boolean {
   return byteIdx < bytes.length && (bytes[byteIdx] & (1 << (idx & 7))) !== 0;
 }
 
-describe('WebUIRouter', () => {
-  let savedWebui: typeof window.__webui;
+describe('webhubRouter', () => {
+  let savedwebhub: typeof window.__webhub;
 
   beforeEach(() => {
-    savedWebui = globals().__webui;
-    (globals() as any).__webui = {
+    savedwebhub = globals().__webhub;
+    (globals() as any).__webhub = {
       templates: {},
       inventory: '',
       nonce: '',
@@ -99,11 +99,11 @@ describe('WebUIRouter', () => {
   });
 
   afterEach(() => {
-    (globals() as any).__webui = savedWebui;
+    (globals() as any).__webhub = savedwebhub;
   });
 
   describe('SSR metadata bootstrap', () => {
-    test('start lazily loads webui-data and preserves templateFns', () => {
+    test('start lazily loads webhub-data and preserves templateFns', () => {
       const origGetElementById = (globalThis as any).document.getElementById;
       const origQuerySelector = (globalThis as any).document.querySelector;
       const origQuerySelectorAll = (globalThis as any).document.querySelectorAll;
@@ -111,12 +111,12 @@ describe('WebUIRouter', () => {
       const origRemoveEventListener = (globalThis as any).document.removeEventListener;
       let removed = false;
 
-      globals().__webui = {
+      globals().__webhub = {
         templateFns: { greeting: [() => true] },
       };
 
       (globalThis as any).document.getElementById = (id: string) => {
-        if (id !== 'webui-data') return null;
+        if (id !== 'webhub-data') return null;
         return {
           textContent: '{"inventory":"0c","nonce":"n","css":["a.css"],"styles":["x-card"],"state":{"title":"Hello"},"templates":{"greeting":{"h":"<p></p>"}},"chain":[{"component":"x-card","path":"/"}]}',
           remove() { removed = true; },
@@ -128,16 +128,16 @@ describe('WebUIRouter', () => {
       (globalThis as any).document.removeEventListener = () => {};
 
       try {
-        const router = new WebUIRouter();
+        const router = new webhubRouter();
         router.start({ loaders: { 'lazy-card': async () => {} } });
 
-        assert.equal(globals().__webui!.inventory, '0c');
-        assert.equal(globals().__webui!.nonce, 'n');
-        assert.deepEqual(globals().__webui!.state, { title: 'Hello' });
-        assert.ok(globals().__webui!.templates?.greeting, 'template metadata should be loaded');
-        assert.ok(globals().__webui!.templateFns?.greeting, 'existing templateFns should be preserved');
+        assert.equal(globals().__webhub!.inventory, '0c');
+        assert.equal(globals().__webhub!.nonce, 'n');
+        assert.deepEqual(globals().__webhub!.state, { title: 'Hello' });
+        assert.ok(globals().__webhub!.templates?.greeting, 'template metadata should be loaded');
+        assert.ok(globals().__webhub!.templateFns?.greeting, 'existing templateFns should be preserved');
         assert.equal(
-          (globals().__webui!.templateHostExclusions as Set<string>).has('lazy-card'),
+          (globals().__webhub!.templateHostExclusions as Set<string>).has('lazy-card'),
           true,
         );
         assert.equal(removed, true);
@@ -154,31 +154,31 @@ describe('WebUIRouter', () => {
 
   describe('gc', () => {
     test('clears all templates and resets inventory', () => {
-      const router = new WebUIRouter();
-      const registry = globals().__webui!.templates!;
+      const router = new webhubRouter();
+      const registry = globals().__webhub!.templates!;
       registry['shell'] = { h: '<div>Shell</div>' };
       registry['page-x'] = { h: '<div>X</div>' };
       registry['page-y'] = { h: '<div>Y</div>' };
-      globals().__webui!.templateFns = {
+      globals().__webhub!.templateFns = {
         shell: [() => true],
         'page-x': [() => true],
       };
 
-      globals().__webui!.inventory = inventoryWith('shell', 'page-x', 'page-y');
+      globals().__webhub!.inventory = inventoryWith('shell', 'page-x', 'page-y');
 
       router.gc();
 
       assert.equal(registry['shell'], undefined, 'shell should be cleared');
       assert.equal(registry['page-x'], undefined, 'page-x should be cleared');
       assert.equal(registry['page-y'], undefined, 'page-y should be cleared');
-      assert.equal(globals().__webui!.templateFns!.shell, undefined, 'shell functions should be cleared');
-      assert.equal(globals().__webui!.templateFns!['page-x'], undefined, 'page-x functions should be cleared');
-      assert.equal(globals().__webui!.inventory, '', 'inventory should be reset to empty');
+      assert.equal(globals().__webhub!.templateFns!.shell, undefined, 'shell functions should be cleared');
+      assert.equal(globals().__webhub!.templateFns!['page-x'], undefined, 'page-x functions should be cleared');
+      assert.equal(globals().__webhub!.inventory, '', 'inventory should be reset to empty');
     });
 
     test('is a no-op when no templates are registered', () => {
-      const router = new WebUIRouter();
-      const g = globals().__webui;
+      const router = new webhubRouter();
+      const g = globals().__webhub;
       if (g) g.templates = undefined;
       router.gc(); // should not throw
     });
@@ -186,7 +186,7 @@ describe('WebUIRouter', () => {
 
   describe('destroy', () => {
     test('clears in-flight loadPromises so the router can be restarted cleanly', async () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       // Initialize navCache so destroy() can call .clear()
       (router as any).navCache = new NavigationCache({ staleTime: 0, gcTime: 300_000, maxEntries: 50 });
 
@@ -218,7 +218,7 @@ describe('WebUIRouter', () => {
       const onRegistered = () => {
         registeredEvent = true;
       };
-      window.addEventListener('webui:templates-registered', onRegistered);
+      window.addEventListener('webhub:templates-registered', onRegistered);
 
       (globalThis as any).document.createElement = (tag: string) => ({
         tagName: tag,
@@ -240,17 +240,17 @@ describe('WebUIRouter', () => {
           templateFunctions: { 'test-comp': '[function(){return true}]' },
         }, '', new Set(), () => {});
 
-        const registry = globals().__webui!.templates!;
+        const registry = globals().__webhub!.templates!;
         assert.ok(registry['test-comp'], 'template should be registered');
         assert.equal(
           (registry['test-comp'] as Record<string, string>).h,
           '<div>hello</div>',
           'template HTML should match',
         );
-        assert.equal(typeof (globals().__webui as any).templateFns['test-comp'][0], 'function');
+        assert.equal(typeof (globals().__webhub as any).templateFns['test-comp'][0], 'function');
         assert.equal(registeredEvent, true, 'template registration should notify optional runtimes');
       } finally {
-        window.removeEventListener('webui:templates-registered', onRegistered);
+        window.removeEventListener('webhub:templates-registered', onRegistered);
         (globalThis as any).document.createElement = origCreateElement;
         (globalThis as any).document.head = origHead;
       }
@@ -283,7 +283,7 @@ describe('WebUIRouter', () => {
         );
 
         assert.equal(executed, false, 'non-HTML string template payloads must not execute');
-        assert.equal(globals().__webui?.templates?.['old-executable'], undefined);
+        assert.equal(globals().__webhub?.templates?.['old-executable'], undefined);
       } finally {
         (globalThis as any).document.createElement = origCreateElement;
         (globalThis as any).document.head = origHead;
@@ -360,9 +360,9 @@ describe('WebUIRouter', () => {
       };
 
       try {
-        const router = new WebUIRouter();
+        const router = new webhubRouter();
         // Set nonce on the global (source of truth)
-        globals().__webui!.nonce = 'test-nonce';
+        globals().__webhub!.nonce = 'test-nonce';
         const fetchPartial = (router as any).fetchPartial.bind(router) as (
           path: string,
           signal?: AbortSignal,
@@ -419,8 +419,8 @@ describe('WebUIRouter', () => {
           'beta importmap body should register beta under a data:text/css URI',
         );
         // Templates actually registered
-        assert.ok(globals().__webui?.templates?.['alpha'], 'alpha template should register');
-        assert.ok(globals().__webui?.templates?.['beta'], 'beta template should register');
+        assert.ok(globals().__webhub?.templates?.['alpha'], 'alpha template should register');
+        assert.ok(globals().__webhub?.templates?.['beta'], 'beta template should register');
       } finally {
         (globalThis as any).fetch = origFetch;
         (globalThis as any).document.createElement = origCreateElement;
@@ -471,7 +471,7 @@ describe('WebUIRouter', () => {
       };
 
       try {
-        const router = new WebUIRouter();
+        const router = new webhubRouter();
         const fetchPartial = (router as any).fetchPartial.bind(router) as (
           path: string,
         ) => Promise<unknown>;
@@ -480,7 +480,7 @@ describe('WebUIRouter', () => {
 
         // No style tags or scripts should be appended when there are no closures
         assert.deepEqual(appendedTags, [], 'no DOM nodes should be appended');
-        assert.ok(globals().__webui?.templates?.['link-comp'], 'template should register');
+        assert.ok(globals().__webhub?.templates?.['link-comp'], 'template should register');
       } finally {
         (globalThis as any).fetch = origFetch;
         (globalThis as any).document.createElement = origCreateElement;
@@ -500,7 +500,7 @@ describe('WebUIRouter', () => {
       };
 
       try {
-        const router = new WebUIRouter();
+        const router = new webhubRouter();
         const fetchPartial = (router as any).fetchPartial.bind(router) as (
           path: string,
           signal?: AbortSignal,
@@ -536,7 +536,7 @@ describe('WebUIRouter', () => {
       };
 
       try {
-        const router = new WebUIRouter();
+        const router = new webhubRouter();
         const fetchPartial = (router as any).fetchPartial.bind(router) as (
           path: string,
           signal?: AbortSignal,
@@ -549,7 +549,7 @@ describe('WebUIRouter', () => {
         const result = await fetchPartial('/test', controller.signal);
 
         assert.equal(result, null, 'should return null for aborted navigation');
-        assert.equal(globals().__webui?.templates?.['abort-test'], undefined, 'should not register templates after abort');
+        assert.equal(globals().__webhub?.templates?.['abort-test'], undefined, 'should not register templates after abort');
       } finally {
         (globalThis as any).fetch = origFetch;
       }
@@ -563,7 +563,7 @@ describe('WebUIRouter', () => {
       };
 
       try {
-        const router = new WebUIRouter();
+        const router = new webhubRouter();
         const fetchPartial = (router as any).fetchPartial.bind(router) as (
           path: string,
           signal?: AbortSignal,
@@ -580,7 +580,7 @@ describe('WebUIRouter', () => {
       // Verify the architectural contract: the intercept handler catches
       // AbortError without logging. This is critical for rapid navigation
       // where superseded fetches throw AbortError.
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const source = (router as any).start.toString() as string;
 
       // The handler must check for AbortError by name
@@ -602,7 +602,7 @@ describe('WebUIRouter', () => {
     test('handleNavigation checks signal.aborted after fetch and inside preload loop', () => {
       // Verify the architectural contract: commitWithData has abort gates
       // after fetchPartial and inside the ensureComponentLoaded loop.
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const navSource = (router as any).handleNavigation.toString() as string;
       const commitSource = (router as any).commitWithData.toString() as string;
 
@@ -638,7 +638,7 @@ describe('WebUIRouter', () => {
     });
 
     test('handleNavigation clears initial-page preload links before partial fetches', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const source = (router as any).handleNavigation.toString() as string;
       const clearIdx = source.indexOf('this.clearSsrPreloads()');
       const fetchIdx = source.indexOf('fetchPartial');
@@ -658,7 +658,7 @@ describe('WebUIRouter', () => {
       // handler until the CSS animation completes, serializing navigations
       // behind transition animations. The router must use .updateCallbackDone
       // so the handler resolves after the synchronous DOM commit.
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const source = (router as any).commitWithData.toString() as string;
 
       assert.ok(
@@ -678,7 +678,7 @@ describe('WebUIRouter', () => {
       // the live DOM, which blurs the active element (search input focus lost
       // mid-typing). The router must guard the startViewTransition call with
       // an `isQueryOnlyChange` check so focus is preserved.
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const source = (router as any).commitWithData.toString() as string;
 
       // The view-transition block must be gated on !isQueryOnlyChange
@@ -711,7 +711,7 @@ describe('WebUIRouter', () => {
       // to startViewTransition must not reference fetchPartial or
       // ensureComponentLoaded.
 
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const source = (router as any).commitWithData.toString() as string;
 
       // Find the commitNavigation function body
@@ -842,7 +842,7 @@ describe('WebUIRouter', () => {
       });
 
       try {
-        const router = new WebUIRouter();
+        const router = new webhubRouter();
         const fetchPartial = (router as any).fetchPartial.bind(router) as (
           path: string,
           signal?: AbortSignal,
@@ -866,7 +866,7 @@ describe('WebUIRouter', () => {
     });
 
     test('preload cache is consumed on navigation and cleared after use', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const priv = router as any;
       priv.navCache = new NavigationCache({ staleTime: 30_000, gcTime: 300_000, maxEntries: 50 });
 
@@ -885,7 +885,7 @@ describe('WebUIRouter', () => {
     });
 
     test('stale preload cache (>TTL) is not consumed', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const priv = router as any;
       priv.navCache = new NavigationCache({ staleTime: 0, gcTime: 300_000, maxEntries: 50 });
 
@@ -900,7 +900,7 @@ describe('WebUIRouter', () => {
     });
 
     test('preload generation guard prevents stale cache writes', async () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const priv = router as any;
 
       // Simulate: preload A starts (gen=1), preload B starts (gen=2),
@@ -916,7 +916,7 @@ describe('WebUIRouter', () => {
     });
 
     test('destroy clears preload state', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const priv = router as any;
       priv.navCache = new NavigationCache({ staleTime: 0, gcTime: 300_000, maxEntries: 50 });
 
@@ -929,7 +929,7 @@ describe('WebUIRouter', () => {
     });
 
     test('destroy prevents pending cache import from restoring cache state', async () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const priv = router as any;
 
       const load = priv.ensureNavigationCache();
@@ -970,7 +970,7 @@ describe('WebUIRouter', () => {
     });
 
     test('handleNavigation source checks cache before fetchPartial', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const source = (router as any).handleNavigation.toString() as string;
 
       const cacheIdx = source.indexOf('lookup(requestPath)');
@@ -1087,7 +1087,7 @@ describe('WebUIRouter', () => {
     });
 
     test('mountComponent calls applyParamsQueryState with state', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const source = (router as any).mountComponent.toString() as string;
       assert.ok(
         source.includes('applyParamsQueryState'),
@@ -1096,7 +1096,7 @@ describe('WebUIRouter', () => {
     });
 
     test('commitWithData resolves loaders before commitNavigation', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const source = (router as any).commitWithData.toString() as string;
 
       const resolveIdx = source.indexOf('resolveLoaders');
@@ -1113,7 +1113,7 @@ describe('WebUIRouter', () => {
 
   describe('keep-alive state preservation', () => {
     test('applyState skips setState for keep-alive with null state', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const priv = router as any;
 
       let setStateCalled = false;
@@ -1142,7 +1142,7 @@ describe('WebUIRouter', () => {
     });
 
     test('applyState calls setState for keep-alive with loader override', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const priv = router as any;
 
       let setStateArg: unknown = null;
@@ -1173,7 +1173,7 @@ describe('WebUIRouter', () => {
     });
 
     test('applyState uses per-entry state for non-keep-alive', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const priv = router as any;
 
       let setStateArg: unknown = null;
@@ -1204,7 +1204,7 @@ describe('WebUIRouter', () => {
 
   describe('document navigation fallback', () => {
     test('reloads an already committed destination instead of nesting navigation', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const originalHref = window.location.href;
       const originalReload = window.location.reload;
       const destination = new URL('/ssr-only', originalHref).href;
@@ -1227,7 +1227,7 @@ describe('WebUIRouter', () => {
     });
 
     test('disables automatic cross-document view transitions while active', () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const originalCreateElement = document.createElement;
       const originalAppendChild = document.head.appendChild;
       const originalStartViewTransition = document.startViewTransition;
@@ -1236,7 +1236,7 @@ describe('WebUIRouter', () => {
         | { nonce?: string; textContent?: string; remove(): void }
         | undefined;
 
-      globals().__webui!.nonce = 'test-nonce';
+      globals().__webhub!.nonce = 'test-nonce';
       (document as any).startViewTransition = () => {};
       (document as any).createElement = () => ({
         remove() {
@@ -1276,7 +1276,7 @@ describe('WebUIRouter', () => {
       };
       navigation.removeEventListener = () => {};
 
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       try {
         router.start();
         (router as any).navigateDocument('/ssr-only');
@@ -1302,7 +1302,7 @@ describe('WebUIRouter', () => {
     });
 
     test('uses document navigation when no module or template runtime registers the tag', async () => {
-      const router = new WebUIRouter();
+      const router = new webhubRouter();
       const originalHref = window.location.href;
       const tag = `missing-client-${Date.now()}`;
 
@@ -1338,7 +1338,7 @@ describe('WebUIRouter', () => {
       };
 
       try {
-        const router = new WebUIRouter();
+        const router = new webhubRouter();
         await (router as any).fetchPartial.call(router, '/test');
         const accept = capturedHeaders['Accept'];
         assert.ok(accept, 'should send Accept header');
@@ -1455,8 +1455,8 @@ describe('parseQuery', () => {
 
   test('decodes percent-encoded values', () => {
     assert.deepEqual(
-      parseQuery('/compose?subject=Re%3A%20%5Bwebui%5D%20Fix%20bug'),
-      { subject: 'Re: [webui] Fix bug' },
+      parseQuery('/compose?subject=Re%3A%20%5Bwebhub%5D%20Fix%20bug'),
+      { subject: 'Re: [webhub] Fix bug' },
     );
   });
 

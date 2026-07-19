@@ -1,6 +1,6 @@
 # Interactivity
 
-WebUI uses **Islands Architecture** for client-side interactivity. Each Web Component is a self-contained island with its own HTML template, scoped CSS, and TypeScript behavior. Only components that need interactivity ship JavaScript - everything else stays as static server-rendered HTML.
+webhub uses **Islands Architecture** for client-side interactivity. Each Web Component is a self-contained island with its own HTML template, scoped CSS, and TypeScript behavior. Only components that need interactivity ship JavaScript - everything else stays as static server-rendered HTML.
 
 ## Component Files
 
@@ -43,12 +43,12 @@ decorators, or imperative APIs. See
 
 ## The Component Class
 
-Every interactive component extends `WebUIElement` and registers itself as a custom element:
+Every interactive component extends `webhubElement` and registers itself as a custom element:
 
 ```typescript
-import { WebUIElement, attr, observable } from '@microsoft/webui-framework';
+import { webhubElement, attr, observable } from '@microsoft/webhub-framework';
 
-export class MyCounter extends WebUIElement {
+export class MyCounter extends webhubElement {
   @attr label = 'Count';
   @observable count = 0;
 
@@ -169,7 +169,7 @@ For the initial page, build-time projection can narrow state to top-level
 `@observable` and `@attr` values from authored components. Template bindings
 still render on the server, but they do not automatically become JavaScript
 state. Only components reachable on the active route contribute projected
-values. Without a projection manifest, WebUI intentionally sends full state.
+values. Without a projection manifest, webhub intentionally sends full state.
 
 See [Hydration](/guide/concepts/hydration) for HTML-only components, soft
 navigation, and payload behavior.
@@ -225,7 +225,7 @@ Attach event handlers with `@event` syntax:
 ```
 
 Components that use `@event` must have authored `.ts` or `.js` code that
-defines a `WebUIElement` for the tag. HTML-only components do not provide
+defines a `webhubElement` for the tag. HTML-only components do not provide
 application event handlers.
 
 Event handlers use method-call syntax only. Arguments can be:
@@ -294,7 +294,7 @@ Use the `:` prefix to pass rich values directly to child DOM properties:
 <profile-card :config="{{settings}}"></profile-card>
 ```
 
-For client-created component trees, WebUI applies initial property bindings before child `connectedCallback` methods run. This lets a child read a parent-provided property during setup. If the parent has not provided a value, the child can initialize a fallback in `connectedCallback`; later parent updates still flow through the live binding.
+For client-created component trees, webhub applies initial property bindings before child `connectedCallback` methods run. This lets a child read a parent-provided property during setup. If the parent has not provided a value, the child can initialize a fallback in `connectedCallback`; later parent updates still flow through the live binding.
 
 ### List Rendering
 
@@ -370,7 +370,7 @@ Components communicate upward by emitting custom events with `this.$emit()`:
 **Child component** (`color-picker.ts`):
 
 ```typescript
-export class ColorPicker extends WebUIElement {
+export class ColorPicker extends webhubElement {
   @observable selectedColor = '';
 
   selectColor(color: string): void {
@@ -399,39 +399,39 @@ This pattern keeps components decoupled - the child doesn't know who is listenin
 
 ## Loading Static Component Assets
 
-When you are not using `@microsoft/webui-router`, components hidden behind
+When you are not using `@microsoft/webhub-router`, components hidden behind
 inactive routes or deferred UI can still be loaded from static files. Build the
 root components as assets:
 
 ```bash
-webui build ./src --out ./dist --plugin=webui \
+webhub build ./src --out ./dist --plugin=webhub \
   --emit-component-assets settings-dialog,mail-thread
 ```
 
-Each requested root writes one ESM module such as `<tag>.webui.js` next to
+Each requested root writes one ESM module such as `<tag>.webhub.js` next to
 `protocol.bin`. The module carries the component's template, styles, and
 dependency closure; it does not contain route inventory state.
 
-During development, pass the same flag to `webui serve` so these roots are
+During development, pass the same flag to `webhub serve` so these roots are
 validated and served without a separate build step:
 
 ```bash
-webui serve ./src --state ./data/state.json --plugin=webui \
+webhub serve ./src --state ./data/state.json --plugin=webhub \
   --emit-component-assets settings-dialog,mail-thread --watch
 ```
 
 The dev server parses and validates each root on every build. HTML and
 theme-token errors in a lazily loaded component fail the build instead of being
 missed because the component is outside the initial route tree. The dev server
-serves `<tag>.webui.js` from memory and rebuilds it on change.
+serves `<tag>.webhub.js` from memory and rebuilds it on change.
 
 Load the asset before creating or revealing the component:
 
 ```typescript
-import { WebUIElement } from '@microsoft/webui-framework';
+import { webhubElement } from '@microsoft/webhub-framework';
 import { settingsAssets } from './lazy-assets.js';
 
-export class AppShell extends WebUIElement {
+export class AppShell extends webhubElement {
   panelSlot!: HTMLDivElement;
 
   async openSettings(): Promise<void> {
@@ -443,11 +443,11 @@ export class AppShell extends WebUIElement {
 
 ```typescript
 // lazy-assets.ts
-import { defineComponentAssets } from '@microsoft/webui-framework/component-asset.js';
+import { defineComponentAssets } from '@microsoft/webhub-framework/component-asset.js';
 
 export const settingsAssets = defineComponentAssets({
   'settings-dialog': {
-    asset: '/settings-dialog.webui.js',
+    asset: '/settings-dialog.webhub.js',
     module: () => import('./settings-dialog/settings-dialog.js'),
     data: async () => await (await fetch('/settings-dialog-data.json')).json(),
   },
@@ -550,7 +550,7 @@ The server owns the first paint, and the framework **trusts** the HTML it produc
 When the framework detects this it logs a development warning naming the properties, so the mismatch is never silent:
 
 ```
-[WebUI] Hydration mismatch on <my-counter>: "count" changed at or before
+[webhub] Hydration mismatch on <my-counter>: "count" changed at or before
 super.connectedCallback() to a value that differs from the server-rendered DOM…
 ```
 
@@ -560,7 +560,7 @@ Follow one rule to stay correct:
 - **Assign anything else after `super.connectedCallback()`**, where `@observable` writes flow through live bindings.
 
 ```ts
-export class MyCounter extends WebUIElement {
+export class MyCounter extends webhubElement {
   @observable count = 0;
 
   connectedCallback(): void {
@@ -579,11 +579,11 @@ If `count` should already read `3` in the server-rendered HTML, seed it in the S
 
 #### Development warning
 
-The mismatch warning is removed from `webui-press` production builds. If you
-bundle the framework yourself, define `__WEBUI_DEV__` as `false` in production:
+The mismatch warning is removed from `webhub-press` production builds. If you
+bundle the framework yourself, define `__webhub_DEV__` as `false` in production:
 
 ```bash
-esbuild app.ts --bundle --minify --define:__WEBUI_DEV__=false
+esbuild app.ts --bundle --minify --define:__webhub_DEV__=false
 ```
 
 

@@ -4,7 +4,7 @@ CSS Token Hoisting is a build-time optimization that discovers which CSS custom 
 
 ## How It Works
 
-During the build process, WebUI extracts CSS custom property **usages** - names referenced via `var(--name)` - from two sources:
+During the build process, webhub extracts CSS custom property **usages** - names referenced via `var(--name)` - from two sources:
 
 1. **Component CSS files** - tokens are extracted when components are registered and cached in the component registry.
 2. **Inline `<style>` tags** - tokens are extracted from `<style>` elements in the entry HTML file and component templates.
@@ -69,7 +69,7 @@ Definitions are excluded even when the variable appears in a nested fallback:
 
 ### Theme Validation
 
-When a build is given a theme (`webui build --theme`, `webui serve --theme`, or
+When a build is given a theme (`webhub build --theme`, `webhub serve --theme`, or
 API build options with a theme), every **required** token must exist in every
 theme. For `var(--a, var(--b, var(--c)))`, the theme must provide `a`, `b`, and
 `c` unless any of those tokens are defined by local or ancestor CSS. Missing
@@ -106,7 +106,7 @@ becomes required again.
 
 As a safety net for typos, a token used **only** with a literal fallback and
 defined in **no** theme (e.g. a misspelled `var(--colr-brand, #000)`) is
-reported as a non-fatal advisory — `webui build` prints it and it is available
+reported as a non-fatal advisory — `webhub build` prints it and it is available
 on `BuildResult::warnings` — rather than failing the build.
 
 ## Comment Handling

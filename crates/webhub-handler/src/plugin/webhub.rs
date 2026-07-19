@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! WebUI handler plugin that emits lightweight hydration markers.
+//! webhub handler plugin that emits lightweight hydration markers.
 //!
 //! Emits comment markers around for-loop blocks (`<!--wr-->` / `<!--/wr-->`),
 //! before each repeat item (`<!--wi-->`), and around if-condition blocks
@@ -12,7 +12,7 @@
 use super::{BootstrapExtensionContext, HandlerPlugin};
 use crate::{ResponseWriter, Result};
 use std::collections::HashSet;
-use webui_protocol::WebUIProtocol;
+use webhub_protocol::webhubProtocol;
 
 const REPEAT_START: &str = "<!--wr-->";
 const REPEAT_END: &str = "<!--/wr-->";
@@ -20,28 +20,28 @@ const REPEAT_ITEM: &str = "<!--wi-->";
 const COND_START: &str = "<!--wc-->";
 const COND_END: &str = "<!--/wc-->";
 
-/// WebUI handler plugin that emits hydration markers.
+/// webhub handler plugin that emits hydration markers.
 ///
 /// Emits lightweight HTML comment markers around structural boundaries
 /// (for-loops and if-conditions) so the client can hydrate in-place
 /// without reparenting DOM nodes.
-pub struct WebUIHydrationPlugin;
+pub struct webhubHydrationPlugin;
 
-impl WebUIHydrationPlugin {
-    /// Create a new WebUI handler plugin.
+impl webhubHydrationPlugin {
+    /// Create a new webhub handler plugin.
     #[must_use]
     pub fn new() -> Self {
         Self
     }
 }
 
-impl Default for WebUIHydrationPlugin {
+impl Default for webhubHydrationPlugin {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl HandlerPlugin for WebUIHydrationPlugin {
+impl HandlerPlugin for webhubHydrationPlugin {
     fn push_scope(&mut self) {}
 
     fn pop_scope(&mut self) {}
@@ -91,15 +91,15 @@ impl HandlerPlugin for WebUIHydrationPlugin {
         Ok(())
     }
 
-    /// Emit legacy non-split WebUI component templates inside a single
+    /// Emit legacy non-split webhub component templates inside a single
     /// `<script>` tag for fallback paths.
     ///
     /// NOTE: When `collect_template_payloads` returns `Some(...)`, `lib.rs`
     /// emits template metadata in an `application/json` block and this method
-    /// is **not** called. It remains for non-WebUI plugin fallback paths.
+    /// is **not** called. It remains for non-webhub plugin fallback paths.
     fn emit_templates(
         &self,
-        protocol: &WebUIProtocol,
+        protocol: &webhubProtocol,
         components: &HashSet<String>,
         nonce: Option<&str>,
         writer: &mut dyn ResponseWriter,
@@ -136,18 +136,18 @@ impl HandlerPlugin for WebUIHydrationPlugin {
         Ok(())
     }
 
-    /// Collect split WebUI template payloads for SSR bootstrap emission.
+    /// Collect split webhub template payloads for SSR bootstrap emission.
     fn collect_template_payloads<'a>(
         &self,
-        protocol: &'a WebUIProtocol,
+        protocol: &'a webhubProtocol,
         components: &HashSet<String>,
-    ) -> Option<Vec<super::WebUiTemplatePayload<'a>>> {
-        let mut templates: Vec<super::WebUiTemplatePayload<'a>> =
+    ) -> Option<Vec<super::webhubTemplatePayload<'a>>> {
+        let mut templates: Vec<super::webhubTemplatePayload<'a>> =
             Vec::with_capacity(components.len());
         for name in components {
             if let Some((tag_name, component)) = protocol.components.get_key_value(name) {
                 if !component.template_json.is_empty() {
-                    templates.push(super::WebUiTemplatePayload {
+                    templates.push(super::webhubTemplatePayload {
                         tag_name: tag_name.as_str(),
                         template_json: component.template_json.as_str(),
                         template_functions: component.template_functions.as_str(),
@@ -182,7 +182,7 @@ impl HandlerPlugin for WebUIHydrationPlugin {
         } else {
             writer.write("<script>")?;
         }
-        writer.write("(function(){var w=window.__webui||(window.__webui={});")?;
+        writer.write("(function(){var w=window.__webhub||(window.__webhub={});")?;
         writer.write("var f=w.templateFns||(w.templateFns={});")?;
         for payload in context.payloads {
             if payload.template_functions.is_empty() {
@@ -226,12 +226,12 @@ mod tests {
 
     #[test]
     fn test_default_creates_instance() {
-        let _plugin = WebUIHydrationPlugin;
+        let _plugin = webhubHydrationPlugin;
     }
 
     #[test]
     fn test_signal_binding_emits_no_output() {
-        let mut plugin = WebUIHydrationPlugin::new();
+        let mut plugin = webhubHydrationPlugin::new();
         let mut writer = TestWriter::new();
         plugin.on_binding_start("x", &mut writer).unwrap();
         plugin.on_binding_end("x", &mut writer).unwrap();
@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn test_for_loop_emits_repeat_markers() {
-        let mut plugin = WebUIHydrationPlugin::new();
+        let mut plugin = webhubHydrationPlugin::new();
         let mut writer = TestWriter::new();
         plugin.on_for_start("items", &mut writer).unwrap();
         plugin.on_repeat_item_start(0, &mut writer).unwrap();
@@ -265,7 +265,7 @@ mod tests {
 
     #[test]
     fn test_empty_for_loop_emits_boundary_markers() {
-        let mut plugin = WebUIHydrationPlugin::new();
+        let mut plugin = webhubHydrationPlugin::new();
         let mut writer = TestWriter::new();
         plugin.on_for_start("items", &mut writer).unwrap();
         plugin.on_for_end("items", &mut writer).unwrap();
@@ -274,7 +274,7 @@ mod tests {
 
     #[test]
     fn test_if_true_emits_cond_markers() {
-        let mut plugin = WebUIHydrationPlugin::new();
+        let mut plugin = webhubHydrationPlugin::new();
         let mut writer = TestWriter::new();
         plugin.on_if_start("show", &mut writer).unwrap();
         plugin.push_scope();
@@ -286,7 +286,7 @@ mod tests {
 
     #[test]
     fn test_if_false_emits_empty_cond_markers() {
-        let mut plugin = WebUIHydrationPlugin::new();
+        let mut plugin = webhubHydrationPlugin::new();
         let mut writer = TestWriter::new();
         plugin.on_if_start("show", &mut writer).unwrap();
         // condition is false — no content rendered
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn test_nested_repeat_inside_conditional() {
-        let mut plugin = WebUIHydrationPlugin::new();
+        let mut plugin = webhubHydrationPlugin::new();
         let mut writer = TestWriter::new();
         plugin.on_if_start("show", &mut writer).unwrap();
         plugin.push_scope();
@@ -317,7 +317,7 @@ mod tests {
 
     #[test]
     fn test_element_data_emits_no_output() {
-        let mut plugin = WebUIHydrationPlugin::new();
+        let mut plugin = webhubHydrationPlugin::new();
         let mut writer = TestWriter::new();
         plugin.push_scope();
         let data = 3u32.to_le_bytes();
@@ -327,7 +327,7 @@ mod tests {
 
     #[test]
     fn test_scope_push_pop_is_noop() {
-        let mut plugin = WebUIHydrationPlugin::new();
+        let mut plugin = webhubHydrationPlugin::new();
         plugin.push_scope();
         plugin.push_scope();
         plugin.pop_scope();
@@ -336,7 +336,7 @@ mod tests {
 
     #[test]
     fn test_route_component_state_emits_no_output() {
-        let plugin = WebUIHydrationPlugin::new();
+        let plugin = webhubHydrationPlugin::new();
         let mut writer = TestWriter::new();
         let state = serde_json::json!({
             "title": "Hello",
@@ -354,7 +354,7 @@ mod tests {
 
     #[test]
     fn test_full_lifecycle_with_markers() {
-        let mut plugin = WebUIHydrationPlugin::new();
+        let mut plugin = webhubHydrationPlugin::new();
         let mut writer = TestWriter::new();
 
         // Simulate a component with a signal, repeat, and conditional.
@@ -386,14 +386,14 @@ mod tests {
     }
 
     fn iife_template(tag: &str, body: &str) -> String {
-        format!("(function(){{var w=(window.__webui||(window.__webui={{}})).templates||(window.__webui.templates={{}});w['{tag}']={{{body}}}}})();\n")
+        format!("(function(){{var w=(window.__webhub||(window.__webhub={{}})).templates||(window.__webhub.templates={{}});w['{tag}']={{{body}}}}})();\n")
     }
 
     #[test]
     fn test_emit_templates_only_emits_provided_components() {
         let mut writer = TestWriter::new();
 
-        let mut protocol = webui_protocol::WebUIProtocol::new(std::collections::HashMap::new());
+        let mut protocol = webhub_protocol::webhubProtocol::new(std::collections::HashMap::new());
         protocol
             .components
             .entry("comp-a".to_string())
@@ -413,7 +413,7 @@ mod tests {
         let mut components = std::collections::HashSet::new();
         components.insert("comp-a".to_string());
 
-        let plugin = WebUIHydrationPlugin::new();
+        let plugin = webhubHydrationPlugin::new();
         plugin
             .emit_templates(&protocol, &components, None, &mut writer)
             .unwrap();
@@ -438,14 +438,14 @@ mod tests {
     #[test]
     fn test_emit_templates_empty_set() {
         let mut writer = TestWriter::new();
-        let mut protocol = webui_protocol::WebUIProtocol::new(std::collections::HashMap::new());
+        let mut protocol = webhub_protocol::webhubProtocol::new(std::collections::HashMap::new());
         protocol
             .components
             .entry("comp-a".to_string())
             .or_default()
             .template = iife_template("comp-a", "h:\"a\"");
         let components = std::collections::HashSet::new();
-        let plugin = WebUIHydrationPlugin::new();
+        let plugin = webhubHydrationPlugin::new();
         plugin
             .emit_templates(&protocol, &components, None, &mut writer)
             .unwrap();
@@ -456,7 +456,7 @@ mod tests {
     fn test_on_render_complete_consolidates_into_single_script() {
         let mut writer = TestWriter::new();
 
-        let mut protocol = webui_protocol::WebUIProtocol::new(std::collections::HashMap::new());
+        let mut protocol = webhub_protocol::webhubProtocol::new(std::collections::HashMap::new());
         protocol
             .components
             .entry("comp-a".to_string())
@@ -472,7 +472,7 @@ mod tests {
         rendered.insert("comp-a".to_string());
         rendered.insert("comp-b".to_string());
 
-        let plugin = WebUIHydrationPlugin::new();
+        let plugin = webhubHydrationPlugin::new();
         plugin
             .emit_templates(&protocol, &rendered, None, &mut writer)
             .unwrap();
@@ -490,7 +490,7 @@ mod tests {
     #[test]
     fn test_on_render_complete_skips_empty_template() {
         let mut writer = TestWriter::new();
-        let mut protocol = webui_protocol::WebUIProtocol::new(std::collections::HashMap::new());
+        let mut protocol = webhub_protocol::webhubProtocol::new(std::collections::HashMap::new());
         protocol
             .components
             .entry("comp-a".to_string())
@@ -498,7 +498,7 @@ mod tests {
             .template = String::new();
         let mut rendered = std::collections::HashSet::new();
         rendered.insert("comp-a".to_string());
-        let plugin = WebUIHydrationPlugin::new();
+        let plugin = webhubHydrationPlugin::new();
         plugin
             .emit_templates(&protocol, &rendered, None, &mut writer)
             .unwrap();
@@ -508,10 +508,10 @@ mod tests {
     #[test]
     fn test_on_render_complete_unknown_component() {
         let mut writer = TestWriter::new();
-        let protocol = webui_protocol::WebUIProtocol::new(std::collections::HashMap::new());
+        let protocol = webhub_protocol::webhubProtocol::new(std::collections::HashMap::new());
         let mut rendered = std::collections::HashSet::new();
         rendered.insert("nonexistent-comp".to_string());
-        let plugin = WebUIHydrationPlugin::new();
+        let plugin = webhubHydrationPlugin::new();
         plugin
             .emit_templates(&protocol, &rendered, None, &mut writer)
             .unwrap();
@@ -521,17 +521,17 @@ mod tests {
         );
     }
 
-    // ── Integration test (full render cycle with WebUIHandler) ──────────
+    // ── Integration test (full render cycle with webhubHandler) ──────────
 
     use std::collections::HashMap;
-    use webui_protocol::{ConditionExpr, FragmentList, WebUIFragment, WebUIProtocol};
-    use webui_test_utils::test_json;
+    use webhub_protocol::{ConditionExpr, FragmentList, webhubFragment, webhubProtocol};
+    use webhub_test_utils::test_json;
 
-    use crate::{RenderOptions, WebUIHandler};
+    use crate::{RenderOptions, webhubHandler};
 
-    fn render_with_webui_plugin(protocol: &WebUIProtocol, state: &serde_json::Value) -> String {
+    fn render_with_webhub_plugin(protocol: &webhubProtocol, state: &serde_json::Value) -> String {
         let mut writer = TestWriter::new();
-        let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+        let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
         handler
             .handle(
                 protocol,
@@ -551,26 +551,26 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::for_loop("item", "items", "for-body"),
-                    WebUIFragment::if_cond(ConditionExpr::identifier("show"), "if-body"),
+                    webhubFragment::for_loop("item", "items", "for-body"),
+                    webhubFragment::if_cond(ConditionExpr::identifier("show"), "if-body"),
                 ],
             },
         );
         fragments.insert(
             "for-body".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::signal("item", false)],
+                fragments: vec![webhubFragment::signal("item", false)],
             },
         );
         fragments.insert(
             "if-body".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<span>yes</span>")],
+                fragments: vec![webhubFragment::raw("<span>yes</span>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"items": ["a", "b"], "show": true});
-        let output = render_with_webui_plugin(&protocol, &state);
+        let output = render_with_webhub_plugin(&protocol, &state);
 
         // For-loop markers
         assert!(

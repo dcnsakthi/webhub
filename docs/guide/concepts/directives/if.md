@@ -84,13 +84,13 @@ server (Rust `serde_json::Value`) and client (`!!value`):
 | `[]` (empty array) | - | Use `items.length` instead |
 | `null` / missing | ❌ No | Missing state key |
 
-<webui-blockquote appearance="warning" title="Warning" icon="⚠️">
+<webhub-blockquote appearance="warning" title="Warning" icon="⚠️">
 
 The string `"false"` is truthy because it is a non-empty string. Never use
 `@observable show = 'false'` with `<if condition="show">`. Use a real boolean:
 `@observable show = false`.
 
-</webui-blockquote>
+</webhub-blockquote>
 
 ### Supported Expression Patterns
 

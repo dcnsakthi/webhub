@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement } from '@microsoft/webui-framework';
+import { webhubElement } from '@microsoft/webhub-framework';
 
-export class PageBeta extends WebUIElement {}
+export class PageBeta extends webhubElement {}

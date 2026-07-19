@@ -30,7 +30,7 @@ test.describe('bench fixture', () => {
     );
 
     // Log results for comparison
-    console.log('\n=== WebUI Framework Update Benchmark ===');
+    console.log('\n=== webhub Framework Update Benchmark ===');
     console.log(`Bindings: ${result.bindings.total} (${result.bindings.text} text, ${result.bindings.attr} attr, ${result.bindings.boolAttr} bool)`);
     console.log(`Iterations: ${result.iterations}`);
     console.log(`Single prop mutation: ${result.singlePropMs}ms total, ${result.singlePropPerUpdate}ms/update`);

@@ -2,12 +2,12 @@
 // Licensed under the MIT license.
 
 /**
- * Stable diagnostic codes for the WebUI state projection compiler.
+ * Stable diagnostic codes for the webhub state projection compiler.
  *
  * All codes are machine-readable and stable across versions. They appear in
  * the `code` field of a `Diagnostic` object alongside `title`, `location`,
  * `snippet`, and `help`. No color in diagnostic data; color is added only
- * by the `webui-cli` output layer.
+ * by the `webhub-cli` output layer.
  *
  * See DESIGN.md §"Projection diagnostic codes" for the authoritative list
  * and conditions.
@@ -24,7 +24,7 @@ export const PROJECTION_CODES = {
   C003: "PROJ-C003",
   /**
    * Decorator cannot be resolved to `observable` or `attr` from
-   * `@microsoft/webui-framework`; cannot prove exact keys.
+   * `@microsoft/webhub-framework`; cannot prove exact keys.
    */
   C004: "PROJ-C004",
   /**
@@ -73,7 +73,7 @@ export const PROJECTION_CODES = {
   // Manifest diagnostics
   /** Manifest file is missing or unreadable. */
   M001: "PROJ-M001",
-  /** Manifest schema version is not `webui.state-projection/v1`. */
+  /** Manifest schema version is not `webhub.state-projection/v1`. */
   M002: "PROJ-M002",
   /** Declared input file hash does not match current file content (stale). */
   M003: "PROJ-M003",
@@ -99,7 +99,7 @@ export const PROJECTION_CODES = {
    * Every component compiled into the protocol must have an entry.
    */
   B001: "PROJ-B001",
-  /** `--projection-manifest` supplied with a non-WebUI plugin. */
+  /** `--projection-manifest` supplied with a non-webhub plugin. */
   B002: "PROJ-B002",
 
   // Security and resource diagnostics
@@ -202,7 +202,7 @@ export const CODE_TITLES: Readonly<Record<ProjectionCode, string>> = {
   "PROJ-C002": "Import specifier does not resolve to any module in the graph",
   "PROJ-C003": "Named import not found in the resolved module's exports",
   "PROJ-C004":
-    "Decorator cannot be resolved to observable or attr from @microsoft/webui-framework",
+    "Decorator cannot be resolved to observable or attr from @microsoft/webhub-framework",
   "PROJ-C005": "Base class cannot be resolved to a class declaration in the graph",
   "PROJ-C006": "Class uses decorators but its module source is unavailable",
   "PROJ-C007": "Unsupported decorator form",
@@ -226,7 +226,7 @@ export const CODE_TITLES: Readonly<Record<ProjectionCode, string>> = {
   "PROJ-M008": "Manifest JSON is syntactically invalid",
   "PROJ-M009": "Required manifest field is missing or has the wrong type",
   "PROJ-B001": "Compiled scripted component has no manifest entry",
-  "PROJ-B002": "--projection-manifest supplied with a non-WebUI plugin",
+  "PROJ-B002": "--projection-manifest supplied with a non-webhub plugin",
   "PROJ-S001": "Manifest file exceeds the 16 MiB size limit",
   "PROJ-S002": "Manifest components count exceeds 65,535",
   "PROJ-S003": "Normalized path traverses outside the project root",

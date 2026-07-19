@@ -4,8 +4,8 @@
 import { readFile, writeFile } from "fs/promises";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
-import themeJson from "@microsoft/webui-examples-theme/tokens.json";
-import initWasm, { Protocol } from "../public/wasm/handler/webui_wasm_handler.js";
+import themeJson from "@microsoft/webhub-examples-theme/tokens.json";
+import initWasm, { Protocol } from "../public/wasm/handler/webhub_wasm_handler.js";
 
 interface ThemeFile {
   themes: Record<string, Record<string, string>>;
@@ -17,7 +17,7 @@ const protocolPath = resolve(exampleRoot, "public/protocol.bin");
 const bootstrapPath = resolve(exampleRoot, "src/bootstrap.html");
 const indexPath = resolve(exampleRoot, "public/index.html");
 const themeCssPath = resolve(exampleRoot, "public/theme.css");
-const wasmPath = resolve(exampleRoot, "public/wasm/handler/webui_wasm_handler_bg.wasm");
+const wasmPath = resolve(exampleRoot, "public/wasm/handler/webhub_wasm_handler_bg.wasm");
 const themeFile: ThemeFile = themeJson;
 
 await initWasm({ module_or_path: await readFile(wasmPath) });
@@ -28,8 +28,8 @@ const html = await readFile(bootstrapPath, "utf-8");
 const lightCss = resolveTheme("light", requiredTokens);
 const darkCss = resolveTheme("dark", requiredTokens);
 const themed = html
-  .replace("<!--WEBUI_THEME_LIGHT-->", lightCss)
-  .replace("<!--WEBUI_THEME_DARK-->", darkCss);
+  .replace("<!--webhub_THEME_LIGHT-->", lightCss)
+  .replace("<!--webhub_THEME_DARK-->", darkCss);
 
 if (themed === html) {
   throw new Error("Theme placeholders were not replaced in src/bootstrap.html");
@@ -42,7 +42,7 @@ console.log(`Injected ${requiredTokens.length} protocol token(s) into public/ind
 function resolveTheme(themeName: string, requiredTokens: string[]): string {
   const theme = themeFile.themes[themeName];
   if (!theme) {
-    throw new Error(`Theme '${themeName}' is missing from @microsoft/webui-examples-theme`);
+    throw new Error(`Theme '${themeName}' is missing from @microsoft/webhub-examples-theme`);
   }
 
   const missing = requiredTokens.filter(

@@ -1,19 +1,19 @@
-# webui
+# webhub
 
-Programmatic Rust API for the [WebUI](https://github.com/microsoft/webui) build-time rendering framework. Parse templates, compile protocols, and render HTML — no CLI required.
+Programmatic Rust API for the [webhub](https://github.com/microsoft/webhub) build-time rendering framework. Parse templates, compile protocols, and render HTML — no CLI required.
 
 ## Install
 
 ```bash
-cargo add webui
+cargo add webhub
 ```
 
 ## Quick Start
 
 ```rust
-use webui::{build, BuildOptions, DomStrategy};
+use webhub::{build, BuildOptions, DomStrategy};
 
-// Build a WebUI application from an app directory
+// Build a webhub application from an app directory
 let result = build(BuildOptions {
     app_dir: "my-app/src".into(),
     entry: "index.html".into(),
@@ -23,7 +23,7 @@ let result = build(BuildOptions {
 
 // result.protocol_bytes — serialized protocol (protobuf binary)
 // result.css_files — extracted component CSS files
-// result.component_asset_files — static `.webui.js` ESM component assets
+// result.component_asset_files — static `.webhub.js` ESM component assets
 // result.stats — build timing and fragment counts
 ```
 
@@ -37,7 +37,7 @@ let result = build(BuildOptions {
 | `build_to_disk(options, out_dir)` | Build and write `protocol.bin`, CSS, and component assets to disk |
 
 ```rust
-use webui::{build_to_disk, BuildOptions, CssStrategy, DomStrategy, LegalComments, Plugin};
+use webhub::{build_to_disk, BuildOptions, CssStrategy, DomStrategy, LegalComments, Plugin};
 
 build_to_disk(
     BuildOptions {
@@ -67,12 +67,12 @@ BuildOptions {
 ```
 
 To emit lazy static component assets from Rust, set `component_asset_roots` and
-use the WebUI plugin:
+use the webhub plugin:
 
 ```rust
 BuildOptions {
     app_dir: "src".into(),
-    plugin: Some(Plugin::WebUI),
+    plugin: Some(Plugin::webhub),
     component_asset_roots: vec!["settings-dialog".into()],
     ..BuildOptions::default()
 }
@@ -85,28 +85,28 @@ containing `@license` or `@preserve`, or starting with `/*!` or `//!`. Use
 ### Render
 
 ```rust
-use webui::{Protocol, RenderOptions, ResponseWriter, WebUIHandler};
+use webhub::{Protocol, RenderOptions, ResponseWriter, webhubHandler};
 
 let protocol = Protocol::from_protobuf(&protocol_bytes)?;
-let state: serde_json::Value = serde_json::json!({"name": "WebUI"});
+let state: serde_json::Value = serde_json::json!({"name": "webhub"});
 
-let handler = WebUIHandler::new();
+let handler = webhubHandler::new();
 handler.render(&protocol, &state, &RenderOptions::new("index.html", "/"), &mut writer)?;
 ```
 
-With a hydration plugin enabled (the `webui` plugin shown here; see the WebUI documentation for the available plugin identifiers):
+With a hydration plugin enabled (the `webhub` plugin shown here; see the webhub documentation for the available plugin identifiers):
 
 ```rust
-use webui::{WebUIHandler, HandlerPlugin};
-use webui_handler::plugin::webui::WebUIHydrationPlugin;
+use webhub::{webhubHandler, HandlerPlugin};
+use webhub_handler::plugin::webhub::webhubHydrationPlugin;
 
-let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
 ```
 
 ### Inspect
 
 ```rust
-use webui::{inspect, inspect_bytes};
+use webhub::{inspect, inspect_bytes};
 
 // From a file
 let json = inspect(Path::new("dist/protocol.bin"))?;
@@ -134,11 +134,11 @@ let partial = protocol.render_partial(
 | `BuildResult` | Build output (protocol, css_files, component_templates with metadata/closures, stats) |
 | `BuildStats` | Build metrics (duration, fragment_count, protocol_size_bytes) |
 | `Protocol` | Loaded immutable runtime protocol with reusable indices |
-| `WebUIHandler` | Rendering engine (stateless, thread-safe) |
+| `webhubHandler` | Rendering engine (stateless, thread-safe) |
 | `RenderOptions` | Render configuration (entry_id, request_path) |
 | `ResponseWriter` | Trait for streaming rendered output |
 | `CssStrategy` | CSS delivery mode (Link or Style) |
-| `WebUIError` | Error type for build/inspect operations |
+| `webhubError` | Error type for build/inspect operations |
 
 ## License
 

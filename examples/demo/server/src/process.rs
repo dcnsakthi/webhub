@@ -49,14 +49,14 @@ impl Drop for ProcessManager {
 
 fn spawn_app_server(app: &AppEntry) -> anyhow::Result<Child> {
     match &app.config {
-        AppRunConfig::WebuiCli {
+        AppRunConfig::webhubCli {
             plugin,
             source,
             servedir,
             state,
             theme,
         } => {
-            let mut cmd = Command::new("webui");
+            let mut cmd = Command::new("webhub");
             cmd.arg("serve")
                 .arg(source)
                 .arg("--servedir")
@@ -85,14 +85,14 @@ fn spawn_app_server(app: &AppEntry) -> anyhow::Result<Child> {
                 .stderr(Stdio::inherit());
 
             log::info!(
-                "Starting {} (webui serve, port {}, dir {:?})",
+                "Starting {} (webhub serve, port {}, dir {:?})",
                 app.slug,
                 app.port,
                 app.dir
             );
 
             cmd.spawn()
-                .map_err(|e| anyhow::anyhow!("Failed to start webui for {}: {e}", app.slug))
+                .map_err(|e| anyhow::anyhow!("Failed to start webhub for {}: {e}", app.slug))
         }
         AppRunConfig::CustomBinary { binary, args } => {
             let mut cmd = Command::new(binary);

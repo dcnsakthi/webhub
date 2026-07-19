@@ -1,13 +1,13 @@
-# @microsoft/webui
+# @microsoft/webhub
 
 High-performance server-side rendering framework. Compiles HTML templates into a binary protocol at build time and renders them with native speed at runtime - no JavaScript runtime overhead.
 
-> 📖 **Full documentation, tutorials, and playground at [microsoft.github.io/webui](https://microsoft.github.io/webui)**
+> 📖 **Full documentation, tutorials, and playground at [microsoft.github.io/webhub](https://microsoft.github.io/webhub)**
 
 ## Installation
 
 ```bash
-npm install @microsoft/webui
+npm install @microsoft/webhub
 ```
 
 The package automatically installs the correct platform-specific native binary for your OS and architecture (Windows, macOS, Linux - x64 and arm64).
@@ -15,13 +15,13 @@ The package automatically installs the correct platform-specific native binary f
 ## Quick start
 
 ```js
-import { build, Protocol } from "@microsoft/webui";
+import { build, Protocol } from "@microsoft/webhub";
 
 // Build templates into a protocol
 const result = build({ appDir: "./src" });
 
 // Decode and index once, then render repeatedly
-const protocol = new Protocol(result.protocol, { plugin: "webui" });
+const protocol = new Protocol(result.protocol, { plugin: "webhub" });
 const html = protocol.render({ name: "World", items: ["a", "b"] });
 console.log(html);
 ```
@@ -37,9 +37,9 @@ const result = build({
   appDir: "./src",        // Path to the template directory
   entry: "index.html",   // Entry file (default: "index.html")
   css: "link",           // CSS strategy: "link" or "style"
-  plugin: "webui",       // Parser plugin name
+  plugin: "webhub",       // Parser plugin name
   components: [],        // Additional component sources
-  componentAssetRoots: ["settings-dialog"], // Static .webui.js asset roots
+  componentAssetRoots: ["settings-dialog"], // Static .webhub.js asset roots
   cssFileNameTemplate: "[name]-[hash].[ext]", // CSS/component asset filename template
   cssPublicBase: "https://cdn.example.com/assets", // Optional CDN/public href base
   theme: "./themes/brand.json", // Optional design-token theme validation
@@ -61,7 +61,7 @@ Misspelled literal-fallback tokens are returned as non-fatal warnings.
 
 ### Optional state projection
 
-The build-only `@microsoft/webui/projection.js` subpath exposes the
+The build-only `@microsoft/webhub/projection.js` subpath exposes the
 bundler-neutral projection compiler and the supported esbuild adapter. esbuild
 and TypeScript are optional peer dependencies, so applications that do not use
 projection do not install or load them:
@@ -72,7 +72,7 @@ npm install -D esbuild typescript
 
 ```js
 import * as esbuild from "esbuild";
-import { esbuildProjection } from "@microsoft/webui/projection.js";
+import { esbuildProjection } from "@microsoft/webhub/projection.js";
 
 await esbuild.build({
   entryPoints: ["src/index.ts"],
@@ -85,13 +85,13 @@ await esbuild.build({
 
 const result = build({
   appDir: "./src",
-  plugin: "webui",
-  projectionManifests: ["./dist/webui-projection.json"],
+  plugin: "webhub",
+  projectionManifests: ["./dist/webhub-projection.json"],
 });
 ```
 
 esbuild runs once and emits both browser chunks and
-`webui-projection.json`; WebUI then embeds the exact initial/navigation
+`webhub-projection.json`; webhub then embeds the exact initial/navigation
 surfaces into `protocol.bin`. The adapter uses esbuild's resolved graph and
 emitted output membership, so code splitting, dynamic imports, output hashes,
 and external bundles remain application-owned.
@@ -101,7 +101,7 @@ Other bundler adapters can use the exported `AdapterContext`,
 package currently ships and supports `esbuildProjection()` as its official
 adapter.
 
-With no manifest, WebUI performs no JavaScript analysis and preserves full
+With no manifest, webhub performs no JavaScript analysis and preserves full
 state. Once any manifest is supplied, coverage is strict: every scripted
 component compiled into the protocol must have exactly one entry. Shared
 controls built as external bundles should emit their own manifest fragment,
@@ -117,7 +117,7 @@ Decodes and indexes a compiled protocol once. Keep this object for the server
 lifetime and use it for all runtime operations.
 
 ```js
-const protocol = new Protocol(protocolBytes, { plugin: "webui" });
+const protocol = new Protocol(protocolBytes, { plugin: "webhub" });
 ```
 
 `Protocol` owns its decoded native state. The package does not keep a hidden
@@ -167,32 +167,32 @@ const { templates, templateFunctions, templateStyles, inventory } = JSON.parse(j
 
 ## CLI
 
-The package also includes the `webui` CLI binary:
+The package also includes the `webhub` CLI binary:
 
 ```bash
 # Build templates to disk
-npx webui build ./src --out ./dist
+npx webhub build ./src --out ./dist
 
 # Start a dev server
-npx webui serve ./src --state ./data/state.json --port 3000
+npx webhub serve ./src --state ./data/state.json --port 3000
 
 # Inspect a compiled protocol
-npx webui inspect ./dist/protocol.bin
+npx webhub inspect ./dist/protocol.bin
 ```
 
 ## Platform support
 
 | OS | Architecture | Package |
 |---|---|---|
-| Windows | x64 | `@microsoft/webui-win32-x64` |
-| Windows | arm64 | `@microsoft/webui-win32-arm64` |
-| macOS | arm64 | `@microsoft/webui-darwin-arm64` |
-| macOS | x64 | `@microsoft/webui-darwin-x64` |
-| Linux | x64 | `@microsoft/webui-linux-x64` |
-| Linux | arm64 | `@microsoft/webui-linux-arm64` |
+| Windows | x64 | `@microsoft/webhub-win32-x64` |
+| Windows | arm64 | `@microsoft/webhub-win32-arm64` |
+| macOS | arm64 | `@microsoft/webhub-darwin-arm64` |
+| macOS | x64 | `@microsoft/webhub-darwin-x64` |
+| Linux | x64 | `@microsoft/webhub-linux-x64` |
+| Linux | arm64 | `@microsoft/webhub-linux-arm64` |
 
 Platform-specific packages are installed automatically as optional dependencies.
 
 ## License
 
-[MIT](https://github.com/microsoft/webui/blob/main/LICENSE)
+[MIT](https://github.com/microsoft/webhub/blob/main/LICENSE)

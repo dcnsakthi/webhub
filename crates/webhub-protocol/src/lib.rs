@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! WebUI Protocol implementation.
+//! webhub Protocol implementation.
 //!
-//! This crate defines the protocol used by the WebUI framework for cross-platform
+//! This crate defines the protocol used by the webhub framework for cross-platform
 //! representation of UI components and templates. Types are generated directly
-//! from `proto/webui.proto` using prost for optimal runtime performance —
+//! from `proto/webhub.proto` using prost for optimal runtime performance —
 //! no conversion layer between domain types and protobuf types.
 
 use prost::Message;
@@ -23,33 +23,33 @@ pub mod projection_manifest;
 /// Attribute-name ↔ property-name mapping for irregular HTML attributes.
 pub mod attrs;
 
-/// Generated protobuf types from `proto/webui.proto`.
+/// Generated protobuf types from `proto/webhub.proto`.
 pub mod proto {
-    include!("gen_webui.rs");
+    include!("gen_webhub.rs");
 }
 
 // Re-export all generated types at the crate root.
 pub use plugin::FastElementData;
-pub use plugin::WebUIElementData;
+pub use plugin::webhubElementData;
 pub use proto::*;
 
-// Type aliases preserving the `WebUI` naming convention.
-// prost generates `WebUi*` from the proto `WebUI*` messages.
-pub type WebUIProtocol = WebUiProtocol;
-pub type WebUIFragment = WebUiFragment;
-pub type WebUIFragmentRaw = WebUiFragmentRaw;
-pub type WebUIFragmentComponent = WebUiFragmentComponent;
-pub type WebUIFragmentFor = WebUiFragmentFor;
-pub type WebUIFragmentSignal = WebUiFragmentSignal;
-pub type WebUIFragmentIf = WebUiFragmentIf;
-pub type WebUIFragmentAttribute = WebUiFragmentAttribute;
-pub type WebUIFragmentPlugin = WebUiFragmentPlugin;
-pub type WebUIFragmentRoute = WebUiFragmentRoute;
-pub type WebUIFragmentOutlet = WebUiFragmentOutlet;
+// Type aliases preserving the `webhub` naming convention.
+// prost generates `webhub*` from the proto `webhub*` messages.
+pub type webhubProtocol = webhubProtocol;
+pub type webhubFragment = webhubFragment;
+pub type webhubFragmentRaw = webhubFragmentRaw;
+pub type webhubFragmentComponent = webhubFragmentComponent;
+pub type webhubFragmentFor = webhubFragmentFor;
+pub type webhubFragmentSignal = webhubFragmentSignal;
+pub type webhubFragmentIf = webhubFragmentIf;
+pub type webhubFragmentAttribute = webhubFragmentAttribute;
+pub type webhubFragmentPlugin = webhubFragmentPlugin;
+pub type webhubFragmentRoute = webhubFragmentRoute;
+pub type webhubFragmentOutlet = webhubFragmentOutlet;
 pub type ComponentData = proto::ComponentData;
 
 /// A mapping of unique fragment identifiers to their corresponding fragment lists.
-pub type WebUIFragmentRecords = HashMap<String, FragmentList>;
+pub type webhubFragmentRecords = HashMap<String, FragmentList>;
 
 #[derive(Debug, Error)]
 pub enum ProtocolError {
@@ -123,11 +123,11 @@ impl fmt::Display for ConditionExpr {
 
 // ── Convenience constructors ────────────────────────────────────────────
 
-impl WebUiFragment {
+impl webhubFragment {
     /// Create a raw (static content) fragment.
     pub fn raw(value: impl Into<String>) -> Self {
         Self {
-            fragment: Some(web_ui_fragment::Fragment::Raw(WebUiFragmentRaw {
+            fragment: Some(web_ui_fragment::Fragment::Raw(webhubFragmentRaw {
                 value: value.into(),
             })),
         }
@@ -137,7 +137,7 @@ impl WebUiFragment {
     pub fn component(fragment_id: impl Into<String>) -> Self {
         Self {
             fragment: Some(web_ui_fragment::Fragment::Component(
-                WebUiFragmentComponent {
+                webhubFragmentComponent {
                     fragment_id: fragment_id.into(),
                 },
             )),
@@ -151,7 +151,7 @@ impl WebUiFragment {
         fragment_id: impl Into<String>,
     ) -> Self {
         Self {
-            fragment: Some(web_ui_fragment::Fragment::ForLoop(WebUiFragmentFor {
+            fragment: Some(web_ui_fragment::Fragment::ForLoop(webhubFragmentFor {
                 item: item.into(),
                 collection: collection.into(),
                 fragment_id: fragment_id.into(),
@@ -162,7 +162,7 @@ impl WebUiFragment {
     /// Create a signal fragment.
     pub fn signal(value: impl Into<String>, raw: bool) -> Self {
         Self {
-            fragment: Some(web_ui_fragment::Fragment::Signal(WebUiFragmentSignal {
+            fragment: Some(web_ui_fragment::Fragment::Signal(webhubFragmentSignal {
                 value: value.into(),
                 raw,
             })),
@@ -172,7 +172,7 @@ impl WebUiFragment {
     /// Create an if-condition fragment.
     pub fn if_cond(condition: ConditionExpr, fragment_id: impl Into<String>) -> Self {
         Self {
-            fragment: Some(web_ui_fragment::Fragment::IfCond(WebUiFragmentIf {
+            fragment: Some(web_ui_fragment::Fragment::IfCond(webhubFragmentIf {
                 condition: Some(condition),
                 fragment_id: fragment_id.into(),
             })),
@@ -183,7 +183,7 @@ impl WebUiFragment {
     pub fn attribute(name: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
             fragment: Some(web_ui_fragment::Fragment::Attribute(
-                WebUiFragmentAttribute {
+                webhubFragmentAttribute {
                     name: name.into(),
                     value: value.into(),
                     ..Default::default()
@@ -196,7 +196,7 @@ impl WebUiFragment {
     pub fn attribute_template(name: impl Into<String>, template: impl Into<String>) -> Self {
         Self {
             fragment: Some(web_ui_fragment::Fragment::Attribute(
-                WebUiFragmentAttribute {
+                webhubFragmentAttribute {
                     name: name.into(),
                     template: template.into(),
                     ..Default::default()
@@ -209,7 +209,7 @@ impl WebUiFragment {
     pub fn attribute_complex(name: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
             fragment: Some(web_ui_fragment::Fragment::Attribute(
-                WebUiFragmentAttribute {
+                webhubFragmentAttribute {
                     name: name.into(),
                     value: value.into(),
                     complex: true,
@@ -223,7 +223,7 @@ impl WebUiFragment {
     pub fn attribute_boolean(name: impl Into<String>, condition_tree: ConditionExpr) -> Self {
         Self {
             fragment: Some(web_ui_fragment::Fragment::Attribute(
-                WebUiFragmentAttribute {
+                webhubFragmentAttribute {
                     name: name.into(),
                     condition_tree: Some(condition_tree),
                     ..Default::default()
@@ -236,7 +236,7 @@ impl WebUiFragment {
     /// The data is passed through to the handler plugin without interpretation.
     pub fn plugin(data: Vec<u8>) -> Self {
         Self {
-            fragment: Some(web_ui_fragment::Fragment::Plugin(WebUiFragmentPlugin {
+            fragment: Some(web_ui_fragment::Fragment::Plugin(webhubFragmentPlugin {
                 data,
             })),
         }
@@ -245,7 +245,7 @@ impl WebUiFragment {
     /// Create a route fragment linking a URL path template to a fragment.
     pub fn route(path: impl Into<String>, fragment_id: impl Into<String>) -> Self {
         Self {
-            fragment: Some(web_ui_fragment::Fragment::Route(WebUiFragmentRoute {
+            fragment: Some(web_ui_fragment::Fragment::Route(webhubFragmentRoute {
                 path: path.into(),
                 fragment_id: fragment_id.into(),
                 keep_alive: false,
@@ -254,8 +254,8 @@ impl WebUiFragment {
         }
     }
 
-    /// Create a route fragment from a pre-built `WebUiFragmentRoute`.
-    pub fn route_from(route: WebUiFragmentRoute) -> Self {
+    /// Create a route fragment from a pre-built `webhubFragmentRoute`.
+    pub fn route_from(route: webhubFragmentRoute) -> Self {
         Self {
             fragment: Some(web_ui_fragment::Fragment::Route(route)),
         }
@@ -264,7 +264,7 @@ impl WebUiFragment {
     /// Create an outlet fragment.
     pub fn outlet() -> Self {
         Self {
-            fragment: Some(web_ui_fragment::Fragment::Outlet(WebUiFragmentOutlet {})),
+            fragment: Some(web_ui_fragment::Fragment::Outlet(webhubFragmentOutlet {})),
         }
     }
 }
@@ -319,9 +319,9 @@ impl ConditionExpr {
 
 // ── Constructors ────────────────────────────────────────────────────────
 
-impl WebUiProtocol {
+impl webhubProtocol {
     /// Create a protocol from fragment records with no CSS tokens.
-    pub fn new(fragments: WebUIFragmentRecords) -> Self {
+    pub fn new(fragments: webhubFragmentRecords) -> Self {
         Self {
             fragments,
             tokens: Vec::new(),
@@ -333,7 +333,7 @@ impl WebUiProtocol {
     }
 
     /// Create a protocol from fragment records with CSS tokens.
-    pub fn with_tokens(fragments: WebUIFragmentRecords, tokens: Vec<String>) -> Self {
+    pub fn with_tokens(fragments: webhubFragmentRecords, tokens: Vec<String>) -> Self {
         Self {
             fragments,
             tokens,
@@ -347,7 +347,7 @@ impl WebUiProtocol {
 
 // ── Serialization / deserialization / validation ────────────────────────
 
-impl WebUiProtocol {
+impl webhubProtocol {
     /// Validate that all fragment references point to existing fragment IDs.
     fn validate_protocol(protocol: Self) -> Result<Self> {
         let fragments = &protocol.fragments;
@@ -450,48 +450,48 @@ impl WebUiProtocol {
 mod tests {
     use super::*;
 
-    fn sample_protocol() -> WebUIProtocol {
+    fn sample_protocol() -> webhubProtocol {
         let mut fragments = HashMap::new();
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Hello, WebUI!\n"),
-                    WebUIFragment::for_loop("person", "people", "for-1"),
-                    WebUIFragment::signal("description", true),
-                    WebUIFragment::if_cond(ConditionExpr::identifier("contact"), "if-1"),
+                    webhubFragment::raw("Hello, webhub!\n"),
+                    webhubFragment::for_loop("person", "people", "for-1"),
+                    webhubFragment::signal("description", true),
+                    webhubFragment::if_cond(ConditionExpr::identifier("contact"), "if-1"),
                 ],
             },
         );
         fragments.insert(
             "for-1".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::signal("person.name", false)],
+                fragments: vec![webhubFragment::signal("person.name", false)],
             },
         );
         fragments.insert(
             "if-1".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("contact-card")],
+                fragments: vec![webhubFragment::component("contact-card")],
             },
         );
         fragments.insert(
             "contact-card".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Hello, "),
-                    WebUIFragment::signal("name", false),
+                    webhubFragment::raw("Hello, "),
+                    webhubFragment::signal("name", false),
                 ],
             },
         );
-        WebUIProtocol::new(fragments)
+        webhubProtocol::new(fragments)
     }
 
     #[test]
     fn test_protobuf_roundtrip() {
         let protocol = sample_protocol();
         let bytes = protocol.to_protobuf().expect("encode failed");
-        let decoded = WebUIProtocol::from_protobuf(&bytes).expect("decode failed");
+        let decoded = webhubProtocol::from_protobuf(&bytes).expect("decode failed");
         assert_eq!(protocol, decoded);
     }
 
@@ -502,11 +502,11 @@ mod tests {
             "main".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("text"),
-                    WebUIFragment::component("comp"),
-                    WebUIFragment::for_loop("x", "xs", "loop"),
-                    WebUIFragment::signal("sig", true),
-                    WebUIFragment::if_cond(
+                    webhubFragment::raw("text"),
+                    webhubFragment::component("comp"),
+                    webhubFragment::for_loop("x", "xs", "loop"),
+                    webhubFragment::signal("sig", true),
+                    webhubFragment::if_cond(
                         ConditionExpr::predicate("a", ComparisonOperator::GreaterThan, "1"),
                         "cond",
                     ),
@@ -516,25 +516,25 @@ mod tests {
         fragments.insert(
             "comp".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("c")],
+                fragments: vec![webhubFragment::raw("c")],
             },
         );
         fragments.insert(
             "loop".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("l")],
+                fragments: vec![webhubFragment::raw("l")],
             },
         );
         fragments.insert(
             "cond".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("i")],
+                fragments: vec![webhubFragment::raw("i")],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let bytes = protocol.to_protobuf().unwrap();
-        let decoded = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let decoded = webhubProtocol::from_protobuf(&bytes).unwrap();
         assert_eq!(protocol, decoded);
     }
 
@@ -553,7 +553,7 @@ mod tests {
             fragments.insert(
                 "main".to_string(),
                 FragmentList {
-                    fragments: vec![WebUIFragment::if_cond(
+                    fragments: vec![webhubFragment::if_cond(
                         ConditionExpr::predicate("a", *op, "b"),
                         "then",
                     )],
@@ -562,12 +562,12 @@ mod tests {
             fragments.insert(
                 "then".to_string(),
                 FragmentList {
-                    fragments: vec![WebUIFragment::raw("ok")],
+                    fragments: vec![webhubFragment::raw("ok")],
                 },
             );
-            let p = WebUIProtocol::new(fragments);
+            let p = webhubProtocol::new(fragments);
             let bytes = p.to_protobuf().unwrap();
-            let decoded = WebUIProtocol::from_protobuf(&bytes).unwrap();
+            let decoded = webhubProtocol::from_protobuf(&bytes).unwrap();
             assert_eq!(p, decoded);
         }
     }
@@ -588,18 +588,18 @@ mod tests {
         fragments.insert(
             "main".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::if_cond(nested, "then")],
+                fragments: vec![webhubFragment::if_cond(nested, "then")],
             },
         );
         fragments.insert(
             "then".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("ok")],
+                fragments: vec![webhubFragment::raw("ok")],
             },
         );
-        let p = WebUIProtocol::new(fragments);
+        let p = webhubProtocol::new(fragments);
         let bytes = p.to_protobuf().unwrap();
-        let decoded = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let decoded = webhubProtocol::from_protobuf(&bytes).unwrap();
         assert_eq!(p, decoded);
     }
 
@@ -615,30 +615,30 @@ mod tests {
         fragments.insert(
             "main".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::if_cond(compound, "body")],
+                fragments: vec![webhubFragment::if_cond(compound, "body")],
             },
         );
         fragments.insert(
             "body".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("yes")],
+                fragments: vec![webhubFragment::raw("yes")],
             },
         );
-        let p = WebUIProtocol::new(fragments);
+        let p = webhubProtocol::new(fragments);
         let bytes = p.to_protobuf().unwrap();
-        let decoded = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let decoded = webhubProtocol::from_protobuf(&bytes).unwrap();
         assert_eq!(p, decoded);
     }
 
     #[test]
     fn test_protobuf_invalid_bytes() {
-        let result = WebUIProtocol::from_protobuf(&[0xFF, 0xFF, 0xFF]);
+        let result = webhubProtocol::from_protobuf(&[0xFF, 0xFF, 0xFF]);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_protobuf_empty_bytes() {
-        let result = WebUIProtocol::from_protobuf(&[]);
+        let result = webhubProtocol::from_protobuf(&[]);
         assert!(result.is_ok());
         assert!(result.unwrap().fragments.is_empty());
     }
@@ -646,12 +646,12 @@ mod tests {
     #[test]
     fn test_protobuf_file_roundtrip() {
         let protocol = sample_protocol();
-        let dir = std::env::temp_dir().join("webui-proto-test");
+        let dir = std::env::temp_dir().join("webhub-proto-test");
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("test.bin");
 
         protocol.to_protobuf_file(&path).unwrap();
-        let decoded = WebUIProtocol::from_protobuf_file(&path).unwrap();
+        let decoded = webhubProtocol::from_protobuf_file(&path).unwrap();
         assert_eq!(protocol, decoded);
 
         std::fs::remove_dir_all(&dir).ok();
@@ -663,14 +663,14 @@ mod tests {
         fragments.insert(
             "main".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("does-not-exist")],
+                fragments: vec![webhubFragment::component("does-not-exist")],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let buf = protocol.to_protobuf().unwrap();
 
-        let result = WebUIProtocol::from_protobuf(&buf);
+        let result = webhubProtocol::from_protobuf(&buf);
         assert!(result.is_err());
     }
 
@@ -680,14 +680,14 @@ mod tests {
         fragments.insert(
             "main".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::for_loop("item", "items", "missing-for")],
+                fragments: vec![webhubFragment::for_loop("item", "items", "missing-for")],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let buf = protocol.to_protobuf().unwrap();
 
-        let result = WebUIProtocol::from_protobuf(&buf);
+        let result = webhubProtocol::from_protobuf(&buf);
         assert!(result.is_err());
         if let Err(ProtocolError::Validation(msg)) = result {
             assert!(msg.contains("missing-for"));
@@ -700,17 +700,17 @@ mod tests {
         fragments.insert(
             "main".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::if_cond(
+                fragments: vec![webhubFragment::if_cond(
                     ConditionExpr::identifier("flag"),
                     "missing-if",
                 )],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let buf = protocol.to_protobuf().unwrap();
 
-        let result = WebUIProtocol::from_protobuf(&buf);
+        let result = webhubProtocol::from_protobuf(&buf);
         assert!(result.is_err());
         if let Err(ProtocolError::Validation(msg)) = result {
             assert!(msg.contains("missing-if"));
@@ -723,12 +723,12 @@ mod tests {
         fragments.insert(
             "main".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::signal("name", false)],
+                fragments: vec![webhubFragment::signal("name", false)],
             },
         );
-        let p = WebUIProtocol::new(fragments);
+        let p = webhubProtocol::new(fragments);
         let bytes = p.to_protobuf().unwrap();
-        let decoded = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let decoded = webhubProtocol::from_protobuf(&bytes).unwrap();
         let frag = &decoded.fragments["main"].fragments[0];
         match frag.fragment.as_ref() {
             Some(web_ui_fragment::Fragment::Signal(s)) => assert!(!s.raw),
@@ -745,7 +745,7 @@ mod tests {
 
     #[test]
     fn test_protocol_new_has_empty_tokens() {
-        let protocol = WebUIProtocol::new(HashMap::new());
+        let protocol = webhubProtocol::new(HashMap::new());
         assert!(protocol.tokens.is_empty());
         assert!(protocol.fragments.is_empty());
         assert_eq!(
@@ -756,7 +756,7 @@ mod tests {
 
     #[test]
     fn test_projection_metadata_roundtrips() {
-        let mut protocol = WebUIProtocol::new(HashMap::new());
+        let mut protocol = webhubProtocol::new(HashMap::new());
         protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
         protocol.components.insert(
             "my-card".to_string(),
@@ -769,7 +769,7 @@ mod tests {
         );
 
         let bytes = protocol.to_protobuf().unwrap();
-        let decoded = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let decoded = webhubProtocol::from_protobuf(&bytes).unwrap();
         assert_eq!(
             decoded.initial_state_strategy,
             InitialStateStrategy::Components as i32
@@ -784,7 +784,7 @@ mod tests {
     #[test]
     fn test_protocol_with_tokens() {
         let tokens = vec!["color-primary".to_string(), "spacing-m".to_string()];
-        let protocol = WebUIProtocol::with_tokens(HashMap::new(), tokens.clone());
+        let protocol = webhubProtocol::with_tokens(HashMap::new(), tokens.clone());
         assert_eq!(protocol.tokens, tokens);
     }
 
@@ -794,18 +794,18 @@ mod tests {
         fragments.insert(
             "main".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route("/profile/:id", "profile-page")],
+                fragments: vec![webhubFragment::route("/profile/:id", "profile-page")],
             },
         );
         fragments.insert(
             "profile-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<h1>Profile</h1>")],
+                fragments: vec![webhubFragment::raw("<h1>Profile</h1>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let bytes = protocol.to_protobuf().expect("encode failed");
-        let decoded = WebUIProtocol::from_protobuf(&bytes).expect("decode failed");
+        let decoded = webhubProtocol::from_protobuf(&bytes).expect("decode failed");
         assert_eq!(protocol, decoded);
 
         let frag = &decoded.fragments["main"].fragments[0];
@@ -821,8 +821,8 @@ mod tests {
     #[test]
     fn test_protobuf_route_fragment_all_fields() {
         let mut fragments = HashMap::new();
-        let route_frag = WebUiFragment {
-            fragment: Some(web_ui_fragment::Fragment::Route(WebUiFragmentRoute {
+        let route_frag = webhubFragment {
+            fragment: Some(web_ui_fragment::Fragment::Route(webhubFragmentRoute {
                 path: "/users/:id/posts/:postId".to_string(),
                 fragment_id: "user-posts".to_string(),
                 exact: true,
@@ -844,13 +844,13 @@ mod tests {
         fragments.insert(
             "user-posts".into(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("posts")],
+                fragments: vec![webhubFragment::raw("posts")],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let bytes = protocol.to_protobuf().expect("encode failed");
-        let decoded = WebUIProtocol::from_protobuf(&bytes).expect("decode failed");
+        let decoded = webhubProtocol::from_protobuf(&bytes).expect("decode failed");
         assert_eq!(protocol, decoded);
     }
 
@@ -860,12 +860,12 @@ mod tests {
         fragments.insert(
             "main".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route("/test", "missing-fragment")],
+                fragments: vec![webhubFragment::route("/test", "missing-fragment")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let buf = protocol.to_protobuf().expect("encode failed");
-        let result = WebUIProtocol::from_protobuf(&buf);
+        let result = webhubProtocol::from_protobuf(&buf);
         assert!(result.is_err());
         if let Err(ProtocolError::Validation(msg)) = result {
             assert!(msg.contains("missing-fragment"));
@@ -875,8 +875,8 @@ mod tests {
     #[test]
     fn test_protobuf_route_no_fragment_id_roundtrip() {
         let mut fragments = HashMap::new();
-        let route_frag = WebUiFragment {
-            fragment: Some(web_ui_fragment::Fragment::Route(WebUiFragmentRoute {
+        let route_frag = webhubFragment {
+            fragment: Some(web_ui_fragment::Fragment::Route(webhubFragmentRoute {
                 path: "/old-path".to_string(),
                 keep_alive: false,
                 ..Default::default()
@@ -888,18 +888,18 @@ mod tests {
                 fragments: vec![route_frag],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let bytes = protocol.to_protobuf().expect("encode failed");
-        let decoded = WebUIProtocol::from_protobuf(&bytes).expect("decode failed");
+        let decoded = webhubProtocol::from_protobuf(&bytes).expect("decode failed");
         assert_eq!(protocol, decoded);
     }
 
     #[test]
     fn test_protobuf_backward_compat_no_routes() {
         // Protocol without any fragments should decode successfully
-        let protocol = WebUIProtocol::new(HashMap::new());
+        let protocol = webhubProtocol::new(HashMap::new());
         let bytes = protocol.to_protobuf().expect("encode failed");
-        let decoded = WebUIProtocol::from_protobuf(&bytes).expect("decode failed");
+        let decoded = webhubProtocol::from_protobuf(&bytes).expect("decode failed");
         assert!(decoded.fragments.is_empty());
     }
 
@@ -909,14 +909,14 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("Hello")],
+                fragments: vec![webhubFragment::raw("Hello")],
             },
         );
         let tokens = vec!["border-radius-m".to_string(), "color-primary".to_string()];
-        let protocol = WebUIProtocol::with_tokens(fragments, tokens.clone());
+        let protocol = webhubProtocol::with_tokens(fragments, tokens.clone());
 
         let bytes = protocol.to_protobuf().expect("encode failed");
-        let decoded = WebUIProtocol::from_protobuf(&bytes).expect("decode failed");
+        let decoded = webhubProtocol::from_protobuf(&bytes).expect("decode failed");
 
         assert_eq!(decoded.tokens, tokens);
         assert!(decoded.fragments.contains_key("index.html"));

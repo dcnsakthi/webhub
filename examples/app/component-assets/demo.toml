@@ -2,13 +2,13 @@
 # See examples/demo/README.md for the full schema.
 
 name = "Component Assets"
-description = "A no-router app that loads a deferred component from static WebUI assets"
+description = "A no-router app that loads a deferred component from static webhub assets"
 backend = "rust"
 
 [server]
-type = "webui-cli"
-plugin = "webui"
+type = "webhub-cli"
+plugin = "webhub"
 source = "src"
 servedir = "dist"
 state = "data/state.json"
-theme = "@microsoft/webui-examples-theme"
+theme = "@microsoft/webhub-examples-theme"

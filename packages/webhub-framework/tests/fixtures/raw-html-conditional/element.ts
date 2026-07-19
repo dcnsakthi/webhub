@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
-export class TestRawHtml extends WebUIElement {
+export class TestRawHtml extends webhubElement {
   @observable expanded = true;
   @observable name = '';
   @observable rawHtml = '';

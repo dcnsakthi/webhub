@@ -4,15 +4,15 @@
 /**
  * Calculator hydration entry point.
  *
- * The server pre-renders HTML with hydration markers via `webui build --plugin=webui`.
- * Registered custom elements hydrate through WebUI Framework. Scriptless
+ * The server pre-renders HTML with hydration markers via `webhub build --plugin=webhub`.
+ * Registered custom elements hydrate through webhub Framework. Scriptless
  * components remain SSR-only.
  */
 
-window.addEventListener('webui:hydration-complete', logHydrationTiming);
+window.addEventListener('webhub:hydration-complete', logHydrationTiming);
 
 function logHydrationTiming(): void {
-  const total = performance.getEntriesByName('webui:hydrate:total', 'measure')[0];
+  const total = performance.getEntriesByName('webhub:hydrate:total', 'measure')[0];
   if (total) {
     console.log(`Calculator hydration complete in ${total.duration.toFixed(1)}ms`);
   }
@@ -23,6 +23,6 @@ import './calc-app/calc-app.js';
 import './calc-button/calc-button.js';
 
 // Fallback: if hydration already completed before the listener, log now
-if (performance.getEntriesByName('webui:hydrate:total', 'measure').length > 0) {
+if (performance.getEntriesByName('webhub:hydrate:total', 'measure').length > 0) {
   logHydrationTiming();
 }

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Deprecated FAST 2 hydration plugin for the WebUI handler.
+//! Deprecated FAST 2 hydration plugin for the webhub handler.
 //!
 //! Emits the legacy FAST 2 marker format used by the `fast` and `fast-v2`
 //! plugin names. FAST 3 hydration is implemented separately in `fast_v3`.
@@ -18,7 +18,7 @@ use super::HandlerPlugin;
 use crate::{HandlerError, ResponseWriter, Result};
 use serde_json::Value;
 use std::fmt::Write;
-use webui_protocol::FastElementData;
+use webhub_protocol::FastElementData;
 
 // FAST 2 comment format constants
 const V2_BINDING_START_PREFIX: &str = "<!--fe-b$$start$$";
@@ -214,7 +214,7 @@ fn write_fast_route_component_state(state: &Value, writer: &mut dyn ResponseWrit
             Value::Bool(false) => std::borrow::Cow::Borrowed("false"),
             _ => continue,
         };
-        let attr_name = webui_protocol::attrs::camel_to_kebab(key);
+        let attr_name = webhub_protocol::attrs::camel_to_kebab(key);
         writer.write(" ")?;
         writer.write(&attr_name)?;
         writer.write("=\"")?;

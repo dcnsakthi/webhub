@@ -4,9 +4,9 @@
 #include <stdlib.h>
 
 /**
- * Opaque C handle for a loaded WebUI protocol.
+ * Opaque C handle for a loaded webhub protocol.
  */
-typedef void webui_protocol_t;
+typedef void webhub_protocol_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,18 +22,18 @@ extern "C" {
  *
  * Each thread has its own independent error state.
  */
-const char *webui_last_error(void);
+const char *webhub_last_error(void);
 
 /**
- * Create a new WebUI handler instance.
+ * Create a new webhub handler instance.
  *
- * Returns an opaque pointer that must be passed to other `webui_handler_*`
- * functions and eventually freed with [`webui_handler_destroy`].
+ * Returns an opaque pointer that must be passed to other `webhub_handler_*`
+ * functions and eventually freed with [`webhub_handler_destroy`].
  */
-void *webui_handler_create(void);
+void *webhub_handler_create(void);
 
 /**
- * Create a new WebUI handler instance with a named plugin.
+ * Create a new webhub handler instance with a named plugin.
  *
  * # Arguments
  *
@@ -43,53 +43,53 @@ void *webui_handler_create(void);
  *
  * # Returns
  *
- * An opaque pointer that must be freed with [`webui_handler_destroy`],
- * or `NULL` on error (call [`webui_last_error`] for details).
+ * An opaque pointer that must be freed with [`webhub_handler_destroy`],
+ * or `NULL` on error (call [`webhub_last_error`] for details).
  *
  * # Safety
  *
  * `plugin_id` must be a valid null-terminated UTF-8 string, or `NULL`.
  */
-void *webui_handler_create_with_plugin(const char *plugin_id);
+void *webhub_handler_create_with_plugin(const char *plugin_id);
 
 /**
- * Destroy a WebUI handler instance.
+ * Destroy a webhub handler instance.
  *
  * # Safety
  *
- * `handler_ptr` must be a valid pointer returned by [`webui_handler_create`],
+ * `handler_ptr` must be a valid pointer returned by [`webhub_handler_create`],
  * or `NULL` (in which case this function is a no-op).
  */
-void webui_handler_destroy(void *handler_ptr);
+void webhub_handler_destroy(void *handler_ptr);
 
 /**
- * Decode and index a WebUI protocol for repeated rendering.
+ * Decode and index a webhub protocol for repeated rendering.
  *
  * The returned handle is thread-safe and must be released with
- * [`webui_protocol_destroy`].
+ * [`webhub_protocol_destroy`].
  *
  * # Safety
  *
  * `protocol_data` must point to `protocol_len` readable bytes.
  */
-webui_protocol_t *webui_protocol_create(const uint8_t *protocol_data, uintptr_t protocol_len);
+webhub_protocol_t *webhub_protocol_create(const uint8_t *protocol_data, uintptr_t protocol_len);
 
 /**
- * Destroy a loaded WebUI protocol handle.
+ * Destroy a loaded webhub protocol handle.
  *
  * # Safety
  *
- * `protocol_ptr` must be a pointer returned by [`webui_protocol_create`], or
+ * `protocol_ptr` must be a pointer returned by [`webhub_protocol_create`], or
  * `NULL` for a no-op.
  */
-void webui_protocol_destroy(webui_protocol_t *protocol_ptr);
+void webhub_protocol_destroy(webhub_protocol_t *protocol_ptr);
 
 /**
  * Set the CSP nonce for inline `<script>` tags on a handler instance.
  *
- * When set, all subsequent renders via [`webui_handler_render`] will include
+ * When set, all subsequent renders via [`webhub_handler_render`] will include
  * `nonce="VALUE"` on inline script tags and emit a
- * `<meta name="webui-nonce" content="VALUE">` tag in the `<head>`.
+ * `<meta name="webhub-nonce" content="VALUE">` tag in the `<head>`.
  *
  * Pass `NULL` to clear a previously set nonce.
  *
@@ -101,14 +101,14 @@ void webui_protocol_destroy(webui_protocol_t *protocol_ptr);
  *
  * # Safety
  *
- * * `handler_ptr` must be a valid pointer returned by [`webui_handler_create`].
+ * * `handler_ptr` must be a valid pointer returned by [`webhub_handler_create`].
  * * `nonce` must be a valid null-terminated UTF-8 string, or `NULL`.
  * * Caller must ensure exclusive access to `handler_ptr` (no concurrent calls).
  */
-void webui_handler_set_nonce(void *handler_ptr, const char *nonce);
+void webhub_handler_set_nonce(void *handler_ptr, const char *nonce);
 
 /**
- * Render using a protocol previously returned by [`webui_protocol_create`].
+ * Render using a protocol previously returned by [`webhub_protocol_create`].
  *
  * # Safety
  *
@@ -116,8 +116,8 @@ void webui_handler_set_nonce(void *handler_ptr, const char *nonce);
  * * `protocol_ptr` must be a valid loaded protocol pointer.
  * * String arguments must be valid null-terminated UTF-8.
  */
-char *webui_handler_render(void *handler_ptr,
-                           const webui_protocol_t *protocol_ptr,
+char *webhub_handler_render(void *handler_ptr,
+                           const webhub_protocol_t *protocol_ptr,
                            const char *data_json,
                            const char *entry_id,
                            const char *request_path);
@@ -127,10 +127,10 @@ char *webui_handler_render(void *handler_ptr,
  *
  * # Safety
  *
- * * `protocol_ptr` must be a valid pointer returned by [`webui_protocol_create`].
+ * * `protocol_ptr` must be a valid pointer returned by [`webhub_protocol_create`].
  * * All string pointers must be valid, non-null, null-terminated UTF-8.
  */
-char *webui_protocol_render_partial(const webui_protocol_t *protocol_ptr,
+char *webhub_protocol_render_partial(const webhub_protocol_t *protocol_ptr,
                                     const char *state_json,
                                     const char *entry_id,
                                     const char *request_path,
@@ -141,23 +141,23 @@ char *webui_protocol_render_partial(const webui_protocol_t *protocol_ptr,
  *
  * # Safety
  *
- * * `protocol_ptr` must be a valid pointer returned by [`webui_protocol_create`].
+ * * `protocol_ptr` must be a valid pointer returned by [`webhub_protocol_create`].
  * * String arguments must be valid, non-null, null-terminated UTF-8.
  */
-char *webui_protocol_render_component_templates(const webui_protocol_t *protocol_ptr,
+char *webhub_protocol_render_component_templates(const webhub_protocol_t *protocol_ptr,
                                                 const char *component_tags_json,
                                                 const char *inventory_hex);
 
 /**
- * Free a string returned by a WebUI FFI function.
+ * Free a string returned by a webhub FFI function.
  *
  * # Safety
  *
- * `string_ptr` must be a pointer returned by a WebUI FFI function such as
- * [`webui_handler_render`], or `NULL`
+ * `string_ptr` must be a pointer returned by a webhub FFI function such as
+ * [`webhub_handler_render`], or `NULL`
  * (in which case this function is a no-op).
  */
-void webui_free(char *string_ptr);
+void webhub_free(char *string_ptr);
 
 /**
  * Extract CSS token names from a loaded protocol handle.
@@ -166,10 +166,10 @@ void webui_free(char *string_ptr);
  *
  * # Safety
  *
- * * `protocol_ptr` must be a valid pointer returned by [`webui_protocol_create`].
- * * The returned pointer must be freed with [`webui_free`].
+ * * `protocol_ptr` must be a valid pointer returned by [`webhub_protocol_create`].
+ * * The returned pointer must be freed with [`webhub_free`].
  */
-char *webui_protocol_tokens(const webui_protocol_t *protocol_ptr);
+char *webhub_protocol_tokens(const webhub_protocol_t *protocol_ptr);
 
 #ifdef __cplusplus
 }  // extern "C"

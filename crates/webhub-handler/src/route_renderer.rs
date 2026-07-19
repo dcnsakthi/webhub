@@ -9,7 +9,7 @@
 use crate::route_matcher;
 use crate::route_matcher::CompiledRouteIndex;
 use crate::{ResponseWriter, Result};
-use webui_protocol::{web_ui_fragment::Fragment, WebUIFragment, WebUiFragmentRoute};
+use webhub_protocol::{web_ui_fragment::Fragment, webhubFragment, webhubFragmentRoute};
 
 /// Write pending/error attributes for a route fragment.
 ///
@@ -19,7 +19,7 @@ use webui_protocol::{web_ui_fragment::Fragment, WebUIFragment, WebUiFragmentRout
 /// for descendant fallback scanning on first navigation into unvisited subtrees.
 pub(crate) fn write_route_pending_attrs(
     writer: &mut dyn ResponseWriter,
-    route: &WebUiFragmentRoute,
+    route: &webhubFragmentRoute,
 ) -> Result<()> {
     if !route.pending_component.is_empty() {
         writer.write(" pending=\"")?;
@@ -73,7 +73,7 @@ pub(crate) fn write_escaped_state_attr(writer: &mut dyn ResponseWriter, value: &
 ///
 /// `route_base` is used to resolve relative paths (starting with `./`).
 pub(crate) fn find_best_route_match(
-    fragments: &[WebUIFragment],
+    fragments: &[webhubFragment],
     request_path: &str,
     route_base: &str,
     route_index: &CompiledRouteIndex,

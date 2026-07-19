@@ -1,13 +1,13 @@
-# WebUI Rust Example
+# webhub Rust Example
 
-Minimal example showing how to use WebUI as a Rust library to render a pre-built protocol with state data.
+Minimal example showing how to use webhub as a Rust library to render a pre-built protocol with state data.
 
 ## Prerequisites
 
 Build the hello-world app first:
 
 ```bash
-cargo run -p microsoft-webui-cli -- build ../../app/hello-world/templates --out ../../app/hello-world/dist
+cargo run -p microsoft-webhub-cli -- build ../../app/hello-world/templates --out ../../app/hello-world/dist
 ```
 
 ## Usage

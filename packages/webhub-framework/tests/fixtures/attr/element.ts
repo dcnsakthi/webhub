@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr, observable } from '../../../src/index.js';
+import { webhubElement, attr, observable } from '../../../src/index.js';
 
-export class TestAttr extends WebUIElement {
+export class TestAttr extends webhubElement {
   @attr label = 'Status';
   @attr({ attribute: 'display-value' }) displayValue = 'Ready';
   @attr({ attribute: 'cta-href' }) ctaHref = '/checkout';

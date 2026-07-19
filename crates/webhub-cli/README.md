@@ -1,23 +1,23 @@
-# microsoft-webui-cli
+# microsoft-webhub-cli
 
-Command-line tool for the [WebUI](https://github.com/microsoft/webui) framework — build, serve, and inspect WebUI applications.
+Command-line tool for the [webhub](https://github.com/microsoft/webhub) framework — build, serve, and inspect webhub applications.
 
 ## Install
 
 ```bash
-cargo install microsoft-webui-cli
+cargo install microsoft-webhub-cli
 ```
 
-This installs the `webui` binary.
+This installs the `webhub` binary.
 
 ## Commands
 
-### `webui build`
+### `webhub build`
 
-Build a WebUI application into a compiled protocol and CSS files.
+Build a webhub application into a compiled protocol and CSS files.
 
 ```bash
-webui build [APP] --out <DIR> [--entry <FILE>] [--css <MODE>] [--plugin <NAME>] [--asset-file-name-template <TEMPLATE>] [--css-public-base <BASE>]
+webhub build [APP] --out <DIR> [--entry <FILE>] [--css <MODE>] [--plugin <NAME>] [--asset-file-name-template <TEMPLATE>] [--css-public-base <BASE>]
 ```
 
 | Option | Default | Description |
@@ -26,24 +26,24 @@ webui build [APP] --out <DIR> [--entry <FILE>] [--css <MODE>] [--plugin <NAME>] 
 | `--out` | *(required)* | Output directory for protocol.bin + CSS, or a `.bin` file path to customize the protocol filename (e.g. `./dist/app1.bin`) |
 | `--entry` | `index.html` | Entry HTML file |
 | `--css` | `link` | CSS mode: `link` (external files) or `style` (inline) |
-| `--plugin` | *(none)* | Plugin identifier (see [Plugins](https://microsoft.github.io/webui/guide/concepts/plugins/) for available identifiers) |
+| `--plugin` | *(none)* | Plugin identifier (see [Plugins](https://microsoft.github.io/webhub/guide/concepts/plugins/) for available identifiers) |
 | `--asset-file-name-template` | `[name].[ext]` | Emitted asset filename template. Tokens: `[name]`, `[hash]`, `[ext]` |
 | `--css-public-base` | *(none)* | Optional base URL/path prepended to Link-mode stylesheet hrefs |
 
 ```bash
-webui build ./src --out ./dist
-webui build ./src --out ./dist --plugin webui --css style
-webui build ./src --out ./dist/app1.bin
-webui build ./src --out ./dist --asset-file-name-template "[name]-[hash].[ext]"
-webui build ./src --out ./dist --asset-file-name-template "[name]-[hash].[ext]" --css-public-base "https://cdn.example.com/assets"
+webhub build ./src --out ./dist
+webhub build ./src --out ./dist --plugin webhub --css style
+webhub build ./src --out ./dist/app1.bin
+webhub build ./src --out ./dist --asset-file-name-template "[name]-[hash].[ext]"
+webhub build ./src --out ./dist --asset-file-name-template "[name]-[hash].[ext]" --css-public-base "https://cdn.example.com/assets"
 ```
 
-### `webui serve`
+### `webhub serve`
 
 Start a development server with live rebuild and HMR.
 
 ```bash
-webui serve [APP] [--state <FILE>] [--servedir <DIR>] [--port <PORT>] [--api-port <PORT>] [--plugin <NAME>] [--watch] [--asset-file-name-template <TEMPLATE>] [--css-public-base <BASE>]
+webhub serve [APP] [--state <FILE>] [--servedir <DIR>] [--port <PORT>] [--api-port <PORT>] [--plugin <NAME>] [--watch] [--asset-file-name-template <TEMPLATE>] [--css-public-base <BASE>]
 ```
 
 | Option | Default | Description |
@@ -53,14 +53,14 @@ webui serve [APP] [--state <FILE>] [--servedir <DIR>] [--port <PORT>] [--api-por
 | `--servedir` | *(none)* | Static assets directory served at `/*` |
 | `--port` | `3000` | Server port |
 | `--api-port` | *(none)* | Proxy API requests to this port |
-| `--plugin` | *(none)* | Plugin identifier (see [Plugins](https://microsoft.github.io/webui/guide/concepts/plugins/) for available identifiers) |
+| `--plugin` | *(none)* | Plugin identifier (see [Plugins](https://microsoft.github.io/webhub/guide/concepts/plugins/) for available identifiers) |
 | `--watch` | off | Enable file watching + HMR |
 | `--asset-file-name-template` | `[name].[ext]` | Emitted asset filename template. Tokens: `[name]`, `[hash]`, `[ext]` |
 | `--css-public-base` | *(none)* | Optional base URL/path prepended to Link-mode stylesheet hrefs |
 
 ```bash
-webui serve ./src --state ./data/state.json --port 3000 --watch
-webui serve ./src --plugin webui --servedir ./dist --port 3004 --api-port 3014 --watch
+webhub serve ./src --state ./data/state.json --port 3000 --watch
+webhub serve ./src --plugin webhub --servedir ./dist --port 3004 --api-port 3014 --watch
 ```
 
 Features:
@@ -70,16 +70,16 @@ Features:
 - HMR polling at `/hmr` when `--watch` is enabled
 - API proxy when `--api-port` is set
 
-### `webui inspect`
+### `webhub inspect`
 
 Convert a compiled protocol to JSON for debugging.
 
 ```bash
-webui inspect <FILE>
+webhub inspect <FILE>
 ```
 
 ```bash
-webui inspect ./dist/protocol.bin
+webhub inspect ./dist/protocol.bin
 ```
 
 ## App Layout

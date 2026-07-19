@@ -18,7 +18,7 @@
     "playwright.config.ts",
     "src/**/*.ts",
     "tests/**/*.ts",
-    "../webui-test-support/**/*.ts"
+    "../webhub-test-support/**/*.ts"
   ],
   "exclude": ["dist", "node_modules", "tests/fixtures/dist"]
 }

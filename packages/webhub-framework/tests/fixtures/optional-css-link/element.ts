@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement } from '../../../src/index.js';
+import { webhubElement } from '../../../src/index.js';
 
-export class TestNoCssHost extends WebUIElement {
+export class TestNoCssHost extends webhubElement {
   spawnChild(): void {
     const slot = (this.shadowRoot ?? this).querySelector('.slot');
     if (!(slot instanceof HTMLDivElement)) {
@@ -15,7 +15,7 @@ export class TestNoCssHost extends WebUIElement {
   }
 }
 
-export class TestNoCssChild extends WebUIElement {}
+export class TestNoCssChild extends webhubElement {}
 
 TestNoCssHost.define('test-no-css-host');
 TestNoCssChild.define('test-no-css-child');

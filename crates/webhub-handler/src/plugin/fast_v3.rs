@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! FAST 3 hydration plugin for the WebUI handler.
+//! FAST 3 hydration plugin for the webhub handler.
 //!
 //! Emits FAST 3 HTML comment markers and data attributes that enable client-side
 //! FAST declarative templates to locate and re-hydrate server-rendered dynamic
@@ -18,7 +18,7 @@ use super::HandlerPlugin;
 use crate::{HandlerError, ResponseWriter, Result};
 use serde_json::Value;
 use std::fmt::Write;
-use webui_protocol::FastElementData;
+use webhub_protocol::FastElementData;
 
 // FAST 3 comment format constants
 const BINDING_START_MARKER: &str = "<!--fe:b-->";
@@ -183,7 +183,7 @@ fn write_fast_route_component_state(state: &Value, writer: &mut dyn ResponseWrit
             Value::Bool(false) => std::borrow::Cow::Borrowed("false"),
             _ => continue,
         };
-        let attr_name = webui_protocol::attrs::camel_to_kebab(key);
+        let attr_name = webhub_protocol::attrs::camel_to_kebab(key);
         writer.write(" ")?;
         writer.write(&attr_name)?;
         writer.write("=\"")?;
@@ -437,24 +437,24 @@ mod tests {
         );
     }
 
-    // ── Integration tests (full render cycles with WebUIHandler) ────────
+    // ── Integration tests (full render cycles with webhubHandler) ────────
 
     use std::collections::HashMap;
-    use webui_protocol::{
-        web_ui_fragment, ConditionExpr, FragmentList, LogicalOperator, WebUIFragment,
-        WebUIFragmentAttribute, WebUIProtocol,
+    use webhub_protocol::{
+        web_ui_fragment, ConditionExpr, FragmentList, LogicalOperator, webhubFragment,
+        webhubFragmentAttribute, webhubProtocol,
     };
-    use webui_test_utils::test_json;
+    use webhub_test_utils::test_json;
 
-    use crate::{RenderOptions, WebUIHandler};
+    use crate::{RenderOptions, webhubHandler};
 
     fn render_with_plugin(
-        protocol: &WebUIProtocol,
+        protocol: &webhubProtocol,
         state: &serde_json::Value,
         factory: fn() -> Box<dyn HandlerPlugin>,
     ) -> String {
         let mut writer = TestWriter::new();
-        let handler = WebUIHandler::with_plugin(factory);
+        let handler = webhubHandler::with_plugin(factory);
         handler
             .handle(
                 protocol,
@@ -466,9 +466,9 @@ mod tests {
         writer.output
     }
 
-    fn render_no_plugin(protocol: &WebUIProtocol, state: &serde_json::Value) -> String {
+    fn render_no_plugin(protocol: &webhubProtocol, state: &serde_json::Value) -> String {
         let mut writer = TestWriter::new();
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         handler
             .handle(
                 protocol,
@@ -487,13 +487,13 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("name", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("name", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"name": "Alice"});
         let output = render_no_plugin(&protocol, &state);
         assert_eq!(output, "<p>Alice</p>");
@@ -507,13 +507,13 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("name", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("name", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"name": "Alice"});
         let output =
             render_with_plugin(&protocol, &state, || Box::new(FastV3HydrationPlugin::new()));
@@ -527,16 +527,16 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::for_loop("item", "items", "for-1")],
+                fragments: vec![webhubFragment::for_loop("item", "items", "for-1")],
             },
         );
         fragments.insert(
             "for-1".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::signal("item", false)],
+                fragments: vec![webhubFragment::signal("item", false)],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"items": ["a", "b"]});
         let output =
             render_with_plugin(&protocol, &state, || Box::new(FastV3HydrationPlugin::new()));
@@ -553,7 +553,7 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::if_cond(
+                fragments: vec![webhubFragment::if_cond(
                     ConditionExpr::identifier("show"),
                     "if-1",
                 )],
@@ -562,10 +562,10 @@ mod tests {
         fragments.insert(
             "if-1".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Visible</p>")],
+                fragments: vec![webhubFragment::raw("<p>Visible</p>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
 
         // True case — root scope disabled, no markers; content still rendered
         let state = test_json!({"show": true});
@@ -589,19 +589,19 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::signal("before", false),
-                    WebUIFragment::component("my-comp"),
-                    WebUIFragment::signal("after", false),
+                    webhubFragment::signal("before", false),
+                    webhubFragment::component("my-comp"),
+                    webhubFragment::signal("after", false),
                 ],
             },
         );
         fragments.insert(
             "my-comp".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::signal("inner", false)],
+                fragments: vec![webhubFragment::signal("inner", false)],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"before": "B", "inner": "I", "after": "A"});
         let output =
             render_with_plugin(&protocol, &state, || Box::new(FastV3HydrationPlugin::new()));
@@ -615,15 +615,15 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div"),
-                    WebUIFragment::attribute("id", "itemId"),
-                    WebUIFragment::attribute("title", "itemTitle"),
-                    WebUIFragment::plugin(2u32.to_le_bytes().to_vec()),
-                    WebUIFragment::raw(">content</div>"),
+                    webhubFragment::raw("<div"),
+                    webhubFragment::attribute("id", "itemId"),
+                    webhubFragment::attribute("title", "itemTitle"),
+                    webhubFragment::plugin(2u32.to_le_bytes().to_vec()),
+                    webhubFragment::raw(">content</div>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"itemId": "42", "itemTitle": "Hello"});
         let output =
             render_with_plugin(&protocol, &state, || Box::new(FastV3HydrationPlugin::new()));
@@ -641,10 +641,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".to_string(),
                                 template: "attr-title".to_string(),
                                 attr_start: true,
@@ -652,9 +652,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</my-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</my-component>"),
                 ],
             },
         );
@@ -662,8 +662,8 @@ mod tests {
             "attr-title".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Hello "),
-                    WebUIFragment::signal("name", false),
+                    webhubFragment::raw("Hello "),
+                    webhubFragment::signal("name", false),
                 ],
             },
         );
@@ -671,13 +671,13 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("content", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("content", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"name": "World", "content": "CONTENT"});
 
         let output =
@@ -714,17 +714,17 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("hydratableComponent")],
+                fragments: vec![webhubFragment::component("hydratableComponent")],
             },
         );
         fragments.insert(
             "hydratableComponent".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::for_loop("category", "categories", "categoryTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::for_loop("category", "categories", "categoryTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -732,13 +732,13 @@ mod tests {
             "categoryTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<section"),
-                    WebUIFragment::attribute("data-category", "category.name"),
-                    WebUIFragment::plugin(1u32.to_le_bytes().to_vec()),
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::signal("category.title", false),
+                    webhubFragment::raw("<section"),
+                    webhubFragment::attribute("data-category", "category.name"),
+                    webhubFragment::plugin(1u32.to_le_bytes().to_vec()),
+                    webhubFragment::raw(">"),
+                    webhubFragment::signal("category.title", false),
                     // NodeJS: binary(identifier('category.hasItems'), '&&', identifier('category.alwaysTrue'))
-                    WebUIFragment::if_cond(
+                    webhubFragment::if_cond(
                         ConditionExpr::compound(
                             ConditionExpr::identifier("category.hasItems"),
                             LogicalOperator::And,
@@ -746,7 +746,7 @@ mod tests {
                         ),
                         "itemsTemplate",
                     ),
-                    WebUIFragment::raw("</section>"),
+                    webhubFragment::raw("</section>"),
                 ],
             },
         );
@@ -754,9 +754,9 @@ mod tests {
             "itemsTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<ul>"),
-                    WebUIFragment::for_loop("item", "category.items", "itemTemplate"),
-                    WebUIFragment::raw("</ul>"),
+                    webhubFragment::raw("<ul>"),
+                    webhubFragment::for_loop("item", "category.items", "itemTemplate"),
+                    webhubFragment::raw("</ul>"),
                 ],
             },
         );
@@ -764,17 +764,17 @@ mod tests {
             "itemTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<li"),
-                    WebUIFragment::attribute_template("id", "itemIdAttr"),
-                    WebUIFragment::attribute("data-name", "item.name"),
-                    WebUIFragment::plugin(2u32.to_le_bytes().to_vec()),
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::signal("item.name", false),
-                    WebUIFragment::if_cond(
+                    webhubFragment::raw("<li"),
+                    webhubFragment::attribute_template("id", "itemIdAttr"),
+                    webhubFragment::attribute("data-name", "item.name"),
+                    webhubFragment::plugin(2u32.to_le_bytes().to_vec()),
+                    webhubFragment::raw(">"),
+                    webhubFragment::signal("item.name", false),
+                    webhubFragment::if_cond(
                         ConditionExpr::identifier("item.special"),
                         "specialTemplate",
                     ),
-                    WebUIFragment::raw("</li>"),
+                    webhubFragment::raw("</li>"),
                 ],
             },
         );
@@ -782,8 +782,8 @@ mod tests {
             "itemIdAttr".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("item-"),
-                    WebUIFragment::signal("item.id", false),
+                    webhubFragment::raw("item-"),
+                    webhubFragment::signal("item.id", false),
                 ],
             },
         );
@@ -791,13 +791,13 @@ mod tests {
             "specialTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw(" ("),
-                    WebUIFragment::signal("item.specialText", false),
-                    WebUIFragment::raw(")"),
+                    webhubFragment::raw(" ("),
+                    webhubFragment::signal("item.specialText", false),
+                    webhubFragment::raw(")"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "title": "My Store",
             "categories": [
@@ -879,20 +879,20 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-comp")],
+                fragments: vec![webhubFragment::component("my-comp")],
             },
         );
         fragments.insert(
             "my-comp".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("missing_field", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("missing_field", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let output =
             render_with_plugin(&protocol, &state, || Box::new(FastV3HydrationPlugin::new()));
@@ -915,26 +915,26 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-comp")],
+                fragments: vec![webhubFragment::component("my-comp")],
             },
         );
         fragments.insert(
             "my-comp".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<ul>"),
-                    WebUIFragment::for_loop("item", "missing_items", "loop-body"),
-                    WebUIFragment::raw("</ul>"),
+                    webhubFragment::raw("<ul>"),
+                    webhubFragment::for_loop("item", "missing_items", "loop-body"),
+                    webhubFragment::raw("</ul>"),
                 ],
             },
         );
         fragments.insert(
             "loop-body".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::signal("item", false)],
+                fragments: vec![webhubFragment::signal("item", false)],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let output =
             render_with_plugin(&protocol, &state, || Box::new(FastV3HydrationPlugin::new()));
@@ -955,20 +955,20 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-comp")],
+                fragments: vec![webhubFragment::component("my-comp")],
             },
         );
         fragments.insert(
             "my-comp".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("name", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("name", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"name": ""});
         let output =
             render_with_plugin(&protocol, &state, || Box::new(FastV3HydrationPlugin::new()));
@@ -989,26 +989,26 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-comp")],
+                fragments: vec![webhubFragment::component("my-comp")],
             },
         );
         fragments.insert(
             "my-comp".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<ul>"),
-                    WebUIFragment::for_loop("item", "items", "loop-body"),
-                    WebUIFragment::raw("</ul>"),
+                    webhubFragment::raw("<ul>"),
+                    webhubFragment::for_loop("item", "items", "loop-body"),
+                    webhubFragment::raw("</ul>"),
                 ],
             },
         );
         fragments.insert(
             "loop-body".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::signal("item", false)],
+                fragments: vec![webhubFragment::signal("item", false)],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"items": []});
         let output =
             render_with_plugin(&protocol, &state, || Box::new(FastV3HydrationPlugin::new()));

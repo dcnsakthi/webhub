@@ -9,14 +9,14 @@
 pub mod fast;
 pub mod fast_v2;
 pub mod fast_v3;
-pub mod webui;
+pub mod webhub;
 
 use crate::{ResponseWriter, Result};
 use std::collections::HashSet;
-use webui_protocol::WebUIProtocol;
+use webhub_protocol::webhubProtocol;
 
-/// Split WebUI component template payload used by SSR bootstrap emission.
-pub struct WebUiTemplatePayload<'a> {
+/// Split webhub component template payload used by SSR bootstrap emission.
+pub struct webhubTemplatePayload<'a> {
     /// Component custom-element tag name.
     pub tag_name: &'a str,
     /// JSON-safe template metadata object.
@@ -28,11 +28,11 @@ pub struct WebUiTemplatePayload<'a> {
 /// Context passed to plugin-specific SSR bootstrap extension hooks.
 pub struct BootstrapExtensionContext<'a> {
     /// Full protocol for plugins that need additional component metadata.
-    pub protocol: &'a WebUIProtocol,
+    pub protocol: &'a webhubProtocol,
     /// Route-reachable component tags for this render.
     pub components: &'a HashSet<String>,
-    /// Split WebUI template payloads collected for this render.
-    pub payloads: &'a [WebUiTemplatePayload<'a>],
+    /// Split webhub template payloads collected for this render.
+    pub payloads: &'a [webhubTemplatePayload<'a>],
     /// CSP nonce for executable scripts, when configured.
     pub nonce: Option<&'a str>,
 }
@@ -48,7 +48,7 @@ pub struct BootstrapExtensionContext<'a> {
 /// - **Element data**: `on_element_data` for parser-produced hydration metadata
 /// - **Route state**: `write_route_component_state` for framework-specific opening-tag attributes
 ///
-/// WebUI does not interpret what plugins write — it just calls the hooks.
+/// webhub does not interpret what plugins write — it just calls the hooks.
 /// Each framework defines its own marker format.
 pub trait HandlerPlugin {
     /// Enter a new scope (component or for-loop item boundary).
@@ -111,11 +111,11 @@ pub trait HandlerPlugin {
 
     /// Emit component templates collected during SSR.  The default emits
     /// each template as-is (suitable for FAST `<f-template>` tags).  The
-    /// WebUI split-payload path uses [`HandlerPlugin::collect_template_payloads`]
+    /// webhub split-payload path uses [`HandlerPlugin::collect_template_payloads`]
     /// instead.
     fn emit_templates(
         &self,
-        protocol: &WebUIProtocol,
+        protocol: &webhubProtocol,
         components: &HashSet<String>,
         _nonce: Option<&str>,
         writer: &mut dyn ResponseWriter,
@@ -123,25 +123,25 @@ pub trait HandlerPlugin {
         emit_component_templates(protocol, components, writer)
     }
 
-    /// Return split WebUI template payloads for the given components.
+    /// Return split webhub template payloads for the given components.
     ///
-    /// The WebUI plugin overrides this so `lib.rs` can emit JSON metadata in an
+    /// The webhub plugin overrides this so `lib.rs` can emit JSON metadata in an
     /// inert data block and only emit condition closures as executable JS.
-    /// Returns `None` when templates are non-WebUI payloads (e.g. FAST
+    /// Returns `None` when templates are non-webhub payloads (e.g. FAST
     /// `<f-template>` tags).
     fn collect_template_payloads<'a>(
         &self,
-        _protocol: &'a WebUIProtocol,
+        _protocol: &'a webhubProtocol,
         _components: &HashSet<String>,
-    ) -> Option<Vec<WebUiTemplatePayload<'a>>> {
+    ) -> Option<Vec<webhubTemplatePayload<'a>>> {
         None
     }
 
     /// Emit plugin-specific executable SSR bootstrap code, if needed.
     ///
-    /// The handler emits shared metadata as inert `#webui-data`; client
+    /// The handler emits shared metadata as inert `#webhub-data`; client
     /// packages parse that data lazily. Plugins can still emit executable
-    /// side-channel data here, such as WebUI framework `templateFns` closures.
+    /// side-channel data here, such as webhub framework `templateFns` closures.
     /// The default is a no-op for FAST plugins, which use `<f-template>` tags.
     fn emit_bootstrap_extension(
         &self,
@@ -155,7 +155,7 @@ pub trait HandlerPlugin {
 /// Default template emission: write each non-empty template verbatim.
 /// Used by FAST parser plugins for `<f-template>` tags.
 pub(crate) fn emit_component_templates(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     components: &HashSet<String>,
     writer: &mut dyn ResponseWriter,
 ) -> Result<()> {

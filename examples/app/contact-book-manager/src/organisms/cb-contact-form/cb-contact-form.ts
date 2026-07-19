@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '@microsoft/webui-framework';
+import { webhubElement, observable } from '@microsoft/webhub-framework';
 
 interface ContactFormData {
   firstName: string;
@@ -15,7 +15,7 @@ interface ContactFormData {
   id?: string;
 }
 
-export class CbContactForm extends WebUIElement {
+export class CbContactForm extends webhubElement {
   @observable formTitle = 'Add Contact';
   @observable editId = '';
   @observable firstName = '';

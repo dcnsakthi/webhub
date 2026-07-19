@@ -48,7 +48,7 @@ pub fn find_value_by_dotted_path(path: &str, state: &Value) -> Option<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use webui_test_utils::test_json;
+    use webhub_test_utils::test_json;
 
     #[test]
     fn test_find_value_by_dotted_path() {

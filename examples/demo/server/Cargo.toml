@@ -20,9 +20,9 @@ tokio = { workspace = true }
 log = { workspace = true }
 env_logger = { workspace = true }
 mime_guess = { workspace = true }
-microsoft-webui = { path = "../../../crates/webui" }
-microsoft-webui-handler = { path = "../../../crates/webui-handler" }
-microsoft-webui-protocol = { path = "../../../crates/webui-protocol" }
+microsoft-webhub = { path = "../../../crates/webhub" }
+microsoft-webhub-handler = { path = "../../../crates/webhub-handler" }
+microsoft-webhub-protocol = { path = "../../../crates/webhub-protocol" }
 
 [lints]
 workspace = true

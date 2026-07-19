@@ -13,8 +13,8 @@
   flex-direction: column;
   gap: 2rem;
   padding: 2rem;
-  border: 1px solid var(--webui-border);
-  border-radius: var(--webui-radius-lg);
+  border: 1px solid var(--webhub-border);
+  border-radius: var(--webhub-radius-lg);
   background: #000;
 }
 
@@ -63,7 +63,7 @@ mp-price {
 
 .product-price-compare {
   font-size: 0.875rem;
-  color: var(--webui-text-muted);
+  color: var(--webhub-text-muted);
   text-decoration: line-through;
 }
 
@@ -98,7 +98,7 @@ mp-add-to-cart {
   font-size: 1.5rem;
   font-weight: 700;
   line-height: 2rem;
-  color: var(--webui-text);
+  color: var(--webhub-text);
   margin: 0 0 1rem;
 }
 
@@ -109,7 +109,7 @@ mp-add-to-cart {
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   scrollbar-width: thin;
-  scrollbar-color: var(--webui-text-muted) transparent;
+  scrollbar-color: var(--webhub-text-muted) transparent;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 0.75rem;
 }
@@ -130,12 +130,12 @@ mp-add-to-cart {
 }
 
 .related-scroll::-webkit-scrollbar-track {
-  background: var(--webui-surface);
+  background: var(--webhub-surface);
   border-radius: 3px;
 }
 
 .related-scroll::-webkit-scrollbar-thumb {
-  background: var(--webui-text-muted);
+  background: var(--webhub-text-muted);
   border-radius: 3px;
 }
 

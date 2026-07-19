@@ -2,11 +2,11 @@
 // Licensed under the MIT license.
 
 /**
- * Builds and renders WebUI fixtures from real HTML templates.
+ * Builds and renders webhub fixtures from real HTML templates.
  *
- * Each fixture directory may contain a `src/` subdirectory with real WebUI
+ * Each fixture directory may contain a `src/` subdirectory with real webhub
  * template files (index.html, component HTML).  When present, this module
- * compiles the templates via `@microsoft/webui` build() and renders them
+ * compiles the templates via `@microsoft/webhub` build() and renders them
  * into full SSR HTML — replacing the need for hand-crafted fixture.html
  * files and manual TemplateMeta construction.
  */
@@ -23,7 +23,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { build, Protocol } from '@microsoft/webui';
+import { build, Protocol } from '@microsoft/webhub';
 
 export interface RenderedFixture {
   /** Fixture directory name (e.g. "counter"). */
@@ -59,7 +59,7 @@ function renderOne(
     ? readFileSync(stateFile, 'utf-8')
     : '{}';
 
-  const configFile = resolve(fixturePath, 'webui.config.json');
+  const configFile = resolve(fixturePath, 'webhub.config.json');
   const fixtureConfig: Record<string, string> = existsSync(configFile)
     ? JSON.parse(readFileSync(configFile, 'utf-8'))
     : {};
@@ -76,8 +76,8 @@ function renderOne(
     ? createAuthoredSourceMirror(srcDir, authoredTags, authoredEntrySource)
     : null;
   const buildOptions: Parameters<typeof build>[0] = hasAuthoredEntry
-    ? { appDir: authoredSource?.fixturePath ?? fixturePath, entry: 'src/index.html', plugin: 'webui' }
-    : { appDir: srcDir, plugin: 'webui' };
+    ? { appDir: authoredSource?.fixturePath ?? fixturePath, entry: 'src/index.html', plugin: 'webhub' }
+    : { appDir: srcDir, plugin: 'webhub' };
   if (fixtureConfig.css === 'link' || fixtureConfig.css === 'style' || fixtureConfig.css === 'module') {
     buildOptions.css = fixtureConfig.css;
   }
@@ -103,16 +103,16 @@ function renderOne(
   }
 
   const renderEntry = hasAuthoredEntry ? 'src/index.html' : 'index.html';
-  const protocol = new Protocol(result.protocol, { plugin: 'webui' });
+  const protocol = new Protocol(result.protocol, { plugin: 'webhub' });
   let html = protocol.render(state, { entry: renderEntry });
 
   {
     const scriptPath = hasAuthoredEntry
       ? `/dist/${name}/element.js`
       : '/dist/static-host.js';
-    // Real WebUI apps load client islands as ES modules (`<script type="module">`),
+    // Real webhub apps load client islands as ES modules (`<script type="module">`),
     // which are deferred until after the document is parsed. Fixtures can opt into
-    // that production-faithful timing with `"script": "module"` in webui.config.json;
+    // that production-faithful timing with `"script": "module"` in webhub.config.json;
     // otherwise a classic (parser-blocking) script is injected for back-compat.
     const scriptType = hasAuthoredEntry && fixtureConfig.script === 'module'
       ? ' type="module"'
@@ -139,7 +139,7 @@ function createAuthoredSourceMirror(
   authoredTags: Set<string>,
   authoredEntrySource: string,
 ): AuthoredSourceMirror {
-  const rootPath = mkdtempSync(resolve(tmpdir(), 'webui-fixture-'));
+  const rootPath = mkdtempSync(resolve(tmpdir(), 'webhub-fixture-'));
   const fixturePath = resolve(rootPath, 'fixture');
   const mirroredSrcDir = resolve(fixturePath, 'src');
   cpSync(srcDir, mirroredSrcDir, { recursive: true });
@@ -217,7 +217,7 @@ function writeAuthoredComponentMarkers(
 
 /**
  * Discovers fixture directories that contain a `src/` subdirectory with an
- * `index.html` entry, builds their templates via the WebUI pipeline, and
+ * `index.html` entry, builds their templates via the webhub pipeline, and
  * renders each with its state.json data.
  *
  * Returns a Map from fixture name to rendered HTML string.

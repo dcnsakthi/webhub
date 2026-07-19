@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-// This is a simple client-side script for the WebUI hello world example
+// This is a simple client-side script for the webhub hello world example
 
 document.addEventListener('DOMContentLoaded', function () {
-  console.log('WebUI Hello World example loaded!');
+  console.log('webhub Hello World example loaded!');
 });

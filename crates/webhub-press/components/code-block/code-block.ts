@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from "@microsoft/webui-framework";
+import { webhubElement, observable } from "@microsoft/webhub-framework";
 
-export class CodeBlock extends WebUIElement {
+export class CodeBlock extends webhubElement {
   @observable label = "Copy";
 
   copy(): void {

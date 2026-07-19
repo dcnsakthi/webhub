@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement } from "@microsoft/webui-framework";
+import { webhubElement } from "@microsoft/webhub-framework";
 
-export class WebUIPressTab extends WebUIElement {
+export class webhubPressTab extends webhubElement {
   select(): void {
     this.$emit("tab-select", { tab: this });
   }
 }
 
-WebUIPressTab.define("webui-press-tab");
+webhubPressTab.define("webhub-press-tab");

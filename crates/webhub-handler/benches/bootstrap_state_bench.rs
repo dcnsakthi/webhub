@@ -3,9 +3,9 @@
 
 //! Bootstrap state-serialization benchmark.
 //!
-//! Measures the cost of emitting the `#webui-data` bootstrap block, whose
+//! Measures the cost of emitting the `#webhub-data` bootstrap block, whose
 //! `state` field is serialized on every full-HTML render
-//! (`write_webui_bootstrap` → `write_selected_state`).
+//! (`write_webhub_bootstrap` → `write_selected_state`).
 //!
 //! The projected-hydration design filters the SSR state down to only the keys
 //! authored client components actually hydrate before
@@ -49,11 +49,11 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Through
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::hint::black_box;
-use webui_handler::plugin::webui::WebUIHydrationPlugin;
-use webui_handler::{Protocol, RenderOptions, ResponseWriter, WebUIHandler};
-use webui_protocol::{
-    ComponentData, FragmentList, InitialStateStrategy, StateProjectionMode, WebUIFragment,
-    WebUIFragmentRoute, WebUIProtocol,
+use webhub_handler::plugin::webhub::webhubHydrationPlugin;
+use webhub_handler::{Protocol, RenderOptions, ResponseWriter, webhubHandler};
+use webhub_protocol::{
+    ComponentData, FragmentList, InitialStateStrategy, StateProjectionMode, webhubFragment,
+    webhubFragmentRoute, webhubProtocol,
 };
 
 struct BenchWriter {
@@ -77,12 +77,12 @@ impl BenchWriter {
 }
 
 impl ResponseWriter for BenchWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.output.push_str(content);
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -185,16 +185,16 @@ fn build_partial_protocol(
     fragments.insert(
         "index.html".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::route("/", "benchmark-page")],
+            fragments: vec![webhubFragment::route("/", "benchmark-page")],
         },
     );
     fragments.insert(
         "benchmark-page".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<p>Benchmark</p>")],
+            fragments: vec![webhubFragment::raw("<p>Benchmark</p>")],
         },
     );
-    let mut protocol = WebUIProtocol::new(fragments);
+    let mut protocol = webhubProtocol::new(fragments);
     let template_json = if compiler_owned {
         r#"{"h":"<p>Benchmark</p>","th":1}"#
     } else {
@@ -225,44 +225,44 @@ fn build_partial_protocol(
     Protocol::new(protocol)
 }
 
-fn build_routed_protocol() -> WebUIProtocol {
+fn build_routed_protocol() -> webhubProtocol {
     let mut fragments = HashMap::new();
     fragments.insert(
         "index.html".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<!DOCTYPE html><html><body>"),
-                WebUIFragment::route_from(WebUIFragmentRoute {
+                webhubFragment::raw("<!DOCTYPE html><html><body>"),
+                webhubFragment::route_from(webhubFragmentRoute {
                     path: "/".to_string(),
                     fragment_id: "dashboard-page".to_string(),
                     exact: true,
                     ..Default::default()
                 }),
-                WebUIFragment::route_from(WebUIFragmentRoute {
+                webhubFragment::route_from(webhubFragmentRoute {
                     path: "/contacts".to_string(),
                     fragment_id: "contacts-page".to_string(),
                     exact: true,
                     ..Default::default()
                 }),
-                WebUIFragment::signal("body_end", true),
-                WebUIFragment::raw("</body></html>"),
+                webhubFragment::signal("body_end", true),
+                webhubFragment::raw("</body></html>"),
             ],
         },
     );
     fragments.insert(
         "dashboard-page".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<p>Dashboard</p>")],
+            fragments: vec![webhubFragment::raw("<p>Dashboard</p>")],
         },
     );
     fragments.insert(
         "contacts-page".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<p>Contacts</p>")],
+            fragments: vec![webhubFragment::raw("<p>Contacts</p>")],
         },
     );
 
-    let mut protocol = WebUIProtocol::new(fragments);
+    let mut protocol = webhubProtocol::new(fragments);
     protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
     protocol.components.insert(
         "dashboard-page".to_string(),
@@ -292,31 +292,31 @@ fn build_routed_protocol() -> WebUIProtocol {
 ///
 /// The raw `body_end` signal resolves to no value (it is a structural hook, not
 /// a state key), so it emits no text of its own but triggers the bootstrap
-/// `#webui-data` block when a hydration plugin is active.
+/// `#webhub-data` block when a hydration plugin is active.
 fn build_bootstrap_protocol(
     hydration_keys: Vec<String>,
     navigation_keys: Vec<String>,
     compiler_owned: bool,
-) -> WebUIProtocol {
+) -> webhubProtocol {
     let mut fragments = HashMap::new();
     fragments.insert(
         "index.html".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<!DOCTYPE html><html><body>"),
-                WebUIFragment::component("bench-component"),
-                WebUIFragment::signal("body_end", true),
-                WebUIFragment::raw("</body></html>"),
+                webhubFragment::raw("<!DOCTYPE html><html><body>"),
+                webhubFragment::component("bench-component"),
+                webhubFragment::signal("body_end", true),
+                webhubFragment::raw("</body></html>"),
             ],
         },
     );
     fragments.insert(
         "bench-component".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<p>ready</p>")],
+            fragments: vec![webhubFragment::raw("<p>ready</p>")],
         },
     );
-    let mut protocol = WebUIProtocol::new(fragments);
+    let mut protocol = webhubProtocol::new(fragments);
     protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
     let template_json = if compiler_owned {
         r#"{"h":"<p>ready</p>","tr":["count","generatedAt","items","title"],"th":1}"#
@@ -349,7 +349,7 @@ fn keyed_mode<T>(keys: &[T]) -> i32 {
     }
 }
 
-fn build_missing_metadata_bootstrap_protocol() -> WebUIProtocol {
+fn build_missing_metadata_bootstrap_protocol() -> webhubProtocol {
     let mut protocol = build_bootstrap_protocol(Vec::new(), Vec::new(), true);
     protocol.components.clear();
     protocol
@@ -410,7 +410,7 @@ fn bootstrap_state_bench(c: &mut Criterion) {
             BenchmarkId::new("hydratable_collection", &label),
             &state,
             |b, st| {
-                let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+                let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
                 let mut writer = BenchWriter::new(state_bytes + 4096);
                 b.iter(|| {
                     writer.clear();
@@ -435,7 +435,7 @@ fn bootstrap_state_bench(c: &mut Criterion) {
             BenchmarkId::new("uncertain_full_state", &label),
             &state,
             |b, st| {
-                let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+                let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
                 let mut writer = BenchWriter::new(state_bytes + 4096);
                 b.iter(|| {
                     writer.clear();
@@ -461,7 +461,7 @@ fn bootstrap_state_bench(c: &mut Criterion) {
             BenchmarkId::new("server_only_collection", &label),
             &state,
             |b, st| {
-                let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+                let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
                 let mut writer = BenchWriter::new(4096);
                 b.iter(|| {
                     writer.clear();
@@ -487,7 +487,7 @@ fn bootstrap_state_bench(c: &mut Criterion) {
             BenchmarkId::new("authored_navigation_only_component", &label),
             &state,
             |b, st| {
-                let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+                let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
                 let mut writer = BenchWriter::new(4096);
                 b.iter(|| {
                     writer.clear();
@@ -512,7 +512,7 @@ fn bootstrap_state_bench(c: &mut Criterion) {
             BenchmarkId::new("dormant_scriptless_component", &label),
             &state,
             |b, st| {
-                let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+                let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
                 let mut writer = BenchWriter::new(4096);
                 b.iter(|| {
                     writer.clear();
@@ -537,7 +537,7 @@ fn bootstrap_state_bench(c: &mut Criterion) {
             BenchmarkId::new("missing_component_metadata", &label),
             &state,
             |b, st| {
-                let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+                let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
                 let mut writer = BenchWriter::new(4096);
                 b.iter(|| {
                     writer.clear();
@@ -564,7 +564,7 @@ fn bootstrap_state_bench(c: &mut Criterion) {
             BenchmarkId::new("without_plugin", &label),
             &state,
             |b, st| {
-                let handler = WebUIHandler::new();
+                let handler = webhubHandler::new();
                 let mut writer = BenchWriter::new(4096);
                 b.iter(|| {
                     writer.clear();
@@ -595,7 +595,7 @@ fn bootstrap_state_bench(c: &mut Criterion) {
     let mut wide_group = c.benchmark_group("bootstrap_state_wide");
     wide_group.throughput(Throughput::Bytes(wide_state_bytes as u64));
     wide_group.bench_function("sparse_keys_30000", |b| {
-        let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+        let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
         let mut writer = BenchWriter::new(4096);
         b.iter(|| {
             writer.clear();
@@ -645,7 +645,7 @@ fn bootstrap_state_bench(c: &mut Criterion) {
         ),
     ] {
         route_group.bench_function(name, |b| {
-            let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+            let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
             let render_options = RenderOptions::new("index.html", path);
             let mut writer = BenchWriter::new(routed_state_bytes + 4096);
             b.iter(|| {

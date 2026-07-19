@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '@microsoft/webui-framework';
+import { webhubElement, attr } from '@microsoft/webhub-framework';
 
-export class CalcButton extends WebUIElement {
+export class CalcButton extends webhubElement {
   @attr label = '';
   @attr value = '';
   @attr btnType = '';

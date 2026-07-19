@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 /**
- * Run one application-owned esbuild invocation with WebUI projection enabled.
+ * Run one application-owned esbuild invocation with webhub projection enabled.
  */
 import { createRequire } from "node:module";
 import { existsSync, readFileSync } from "node:fs";
@@ -36,7 +36,7 @@ async function loadBuildTools() {
   const esbuild = require(require.resolve("esbuild"));
   const projectionEntry = resolveImportEntry(
     require,
-    "@microsoft/webui",
+    "@microsoft/webhub",
     "./projection.js",
   );
   const { esbuildProjection } = await import(projectionEntry);
@@ -44,7 +44,7 @@ async function loadBuildTools() {
   return buildTools;
 }
 
-export async function runWebUIClientBuild(options = {}) {
+export async function runwebhubClientBuild(options = {}) {
   const { esbuild, esbuildProjection } = await loadBuildTools();
   const watch = process.argv.includes("--watch");
   const color = process.argv.includes("--color=true");
@@ -83,5 +83,5 @@ if (
   invokedPath &&
   import.meta.url === pathToFileURL(path.resolve(invokedPath)).href
 ) {
-  await runWebUIClientBuild();
+  await runwebhubClientBuild();
 }

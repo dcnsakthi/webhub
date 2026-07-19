@@ -3,13 +3,13 @@
 
 # Acme Commerce Store
 
-A full-featured commerce demo built with WebUI — server-side rendered with client-side navigation, nested routes, and view transitions.
+A full-featured commerce demo built with webhub — server-side rendered with client-side navigation, nested routes, and view transitions.
 
 ## What It Demonstrates
 
 - **Nested routing** with `<route>` and `<outlet />`
-- **Client-side navigation** via `@microsoft/webui-router`
-- **SSR + hydration** with WebUI Framework
+- **Client-side navigation** via `@microsoft/webhub-router`
+- **SSR + hydration** with webhub Framework
 - **Declarative-only components** that auto-upgrade without authored TypeScript stubs
 - **View transitions** for smooth page changes
 - **Category filtering** and **sort options**
@@ -61,7 +61,7 @@ commerce/
 │   └── src/
 │       ├── app.rs          # Actix-web app setup
 │       ├── server.rs       # Route handlers (SSR + JSON partials)
-│       ├── frontend.rs     # WebUI protocol rendering
+│       ├── frontend.rs     # webhub protocol rendering
 │       └── state/          # State resolution per route
 ├── tests/                  # Playwright E2E tests
 │   └── commerce.spec.ts    # 43 tests (desktop + mobile)
@@ -93,10 +93,10 @@ Build and run the commerce app as a container. Each container runs a **single CS
 
 ```bash
 # Build the image
-docker build -t webui-commerce -f examples/app/commerce/Dockerfile .
+docker build -t webhub-commerce -f examples/app/commerce/Dockerfile .
 
 # Override cargo-chef version if needed
-docker build --build-arg CARGO_CHEF_VERSION=0.1.75 -t webui-commerce -f examples/app/commerce/Dockerfile .
+docker build --build-arg CARGO_CHEF_VERSION=0.1.75 -t webhub-commerce -f examples/app/commerce/Dockerfile .
 ```
 
 ### Running containers
@@ -105,15 +105,15 @@ Configure the CSS strategy via the `CSS_STRATEGY` environment variable (`link`, 
 
 ```bash
 # One container per CSS strategy
-docker run -d -p 3004:3000 -e CSS_STRATEGY=link   webui-commerce
-docker run -d -p 3003:3000 -e CSS_STRATEGY=module webui-commerce
-docker run -d -p 3002:3000 -e CSS_STRATEGY=style  webui-commerce
+docker run -d -p 3004:3000 -e CSS_STRATEGY=link   webhub-commerce
+docker run -d -p 3003:3000 -e CSS_STRATEGY=module webhub-commerce
+docker run -d -p 3002:3000 -e CSS_STRATEGY=style  webhub-commerce
 ```
 
 Or pass flags directly:
 
 ```bash
-docker run -d -p 3004:3000 webui-commerce --css link --port 3000
+docker run -d -p 3004:3000 webhub-commerce --css link --port 3000
 ```
 
 These ports are plain HTTP because the container starts `marketplace-api` with `--no-tls`.
@@ -122,5 +122,5 @@ Use a TLS-terminating proxy or ingress for external HTTPS.
 To tag with the project version:
 
 ```bash
-docker tag webui-commerce webui-commerce:v$(jq -r .version package.json)
+docker tag webhub-commerce webhub-commerce:v$(jq -r .version package.json)
 ```

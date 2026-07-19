@@ -47,7 +47,7 @@ export interface EsbuildProjectionOptions {
   /**
    * Manifest path. Relative values resolve from esbuild's `absWorkingDir`.
    *
-   * Defaults to `<outdir>/webui-projection.json` or the directory containing
+   * Defaults to `<outdir>/webhub-projection.json` or the directory containing
    * `outfile`.
    */
   readonly manifest?: string;
@@ -68,7 +68,7 @@ export function esbuildProjection(
   options: EsbuildProjectionOptions = {}
 ): Plugin {
   return {
-    name: "webui-state-projection",
+    name: "webhub-state-projection",
     setup(build) {
       build.initialOptions.metafile = true;
       const versionError = validateEsbuildVersion(build.esbuild.version);
@@ -105,7 +105,7 @@ async function emitProjectionManifest(
   result: BuildResult,
   options: EsbuildProjectionOptions
 ): Promise<void> {
-  const profile = process.env["WEBUI_PROJECTION_PROFILE"] === "1";
+  const profile = process.env["webhub_PROJECTION_PROFILE"] === "1";
   const profileStart = profile ? performance.now() : 0;
   const metafile = result.metafile;
   if (!metafile) {
@@ -131,7 +131,7 @@ async function emitProjectionManifest(
   ) {
     throw adapterError(
       "the projection manifest path collides with an esbuild output",
-      "Choose a distinct manifest filename such as dist/webui-projection.json."
+      "Choose a distinct manifest filename such as dist/webhub-projection.json."
     );
   }
 
@@ -182,7 +182,7 @@ async function emitProjectionManifest(
   if (profile) {
     const finished = performance.now();
     console.error(
-      `[webui-projection] graph=${(graphReady - profileStart).toFixed(1)}ms compile=${(compiled - graphReady).toFixed(1)}ms write=${(finished - compiled).toFixed(1)}ms total=${(finished - profileStart).toFixed(1)}ms`
+      `[webhub-projection] graph=${(graphReady - profileStart).toFixed(1)}ms compile=${(compiled - graphReady).toFixed(1)}ms write=${(finished - compiled).toFixed(1)}ms total=${(finished - profileStart).toFixed(1)}ms`
     );
   }
 }
@@ -200,14 +200,14 @@ function resolveManifestPath(
     return path.resolve(
       workingDirectory,
       outdir,
-      "webui-projection.json"
+      "webhub-projection.json"
     );
   }
   const outfile = build.initialOptions.outfile;
   if (outfile) {
     return path.join(
       path.dirname(path.resolve(workingDirectory, outfile)),
-      "webui-projection.json"
+      "webhub-projection.json"
     );
   }
   throw adapterError(
@@ -607,7 +607,7 @@ function diagnosticMessage(
 ): PartialMessage {
   return {
     id: diagnostic.code,
-    pluginName: "webui-state-projection",
+    pluginName: "webhub-state-projection",
     text: `${diagnostic.code}: ${diagnostic.title}`,
     ...(diagnostic.location === undefined
       ? {}

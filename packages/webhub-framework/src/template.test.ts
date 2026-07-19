@@ -14,7 +14,7 @@ describe('template registry helpers', () => {
     try {
       Object.defineProperty(globalThis, 'window', {
         value: {
-          __webui: {
+          __webhub: {
             templates: {
               greeting: template,
             },
@@ -45,7 +45,7 @@ describe('template registry helpers', () => {
 
     try {
       Object.defineProperty(globalThis, 'window', {
-        value: { __webui: {} },
+        value: { __webhub: {} },
         configurable: true,
         writable: true,
       });
@@ -74,7 +74,7 @@ describe('template registry helpers', () => {
     try {
       Object.defineProperty(globalThis, 'window', {
         value: {
-          __webui: {
+          __webhub: {
             inventory: '0c',
             state: { title: 'Hello' },
             templates: { greeting: template },
@@ -87,8 +87,8 @@ describe('template registry helpers', () => {
 
       const registered = getTemplate('greeting')!;
       assert.equal((registered.c![0][0][0] as unknown), fn);
-      assert.equal(window.__webui!.inventory, '0c');
-      assert.deepEqual(window.__webui!.state, { title: 'Hello' });
+      assert.equal(window.__webhub!.inventory, '0c');
+      assert.deepEqual(window.__webhub!.state, { title: 'Hello' });
     } finally {
       if (previousWindow) {
         Object.defineProperty(globalThis, 'window', previousWindow);
@@ -98,7 +98,7 @@ describe('template registry helpers', () => {
     }
   });
 
-  test('getTemplate lazily loads webui-data and preserves templateFns', () => {
+  test('getTemplate lazily loads webhub-data and preserves templateFns', () => {
     const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
     const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
     const fn = (): boolean => true;
@@ -106,14 +106,14 @@ describe('template registry helpers', () => {
 
     try {
       Object.defineProperty(globalThis, 'window', {
-        value: { __webui: { templateFns: { greeting: [fn] } } },
+        value: { __webhub: { templateFns: { greeting: [fn] } } },
         configurable: true,
         writable: true,
       });
       Object.defineProperty(globalThis, 'document', {
         value: {
           getElementById(id: string) {
-            if (id !== 'webui-data') return null;
+            if (id !== 'webhub-data') return null;
             return {
               textContent: '{"inventory":"0c","state":{"title":"Hello"},"templates":{"greeting":{"h":"<p></p>","c":[[[0,["ready"]],0,[[],0]]]}}}',
               remove() { removed = true; },
@@ -126,8 +126,8 @@ describe('template registry helpers', () => {
 
       const registered = getTemplate('greeting')!;
       assert.equal((registered.c![0][0][0] as unknown), fn);
-      assert.equal(window.__webui!.inventory, '0c');
-      assert.deepEqual(window.__webui!.state, { title: 'Hello' });
+      assert.equal(window.__webhub!.inventory, '0c');
+      assert.deepEqual(window.__webhub!.state, { title: 'Hello' });
       assert.equal(removed, true);
     } finally {
       if (previousWindow) {

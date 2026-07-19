@@ -13,9 +13,9 @@
  * regardless of which property changed.
  */
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
-export class TestBench extends WebUIElement {
+export class TestBench extends webhubElement {
   @observable prop0 = 'v0';
   @observable prop1 = 'v1';
   @observable prop2 = 'v2';
@@ -85,7 +85,7 @@ interface BenchItem {
   value: string;
 }
 
-export class TestBenchRepeat extends WebUIElement {
+export class TestBenchRepeat extends webhubElement {
   @observable items: BenchItem[] = [];
   @observable benchResult = '';
 
@@ -135,7 +135,7 @@ TestBenchRepeat.define('test-bench-repeat');
 // ── Event closure benchmark ────────────────────────────────────────
 // Each repeat item has 5 event bindings → 200 items × 5 = 1000 closures
 
-export class TestBenchEvents extends WebUIElement {
+export class TestBenchEvents extends webhubElement {
   @observable items: Array<{ id: number }> = [];
 
   onA(): void {}

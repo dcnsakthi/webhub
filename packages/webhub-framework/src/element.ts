@@ -2,12 +2,12 @@
 // Licensed under the MIT license.
 
 /**
- * WebUIElement — authored interactive Web Component base class.
+ * webhubElement — authored interactive Web Component base class.
  *
  * The framework runtime is tiered for Interactive Islands:
  * - `template-element.ts` owns compiled-template hydration, hidden template state,
  *   repeat/conditional updates, and DOM patching.
- * - `WebUIElement` adds authored interactivity: decorators, event handlers,
+ * - `webhubElement` adds authored interactivity: decorators, event handlers,
  *   root events, `w-ref`, and `$emit`.
  *
  * Scriptless components use the compiler-owned TemplateElement host and never
@@ -48,7 +48,7 @@ type DelegatedEventEntry = {
  * binding (`@click`, root events), decorator-backed state, `w-ref` wiring, and
  * `$emit`. HTML-only components never reach this class.
  */
-export class WebUIElement extends TemplateElement {
+export class webhubElement extends TemplateElement {
   protected override $observableNames(): Set<string> {
     return getObservableNames(this.constructor as Function);
   }

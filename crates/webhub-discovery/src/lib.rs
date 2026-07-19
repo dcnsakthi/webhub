@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! External component discovery for the WebUI framework.
+//! External component discovery for the webhub framework.
 //!
 //! Discovers components from npm packages and local filesystem paths.
 //! Returns [`DiscoveredComponent`] structs that callers can register
 //! into their component registry.
 //!
-//! This crate has no dependency on `webui-parser` — it is pure discovery
+//! This crate has no dependency on `webhub-parser` — it is pure discovery
 //! logic reusable by CLI, FFI, and other host integrations.
 
 mod cache;
@@ -70,7 +70,7 @@ fn classify_source(source: &str) -> ComponentSource {
 ///
 /// This is the single source of truth for the classification; callers that
 /// pre-resolve sources before handing them to [`discover_source`] (such as
-/// `webui-press`, which must resolve local paths against its own working
+/// `webhub-press`, which must resolve local paths against its own working
 /// directory while leaving npm names bare) should use it instead of
 /// re-implementing the check.
 #[must_use]

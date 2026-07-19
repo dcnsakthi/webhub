@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr, observable } from '../../../src/index.js';
+import { webhubElement, attr, observable } from '../../../src/index.js';
 
 interface NavCategory {
   handle: string;
@@ -9,7 +9,7 @@ interface NavCategory {
   activeClass: string;
 }
 
-export class TestStateSeedShell extends WebUIElement {
+export class TestStateSeedShell extends webhubElement {
   @attr page = '';
   @observable groups: string[] = ['work', 'family'];
   @observable navCategories: NavCategory[] = [
@@ -20,7 +20,7 @@ export class TestStateSeedShell extends WebUIElement {
 
 TestStateSeedShell.define('test-state-seed-shell');
 
-export class TestStateSeed extends WebUIElement {
+export class TestStateSeed extends webhubElement {
   @observable title = 'SSR Title';
   @observable page = 'dashboard';
   @observable groups: string[] = ['work', 'family'];

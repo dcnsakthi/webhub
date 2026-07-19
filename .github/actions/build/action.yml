@@ -1,5 +1,5 @@
-name: Build WebUI
-description: Shared build steps for WebUI — installs protoc, Rust, Node.js, pnpm, and optionally .NET.
+name: Build webhub
+description: Shared build steps for webhub — installs protoc, Rust, Node.js, pnpm, and optionally .NET.
 
 inputs:
   shared-cache-key:

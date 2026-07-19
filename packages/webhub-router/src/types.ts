@@ -3,7 +3,7 @@
 
 declare global {
   interface Window {
-    __webui?: {
+    __webhub?: {
       chain?: unknown[];
       inventory?: string;
       nonce?: string;
@@ -18,7 +18,7 @@ declare global {
 }
 
 /**
- * Public type definitions for @microsoft/webui-router.
+ * Public type definitions for @microsoft/webhub-router.
  */
 
 /** Configuration passed to `Router.start()`. */
@@ -53,7 +53,7 @@ export interface RouterConfig {
    * URL for the component template endpoint used by `Router.ensureLoaded()`.
    * Component tags are appended as a comma-separated `t=` query parameter.
    *
-   * @default "/_webui/templates"
+   * @default "/_webhub/templates"
    * @example
    * ```ts
    * Router.start({ templateEndpoint: '/api/templates' });
@@ -145,7 +145,7 @@ export interface RouteLoaderContext {
   signal: AbortSignal;
 }
 
-/** Detail payload of the `webui:route:navigated` CustomEvent. */
+/** Detail payload of the `webhub:route:navigated` CustomEvent. */
 export interface NavigationEvent {
   component: string;
   params: Record<string, string>;
@@ -209,7 +209,7 @@ export interface RouteActionResult {
   state?: Record<string, unknown>;
 }
 
-/** Detail payload of the `webui:route:action-complete` CustomEvent. */
+/** Detail payload of the `webhub:route:action-complete` CustomEvent. */
 export interface ActionCompleteEvent {
   /** The component tag that handled the action. */
   component: string;
@@ -220,7 +220,7 @@ export interface ActionCompleteEvent {
 }
 
 /**
- * An HTML element that supports WebUI's `setState()` protocol.
+ * An HTML element that supports webhub's `setState()` protocol.
  * Used by the router to update component state during navigation.
  */
 export interface StatefulElement extends HTMLElement {

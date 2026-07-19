@@ -10,7 +10,7 @@
 pub mod fast;
 pub mod fast_v2;
 pub mod fast_v3;
-pub mod webui;
+pub mod webhub;
 
 use crate::component_registry::Component;
 use crate::{ParserOptions, Result};
@@ -65,11 +65,11 @@ impl StateSurface {
 pub struct ComponentTemplateArtifact {
     /// Component custom-element tag name.
     pub tag_name: String,
-    /// Non-WebUI plugin template payload, such as FAST `<f-template>` HTML.
+    /// Non-webhub plugin template payload, such as FAST `<f-template>` HTML.
     pub template: String,
-    /// WebUI JSON-safe template metadata.
+    /// webhub JSON-safe template metadata.
     pub template_json: String,
-    /// WebUI component-local JavaScript condition closure array.
+    /// webhub component-local JavaScript condition closure array.
     pub template_functions: String,
     /// Initial hydration state surface derived by the producing plugin.
     pub hydration: StateSurface,
@@ -91,7 +91,7 @@ pub struct ComponentTemplateArtifact {
 }
 
 impl ComponentTemplateArtifact {
-    /// Create a non-WebUI template payload.
+    /// Create a non-webhub template payload.
     #[must_use]
     pub fn template(tag_name: String, template: String) -> Self {
         Self {
@@ -106,12 +106,12 @@ impl ComponentTemplateArtifact {
         }
     }
 
-    /// Create a WebUI split metadata/function payload.
+    /// Create a webhub split metadata/function payload.
     ///
     /// The hydration surface starts empty; the producing plugin attaches it with
     /// [`Self::with_hydration`] once it has derived the surface.
     #[must_use]
-    pub fn webui(tag_name: String, template_json: String, template_functions: String) -> Self {
+    pub fn webhub(tag_name: String, template_json: String, template_functions: String) -> Self {
         Self {
             tag_name,
             template: String::new(),
@@ -161,7 +161,7 @@ impl ComponentTemplateArtifact {
 /// - **Attribute classification**: `classify_attribute` for framework-specific attrs
 /// - **Element completion**: `finish_element` after attributes are processed
 ///
-/// WebUI calls these hooks during parsing; plugins decide what (if anything) to do.
+/// webhub calls these hooks during parsing; plugins decide what (if anything) to do.
 pub trait ParserPlugin {
     /// Called before parsing begins for a fragment.
     ///
@@ -221,9 +221,9 @@ mod artifact_tests {
     }
 
     #[test]
-    fn webui_constructor_starts_with_no_hydration_surface() {
+    fn webhub_constructor_starts_with_no_hydration_surface() {
         let artifact =
-            ComponentTemplateArtifact::webui("x-b".into(), "{\"j\":1}".into(), "[]".into());
+            ComponentTemplateArtifact::webhub("x-b".into(), "{\"j\":1}".into(), "[]".into());
         assert_eq!(artifact.tag_name, "x-b");
         assert!(artifact.template.is_empty());
         assert_eq!(artifact.template_json, "{\"j\":1}");
@@ -234,7 +234,7 @@ mod artifact_tests {
 
     #[test]
     fn with_hydration_attaches_surface_fluently() {
-        let artifact = ComponentTemplateArtifact::webui("x-c".into(), "{}".into(), "[]".into())
+        let artifact = ComponentTemplateArtifact::webhub("x-c".into(), "{}".into(), "[]".into())
             .with_hydration(StateSurface::keys(vec!["count".into(), "name".into()]));
         assert_eq!(
             artifact.hydration,
@@ -244,7 +244,7 @@ mod artifact_tests {
 
     #[test]
     fn with_hydration_is_plugin_agnostic_over_template_payloads() {
-        // A non-WebUI plugin payload can carry its own hydration surface too.
+        // A non-webhub plugin payload can carry its own hydration surface too.
         let artifact = ComponentTemplateArtifact::template("x-d".into(), "<f-t></f-t>".into())
             .with_hydration(StateSurface::keys(vec!["value".into()]));
         assert_eq!(artifact.template, "<f-t></f-t>");
@@ -253,7 +253,7 @@ mod artifact_tests {
 
     #[test]
     fn with_navigation_attaches_partial_state_surface() {
-        let artifact = ComponentTemplateArtifact::webui("x-e".into(), "{}".into(), "[]".into())
+        let artifact = ComponentTemplateArtifact::webhub("x-e".into(), "{}".into(), "[]".into())
             .with_navigation(StateSurface::keys(vec!["items".into(), "title".into()]));
         assert_eq!(
             artifact.navigation,

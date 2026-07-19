@@ -7,7 +7,7 @@ set -eu
 # The demo-shell binary handles everything:
 #   1. Scans ./apps/*/demo.toml to discover all example apps
 #   2. Assigns ports dynamically starting from --base-port
-#   3. Spawns all child processes (webui-cli, node APIs, custom binaries)
+#   3. Spawns all child processes (webhub-cli, node APIs, custom binaries)
 #   4. Starts the reverse proxy + shell UI on the exposed port
 #   5. Forwards SIGTERM to all children on shutdown
 

@@ -5,19 +5,19 @@
  * Hydration lifecycle tracker.
  *
  * Tracks aggregate hydration timing via the Performance API and fires a
- * global `webui:hydration-complete` event on `window` once every registered
+ * global `webhub:hydration-complete` event on `window` once every registered
  * component has finished hydrating.
  *
  * ## Performance marks
  *
  * Global:
- * - `webui:hydrate:total:start`  — first component begins hydrating
- * - `webui:hydrate:total:end`    — last component finishes
- * - measure `webui:hydrate:total`
+ * - `webhub:hydrate:total:start`  — first component begins hydrating
+ * - `webhub:hydrate:total:end`    — last component finishes
+ * - measure `webhub:hydrate:total`
  *
  * ## Window event
  *
- * `webui:hydration-complete` — dispatched once on `window` when all
+ * `webhub:hydration-complete` — dispatched once on `window` when all
  * components are hydrated.
  */
 
@@ -36,7 +36,7 @@ let completed = false;
  */
 export function hydrationStart(): void {
   if (!started) {
-    performance.mark('webui:hydrate:total:start');
+    performance.mark('webhub:hydrate:total:start');
     started = true;
   }
   pendingCount++;
@@ -51,12 +51,12 @@ export function hydrationEnd(): void {
 
   if (pendingCount <= 0 && !completed) {
     completed = true;
-    performance.mark('webui:hydrate:total:end');
+    performance.mark('webhub:hydrate:total:end');
     performance.measure(
-      'webui:hydrate:total',
-      'webui:hydrate:total:start',
-      'webui:hydrate:total:end',
+      'webhub:hydrate:total',
+      'webhub:hydrate:total:start',
+      'webhub:hydrate:total:end',
     );
-    window.dispatchEvent(new Event('webui:hydration-complete'));
+    window.dispatchEvent(new Event('webhub:hydration-complete'));
   }
 }

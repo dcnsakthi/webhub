@@ -9,7 +9,7 @@ use commands::Commands;
 use utils::output::OutputFormat;
 
 #[derive(Parser)]
-#[command(name = "webui", about = "WebUI build tool")]
+#[command(name = "webhub", about = "webhub build tool")]
 struct Cli {
     /// Output format: `human` (colorized terminal, default) or `json`
     /// (machine-readable diagnostics on stdout for editors, CI, and tools).

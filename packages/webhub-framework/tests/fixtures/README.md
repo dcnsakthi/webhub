@@ -1,6 +1,6 @@
-# WebUI Framework E2E Test Fixtures
+# webhub Framework E2E Test Fixtures
 
-Each fixture is a minimal WebUI app that exercises a specific framework feature.
+Each fixture is a minimal webhub app that exercises a specific framework feature.
 
 ## Fixture format
 
@@ -9,12 +9,12 @@ fixtures/<name>/
   src/
     index.html                 Page template (uses the component)
     <tag-name>/
-      <tag-name>.html          Component template (real WebUI syntax)
+      <tag-name>.html          Component template (real webhub syntax)
       <tag-name>.css           Component CSS (optional, for css-module fixtures)
   state.json                   Initial render state (all bound properties)
-  element.ts                   Component class (extends WebUIElement)
+  element.ts                   Component class (extends webhubElement)
   <name>.spec.ts               Playwright tests
-  webui.config.json            Build options override (optional, e.g. {"css":"module"})
+  webhub.config.json            Build options override (optional, e.g. {"css":"module"})
 ```
 
 ## How it works
@@ -22,7 +22,7 @@ fixtures/<name>/
 The test server (`tests/server.ts`) uses `fixture-render.ts` to:
 
 1. **Discover** fixture dirs that have `src/index.html`
-2. **Build** each via `@microsoft/webui` `build()` → compiles templates to protocol
+2. **Build** each via `@microsoft/webhub` `build()` → compiles templates to protocol
 3. **Render** via `render()` → produces SSR HTML with hydration markers, template metadata, condition closures, and inventory
 4. **Inject** the `<script>` tag for the bundled `element.ts`
 5. **Serve** the result at `/<name>/fixture.html`
@@ -84,7 +84,7 @@ that specifically targets light-DOM behavior.
 
 ## Per-fixture build config
 
-Create `webui.config.json` to override build options:
+Create `webhub.config.json` to override build options:
 
 ```json
 { "css": "module" }

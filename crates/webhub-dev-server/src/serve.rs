@@ -4,15 +4,15 @@
 //! Static-file actix handler for dev servers.
 //!
 //! Serves files from a single output directory with:
-//!  - `basePath` segment-aware stripping (so `/webui-evil/x` does not
-//!    match `/webui/`),
+//!  - `basePath` segment-aware stripping (so `/webhub-evil/x` does not
+//!    match `/webhub/`),
 //!  - traversal-safe path resolution,
 //!  - `<base href>`-aware redirects (`/foo` → `/foo/` for directory URLs),
 //!  - automatic livereload script injection into HTML responses,
 //!  - caller-controlled 404 strategy (plain text, custom file, etc.).
 //!
-//! webui-cli does NOT use this handler — its serve command renders
-//! requests on the fly via the WebUI handler. webui-press uses it to
+//! webhub-cli does NOT use this handler — its serve command renders
+//! requests on the fly via the webhub handler. webhub-press uses it to
 //! serve the prebuilt `out_dir`.
 
 use std::path::{Path, PathBuf};
@@ -78,7 +78,7 @@ pub async fn serve_static_file(req: &HttpRequest, cfg: &StaticServeConfig) -> Ht
         }
     };
 
-    // `/webui` (no trailing slash) → redirect to `/webui/` so relative
+    // `/webhub` (no trailing slash) → redirect to `/webhub/` so relative
     // URLs resolve correctly in the browser.
     if cfg.base_path != "/" && format!("{path}/") == cfg.base_path {
         return HttpResponse::TemporaryRedirect()

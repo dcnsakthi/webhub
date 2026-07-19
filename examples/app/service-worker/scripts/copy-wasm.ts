@@ -9,13 +9,13 @@ import { fileURLToPath } from "url";
 const here = dirname(fileURLToPath(import.meta.url));
 const exampleRoot = resolve(here, "..");
 const repoRoot = resolve(exampleRoot, "../../..");
-const sourceDir = resolve(repoRoot, "docs/.webui-press/public/wasm/handler");
+const sourceDir = resolve(repoRoot, "docs/.webhub-press/public/wasm/handler");
 const destDir = resolve(exampleRoot, "public/wasm/handler");
 const runtimeFiles = [
-  "webui_wasm_handler.js",
-  "webui_wasm_handler_bg.wasm",
-  "webui_wasm_handler.d.ts",
-  "webui_wasm_handler_bg.wasm.d.ts",
+  "webhub_wasm_handler.js",
+  "webhub_wasm_handler_bg.wasm",
+  "webhub_wasm_handler.d.ts",
+  "webhub_wasm_handler_bg.wasm.d.ts",
 ];
 
 await main();
@@ -33,8 +33,8 @@ async function main(): Promise<void> {
 
 async function ensureHandlerWasm(): Promise<void> {
   try {
-    await access(resolve(sourceDir, "webui_wasm_handler.js"));
-    await access(resolve(sourceDir, "webui_wasm_handler_bg.wasm"));
+    await access(resolve(sourceDir, "webhub_wasm_handler.js"));
+    await access(resolve(sourceDir, "webhub_wasm_handler_bg.wasm"));
     return;
   } catch {
     const result: SpawnSyncReturns<Buffer> = spawnSync(

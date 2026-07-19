@@ -23,9 +23,9 @@ const EXPORT_PRIORITY: &[&str] = &["default", "import", "require"];
 /// Package fields that conventionally point to a browser/module entry.
 const SCRIPT_ENTRY_FIELDS: &[&str] = &["main", "module", "browser"];
 
-/// WebUI asset exports that do not imply authored browser code.
-const WEBUI_ASSET_EXPORTS: &[&str] = &[
-    "./template-webui.html",
+/// webhub asset exports that do not imply authored browser code.
+const webhub_ASSET_EXPORTS: &[&str] = &[
+    "./template-webhub.html",
     "./styles.css",
     "./component-asset.js",
 ];
@@ -51,7 +51,7 @@ fn find_node_modules(start: &Path) -> Result<PathBuf> {
 /// walk up from `fallback` when the primary search comes up empty.
 ///
 /// The fallback rescues callers whose primary search root lives outside
-/// any project tree. For example, `webui-press` builds each docs page in a
+/// any project tree. For example, `webhub-press` builds each docs page in a
 /// synthesized scratch directory under the system temp folder, which has no
 /// `node_modules` ancestor; the project's `node_modules` is instead reached
 /// from the process working directory the command was invoked in. The error
@@ -149,7 +149,7 @@ fn resolve_scoped(
             continue;
         }
         let sub_name = format!("{}/{}", scope, entry.file_name().to_string_lossy());
-        // Sub-packages without WebUI exports are expected — skip silently.
+        // Sub-packages without webhub exports are expected — skip silently.
         if let Ok(components) = resolve_single(&sub_name, node_modules, cache) {
             all.extend(components);
         }
@@ -199,13 +199,13 @@ fn resolve_single(
         .get("exports")
         .with_context(|| format!("No 'exports' field in {}", pkg_json_path.display()))?;
 
-    let template_rel = resolve_export(exports, "./template-webui.html").with_context(|| {
+    let template_rel = resolve_export(exports, "./template-webhub.html").with_context(|| {
         format!(
-            "No './template-webui.html' export in {}",
+            "No './template-webhub.html' export in {}",
             pkg_json_path.display()
         )
     })?;
-    validate_relative_path(&template_rel, "exports[\"./template-webui.html\"]")?;
+    validate_relative_path(&template_rel, "exports[\"./template-webhub.html\"]")?;
     let template_path = pkg_dir.join(&template_rel);
 
     let styles_rel = resolve_export(exports, "./styles.css");
@@ -269,8 +269,8 @@ fn resolve_single(
 /// Resolve an export path from the `exports` field in `package.json`.
 ///
 /// Handles two common formats:
-/// - Direct string: `"./template-webui.html": "./dist/template.html"`
-/// - Conditional object: `"./template-webui.html": { "default": "./dist/template.html" }`
+/// - Direct string: `"./template-webhub.html": "./dist/template.html"`
+/// - Conditional object: `"./template-webhub.html": { "default": "./dist/template.html" }`
 fn resolve_export(exports: &serde_json::Value, key: &str) -> Option<String> {
     match exports.get(key)? {
         serde_json::Value::String(s) => Some(s.clone()),
@@ -309,7 +309,7 @@ fn package_has_authored_script(pkg_json: &serde_json::Value) -> bool {
                 return export_value_has_script(root);
             }
             map.iter()
-                .any(|(key, value)| !is_webui_asset_export(key) && export_value_has_script(value))
+                .any(|(key, value)| !is_webhub_asset_export(key) && export_value_has_script(value))
         }
         _ => false,
     }
@@ -324,8 +324,8 @@ fn export_value_has_script(value: &serde_json::Value) -> bool {
     }
 }
 
-fn is_webui_asset_export(key: &str) -> bool {
-    WEBUI_ASSET_EXPORTS.contains(&key)
+fn is_webhub_asset_export(key: &str) -> bool {
+    webhub_ASSET_EXPORTS.contains(&key)
 }
 
 fn is_script_path(path: &str) -> bool {
@@ -381,7 +381,7 @@ mod tests {
         fs::create_dir_all(&pkg_dir).unwrap();
 
         // Create template
-        fs::write(pkg_dir.join("template-webui.html"), html).unwrap();
+        fs::write(pkg_dir.join("template-webhub.html"), html).unwrap();
 
         // Create styles (optional)
         if let Some(css_content) = css {
@@ -409,7 +409,7 @@ mod tests {
 
         // Create package.json with exports
         let mut exports = serde_json::json!({
-            "./template-webui.html": "./template-webui.html",
+            "./template-webhub.html": "./template-webhub.html",
         });
         if css.is_some() {
             exports["./styles.css"] = serde_json::json!("./styles.css");
@@ -535,20 +535,20 @@ mod tests {
     fn test_package_script_ownership_uses_manifest_entrypoints() {
         let static_pkg = serde_json::json!({
             "exports": {
-                "./template-webui.html": "./template-webui.html",
+                "./template-webhub.html": "./template-webhub.html",
                 "./styles.css": "./styles.css"
             }
         });
         let interactive_pkg = serde_json::json!({
             "exports": {
                 ".": { "import": "./dist/index.js" },
-                "./template-webui.html": "./template-webui.html"
+                "./template-webhub.html": "./template-webhub.html"
             }
         });
         let module_pkg = serde_json::json!({
             "module": "./dist/index.mjs",
             "exports": {
-                "./template-webui.html": "./template-webui.html"
+                "./template-webhub.html": "./template-webhub.html"
             }
         });
 
@@ -605,32 +605,32 @@ mod tests {
     #[test]
     fn test_resolve_export_direct_string() {
         let exports = serde_json::json!({
-            "./template-webui.html": "./dist/template.html"
+            "./template-webhub.html": "./dist/template.html"
         });
-        let result = resolve_export(&exports, "./template-webui.html");
+        let result = resolve_export(&exports, "./template-webhub.html");
         assert_eq!(result, Some("./dist/template.html".to_string()));
     }
 
     #[test]
     fn test_resolve_export_conditional_default() {
         let exports = serde_json::json!({
-            "./template-webui.html": {
+            "./template-webhub.html": {
                 "import": "./dist/template.mjs",
                 "default": "./dist/template.html"
             }
         });
-        let result = resolve_export(&exports, "./template-webui.html");
+        let result = resolve_export(&exports, "./template-webhub.html");
         assert_eq!(result, Some("./dist/template.html".to_string()));
     }
 
     #[test]
     fn test_resolve_export_conditional_fallback() {
         let exports = serde_json::json!({
-            "./template-webui.html": {
+            "./template-webhub.html": {
                 "import": "./dist/template.mjs"
             }
         });
-        let result = resolve_export(&exports, "./template-webui.html");
+        let result = resolve_export(&exports, "./template-webhub.html");
         assert_eq!(result, Some("./dist/template.mjs".to_string()));
     }
 
@@ -639,7 +639,7 @@ mod tests {
         let exports = serde_json::json!({
             "./other.html": "./dist/other.html"
         });
-        let result = resolve_export(&exports, "./template-webui.html");
+        let result = resolve_export(&exports, "./template-webhub.html");
         assert!(result.is_none());
     }
 
@@ -772,7 +772,7 @@ mod tests {
     #[test]
     fn test_validate_relative_path_accepts_valid() {
         assert!(validate_relative_path("./dist/template.html", "exports").is_ok());
-        assert!(validate_relative_path("template-webui.html", "exports").is_ok());
+        assert!(validate_relative_path("template-webhub.html", "exports").is_ok());
         assert!(validate_relative_path("dist/nested/file.css", "exports").is_ok());
     }
 
@@ -878,7 +878,7 @@ mod tests {
             "version": "1.0.0",
             "customElements": "./custom-elements.json",
             "exports": {
-                "./template-webui.html": "../../../etc/passwd"
+                "./template-webhub.html": "../../../etc/passwd"
             }
         });
         fs::write(

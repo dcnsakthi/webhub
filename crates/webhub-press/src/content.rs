@@ -201,7 +201,7 @@ fn build_page_registry(content_dir: &Path, base_path: &str) -> Vec<(String, std:
             let trimmed = trimmed.strip_suffix("/index").unwrap_or(trimmed);
 
             // Strip redundant filename if it matches parent folder
-            // e.g., "webui-button/webui-button" → "webui-button"
+            // e.g., "webhub-button/webhub-button" → "webhub-button"
             let trimmed = normalize_path_as_index(trimmed);
 
             // Root index.md => "/"
@@ -648,31 +648,31 @@ mod tests {
 
     #[test]
     fn normalize_link_empty_returns_empty() {
-        assert_eq!(normalize_link("/webui/", ""), "");
+        assert_eq!(normalize_link("/webhub/", ""), "");
     }
 
     #[test]
     fn normalize_link_root_slash_returns_base() {
-        assert_eq!(normalize_link("/webui/", "/"), "/webui/");
+        assert_eq!(normalize_link("/webhub/", "/"), "/webhub/");
     }
 
     #[test]
     fn normalize_link_trims_trailing_slash() {
         assert_eq!(
-            normalize_link("/webui/", "/guide/intro/"),
-            "/webui/guide/intro"
+            normalize_link("/webhub/", "/guide/intro/"),
+            "/webhub/guide/intro"
         );
         assert_eq!(
-            normalize_link("/webui/", "/guide/intro"),
-            "/webui/guide/intro"
+            normalize_link("/webhub/", "/guide/intro"),
+            "/webhub/guide/intro"
         );
     }
 
     #[test]
     fn normalize_link_preserves_fragment() {
         assert_eq!(
-            normalize_link("/webui/", "/guide/intro#section"),
-            "/webui/guide/intro#section"
+            normalize_link("/webhub/", "/guide/intro#section"),
+            "/webhub/guide/intro#section"
         );
     }
 
@@ -680,15 +680,15 @@ mod tests {
     fn normalize_link_tolerates_missing_leading_slash() {
         // Was previously a slice-from-1 panic risk on multi-byte chars.
         assert_eq!(
-            normalize_link("/webui/", "guide/intro"),
-            "/webui/guide/intro"
+            normalize_link("/webhub/", "guide/intro"),
+            "/webhub/guide/intro"
         );
     }
 
     #[test]
     fn normalize_link_tolerates_non_ascii_first_char() {
         // `&link[1..]` would have panicked here on UTF-8 boundary.
-        let out = normalize_link("/webui/", "é-page");
+        let out = normalize_link("/webhub/", "é-page");
         assert!(out.ends_with("é-page"), "got {out}");
     }
 
@@ -697,45 +697,45 @@ mod tests {
     #[test]
     fn normalize_path_as_index_strips_duplicate_folder_name() {
         assert_eq!(
-            normalize_path_as_index("webui-button/webui-button"),
-            "webui-button"
+            normalize_path_as_index("webhub-button/webhub-button"),
+            "webhub-button"
         );
     }
 
     #[test]
     fn normalize_path_as_index_keeps_different_filename() {
         assert_eq!(
-            normalize_path_as_index("webui-button/usage"),
-            "webui-button/usage"
+            normalize_path_as_index("webhub-button/usage"),
+            "webhub-button/usage"
         );
     }
 
     #[test]
     fn normalize_path_as_index_nested_folders() {
         assert_eq!(
-            normalize_path_as_index("components/webui-button/webui-button"),
-            "components/webui-button"
+            normalize_path_as_index("components/webhub-button/webhub-button"),
+            "components/webhub-button"
         );
     }
 
     #[test]
     fn normalize_path_as_index_no_slash_returns_unchanged() {
-        assert_eq!(normalize_path_as_index("webui-button"), "webui-button");
+        assert_eq!(normalize_path_as_index("webhub-button"), "webhub-button");
     }
 
     #[test]
     fn normalize_path_as_index_deep_nesting_with_match() {
         assert_eq!(
-            normalize_path_as_index("a/b/c/webui-card/webui-card"),
-            "a/b/c/webui-card"
+            normalize_path_as_index("a/b/c/webhub-card/webhub-card"),
+            "a/b/c/webhub-card"
         );
     }
 
     #[test]
     fn normalize_path_as_index_deep_nesting_without_match() {
         assert_eq!(
-            normalize_path_as_index("a/b/c/webui-card/examples"),
-            "a/b/c/webui-card/examples"
+            normalize_path_as_index("a/b/c/webhub-card/examples"),
+            "a/b/c/webhub-card/examples"
         );
     }
 

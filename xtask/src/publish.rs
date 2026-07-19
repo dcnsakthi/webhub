@@ -34,56 +34,56 @@ struct PlatformEntry {
 const PLATFORMS: &[PlatformEntry] = &[
     PlatformEntry {
         triple: "x86_64-unknown-linux-gnu",
-        npm_package: "webui-linux-x64",
+        npm_package: "webhub-linux-x64",
         nuget_rid: "linux-x64",
-        ffi_lib: "libwebui_ffi.so",
-        node_addon: "libwebui_node.so",
-        cli_binary: "webui",
+        ffi_lib: "libwebhub_ffi.so",
+        node_addon: "libwebhub_node.so",
+        cli_binary: "webhub",
         platform_suffix: "linux-x64",
     },
     PlatformEntry {
         triple: "aarch64-unknown-linux-gnu",
-        npm_package: "webui-linux-arm64",
+        npm_package: "webhub-linux-arm64",
         nuget_rid: "linux-arm64",
-        ffi_lib: "libwebui_ffi.so",
-        node_addon: "libwebui_node.so",
-        cli_binary: "webui",
+        ffi_lib: "libwebhub_ffi.so",
+        node_addon: "libwebhub_node.so",
+        cli_binary: "webhub",
         platform_suffix: "linux-arm64",
     },
     PlatformEntry {
         triple: "x86_64-pc-windows-msvc",
-        npm_package: "webui-win32-x64",
+        npm_package: "webhub-win32-x64",
         nuget_rid: "win-x64",
-        ffi_lib: "webui_ffi.dll",
-        node_addon: "webui_node.dll",
-        cli_binary: "webui.exe",
+        ffi_lib: "webhub_ffi.dll",
+        node_addon: "webhub_node.dll",
+        cli_binary: "webhub.exe",
         platform_suffix: "win32-x64",
     },
     PlatformEntry {
         triple: "aarch64-pc-windows-msvc",
-        npm_package: "webui-win32-arm64",
+        npm_package: "webhub-win32-arm64",
         nuget_rid: "win-arm64",
-        ffi_lib: "webui_ffi.dll",
-        node_addon: "webui_node.dll",
-        cli_binary: "webui.exe",
+        ffi_lib: "webhub_ffi.dll",
+        node_addon: "webhub_node.dll",
+        cli_binary: "webhub.exe",
         platform_suffix: "win32-arm64",
     },
     PlatformEntry {
         triple: "x86_64-apple-darwin",
-        npm_package: "webui-darwin-x64",
+        npm_package: "webhub-darwin-x64",
         nuget_rid: "osx-x64",
-        ffi_lib: "libwebui_ffi.dylib",
-        node_addon: "libwebui_node.dylib",
-        cli_binary: "webui",
+        ffi_lib: "libwebhub_ffi.dylib",
+        node_addon: "libwebhub_node.dylib",
+        cli_binary: "webhub",
         platform_suffix: "darwin-x64",
     },
     PlatformEntry {
         triple: "aarch64-apple-darwin",
-        npm_package: "webui-darwin-arm64",
+        npm_package: "webhub-darwin-arm64",
         nuget_rid: "osx-arm64",
-        ffi_lib: "libwebui_ffi.dylib",
-        node_addon: "libwebui_node.dylib",
-        cli_binary: "webui",
+        ffi_lib: "libwebhub_ffi.dylib",
+        node_addon: "libwebhub_node.dylib",
+        cli_binary: "webhub",
         platform_suffix: "darwin-arm64",
     },
 ];
@@ -436,7 +436,7 @@ fn stage_all_platforms(root: &Path, profile: &str) -> ExitCode {
         eprintln!(
             "  {} No build artifacts found. Build first:\n    {}",
             console::style("⚠").yellow(),
-            console::style("cargo build --release -p microsoft-webui-ffi -p microsoft-webui-node -p microsoft-webui-cli").dim(),
+            console::style("cargo build --release -p microsoft-webhub-ffi -p microsoft-webhub-node -p microsoft-webhub-cli").dim(),
         );
         return ExitCode::FAILURE;
     }
@@ -502,7 +502,7 @@ fn stage_platform(root: &Path, platform: &PlatformEntry, build_dir: &Path) -> bo
         label: "nuget",
     });
 
-    // npm: CLI binary → packages/webui-{platform}/bin/
+    // npm: CLI binary → packages/webhub-{platform}/bin/
     ok &= stage_file(&CopySpec {
         src: &build_dir.join(platform.cli_binary),
         dest_dir: &root.join("packages").join(platform.npm_package).join("bin"),
@@ -510,11 +510,11 @@ fn stage_platform(root: &Path, platform: &PlatformEntry, build_dir: &Path) -> bo
         label: "npm cli",
     });
 
-    // npm: Node addon (renamed to webui.node)
+    // npm: Node addon (renamed to webhub.node)
     ok &= stage_file(&CopySpec {
         src: &build_dir.join(platform.node_addon),
         dest_dir: &root.join("packages").join(platform.npm_package),
-        dest_name: "webui.node",
+        dest_name: "webhub.node",
         label: "npm addon",
     });
 
@@ -530,12 +530,12 @@ fn stage_platform(root: &Path, platform: &PlatformEntry, build_dir: &Path) -> bo
     ok
 }
 
-/// Build a platform-suffixed CLI binary name (e.g. `webui-darwin-arm64`, `webui-win32-x64.exe`).
+/// Build a platform-suffixed CLI binary name (e.g. `webhub-darwin-arm64`, `webhub-win32-x64.exe`).
 fn native_binary_name(platform: &PlatformEntry) -> String {
     if platform.cli_binary.ends_with(".exe") {
-        format!("webui-{}.exe", platform.platform_suffix)
+        format!("webhub-{}.exe", platform.platform_suffix)
     } else {
-        format!("webui-{}", platform.platform_suffix)
+        format!("webhub-{}", platform.platform_suffix)
     }
 }
 
@@ -547,7 +547,7 @@ fn pack_npm_tarballs(root: &Path) -> Result<(), String> {
     let npm_out = root.join("publish").join("npm");
 
     // Build packages that have build scripts first
-    for pkg_name in &["webui", "webui-framework", "webui-router"] {
+    for pkg_name in &["webhub", "webhub-framework", "webhub-router"] {
         let pkg_dir = packages_dir.join(pkg_name);
         if !pkg_dir.join("package.json").exists() {
             continue;
@@ -655,9 +655,9 @@ fn pack_nuget_packages(root: &Path) -> Result<(), String> {
         return Ok(());
     }
 
-    let solution = dotnet_dir.join("Microsoft.WebUI.sln");
+    let solution = dotnet_dir.join("Microsoft.webhub.sln");
     if !solution.exists() {
-        return Err("dotnet/Microsoft.WebUI.sln not found".to_string());
+        return Err("dotnet/Microsoft.webhub.sln not found".to_string());
     }
 
     let solution_arg = solution.to_string_lossy();
@@ -1015,28 +1015,28 @@ mod tests {
     fn test_native_binary_name_unix() {
         let p = PlatformEntry {
             triple: "aarch64-apple-darwin",
-            npm_package: "webui-darwin-arm64",
+            npm_package: "webhub-darwin-arm64",
             nuget_rid: "osx-arm64",
-            ffi_lib: "libwebui_ffi.dylib",
-            node_addon: "libwebui_node.dylib",
-            cli_binary: "webui",
+            ffi_lib: "libwebhub_ffi.dylib",
+            node_addon: "libwebhub_node.dylib",
+            cli_binary: "webhub",
             platform_suffix: "darwin-arm64",
         };
-        assert_eq!(native_binary_name(&p), "webui-darwin-arm64");
+        assert_eq!(native_binary_name(&p), "webhub-darwin-arm64");
     }
 
     #[test]
     fn test_native_binary_name_windows() {
         let p = PlatformEntry {
             triple: "x86_64-pc-windows-msvc",
-            npm_package: "webui-win32-x64",
+            npm_package: "webhub-win32-x64",
             nuget_rid: "win-x64",
-            ffi_lib: "webui_ffi.dll",
-            node_addon: "webui_node.dll",
-            cli_binary: "webui.exe",
+            ffi_lib: "webhub_ffi.dll",
+            node_addon: "webhub_node.dll",
+            cli_binary: "webhub.exe",
             platform_suffix: "win32-x64",
         };
-        assert_eq!(native_binary_name(&p), "webui-win32-x64.exe");
+        assert_eq!(native_binary_name(&p), "webhub-win32-x64.exe");
     }
 
     #[test]
@@ -1076,12 +1076,12 @@ mod tests {
 
         fs::create_dir_all(&native).unwrap();
         fs::create_dir_all(&npm).unwrap();
-        fs::write(native.join("webui-win32-x64.exe"), "bin").unwrap();
+        fs::write(native.join("webhub-win32-x64.exe"), "bin").unwrap();
         fs::write(npm.join("stale.tgz"), "stale").unwrap();
 
         prepare_publish_dirs(dir.path(), StageMode::PackOnly).unwrap();
 
-        assert!(native.join("webui-win32-x64.exe").exists());
+        assert!(native.join("webhub-win32-x64.exe").exists());
         assert!(!npm.join("stale.tgz").exists());
         assert!(publish.join("nuget").is_dir());
         assert!(publish.join("crates").is_dir());
@@ -1120,14 +1120,14 @@ mod tests {
         let dest = tempfile::TempDir::new().unwrap();
         fs::create_dir_all(src.path().join("handler")).unwrap();
         fs::write(
-            src.path().join("handler").join("webui_wasm_handler.js"),
+            src.path().join("handler").join("webhub_wasm_handler.js"),
             "js",
         )
         .unwrap();
         fs::write(
             src.path()
                 .join("handler")
-                .join("webui_wasm_handler_bg.wasm"),
+                .join("webhub_wasm_handler_bg.wasm"),
             "wasm",
         )
         .unwrap();
@@ -1138,12 +1138,12 @@ mod tests {
         assert!(dest
             .path()
             .join("handler")
-            .join("webui_wasm_handler.js")
+            .join("webhub_wasm_handler.js")
             .exists());
         assert!(dest
             .path()
             .join("handler")
-            .join("webui_wasm_handler_bg.wasm")
+            .join("webhub_wasm_handler_bg.wasm")
             .exists());
     }
 
@@ -1161,7 +1161,7 @@ mod tests {
         let dir = tempfile::TempDir::new().unwrap();
         fs::write(
             dir.path().join("package.json"),
-            r#"{"name": "@microsoft/webui-test-support", "private": true}"#,
+            r#"{"name": "@microsoft/webhub-test-support", "private": true}"#,
         )
         .unwrap();
         assert!(is_private_package(dir.path()));
@@ -1172,7 +1172,7 @@ mod tests {
         let dir = tempfile::TempDir::new().unwrap();
         fs::write(
             dir.path().join("package.json"),
-            r#"{"name": "@microsoft/webui"}"#,
+            r#"{"name": "@microsoft/webhub"}"#,
         )
         .unwrap();
         assert!(!is_private_package(dir.path()));
@@ -1183,7 +1183,7 @@ mod tests {
         let dir = tempfile::TempDir::new().unwrap();
         fs::write(
             dir.path().join("package.json"),
-            r#"{"name": "@microsoft/webui", "private": false}"#,
+            r#"{"name": "@microsoft/webhub", "private": false}"#,
         )
         .unwrap();
         assert!(!is_private_package(dir.path()));

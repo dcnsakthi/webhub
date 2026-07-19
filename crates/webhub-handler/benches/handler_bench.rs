@@ -5,10 +5,10 @@ use serde_json::json;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::hint::black_box;
-use webui_handler::plugin::fast_v2::FastV2HydrationPlugin;
-use webui_handler::{Protocol, RenderOptions, ResponseWriter, WebUIHandler};
-use webui_protocol::{
-    ComparisonOperator, ConditionExpr, FragmentList, LogicalOperator, WebUIFragment, WebUIProtocol,
+use webhub_handler::plugin::fast_v2::FastV2HydrationPlugin;
+use webhub_handler::{Protocol, RenderOptions, ResponseWriter, webhubHandler};
+use webhub_protocol::{
+    ComparisonOperator, ConditionExpr, FragmentList, LogicalOperator, webhubFragment, webhubProtocol,
 };
 
 struct BenchWriter {
@@ -32,12 +32,12 @@ impl BenchWriter {
 }
 
 impl ResponseWriter for BenchWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.output.push_str(content);
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -71,9 +71,9 @@ fn build_mixed_protocol() -> Protocol {
         "index.html".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<section class=\"root\">"),
-                WebUIFragment::component("card"),
-                WebUIFragment::raw("</section>"),
+                webhubFragment::raw("<section class=\"root\">"),
+                webhubFragment::component("card"),
+                webhubFragment::raw("</section>"),
             ],
         },
     );
@@ -82,23 +82,23 @@ fn build_mixed_protocol() -> Protocol {
         "card".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<x-card"),
-                WebUIFragment::attribute("title", "title"),
-                WebUIFragment::attribute_template("class", "class-template"),
-                WebUIFragment::attribute_boolean(
+                webhubFragment::raw("<x-card"),
+                webhubFragment::attribute("title", "title"),
+                webhubFragment::attribute_template("class", "class-template"),
+                webhubFragment::attribute_boolean(
                     "disabled",
                     ConditionExpr::identifier("is_disabled"),
                 ),
-                WebUIFragment::raw(">"),
-                WebUIFragment::raw("<h2>"),
-                WebUIFragment::signal("title", false),
-                WebUIFragment::raw("</h2><ul>"),
-                WebUIFragment::for_loop("item", "items", "item-frag"),
-                WebUIFragment::raw("</ul>"),
-                WebUIFragment::if_cond(ConditionExpr::identifier("show_footer"), "footer-frag"),
+                webhubFragment::raw(">"),
+                webhubFragment::raw("<h2>"),
+                webhubFragment::signal("title", false),
+                webhubFragment::raw("</h2><ul>"),
+                webhubFragment::for_loop("item", "items", "item-frag"),
+                webhubFragment::raw("</ul>"),
+                webhubFragment::if_cond(ConditionExpr::identifier("show_footer"), "footer-frag"),
                 // Simulate parser-plugin payload consumed by FastV2HydrationPlugin.
-                WebUIFragment::plugin((3u32).to_le_bytes().to_vec()),
-                WebUIFragment::raw("</x-card>"),
+                webhubFragment::plugin((3u32).to_le_bytes().to_vec()),
+                webhubFragment::raw("</x-card>"),
             ],
         },
     );
@@ -107,10 +107,10 @@ fn build_mixed_protocol() -> Protocol {
         "class-template".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("card "),
-                WebUIFragment::signal("theme", false),
-                WebUIFragment::raw(" size-"),
-                WebUIFragment::signal("size", false),
+                webhubFragment::raw("card "),
+                webhubFragment::signal("theme", false),
+                webhubFragment::raw(" size-"),
+                webhubFragment::signal("size", false),
             ],
         },
     );
@@ -119,11 +119,11 @@ fn build_mixed_protocol() -> Protocol {
         "item-frag".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<li"),
-                WebUIFragment::attribute("data-id", "item.id"),
-                WebUIFragment::raw(">"),
-                WebUIFragment::signal("item.name", false),
-                WebUIFragment::raw("</li>"),
+                webhubFragment::raw("<li"),
+                webhubFragment::attribute("data-id", "item.id"),
+                webhubFragment::raw(">"),
+                webhubFragment::signal("item.name", false),
+                webhubFragment::raw("</li>"),
             ],
         },
     );
@@ -132,14 +132,14 @@ fn build_mixed_protocol() -> Protocol {
         "footer-frag".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<footer>"),
-                WebUIFragment::signal("footer", false),
-                WebUIFragment::raw("</footer>"),
+                webhubFragment::raw("<footer>"),
+                webhubFragment::signal("footer", false),
+                webhubFragment::raw("</footer>"),
             ],
         },
     );
 
-    Protocol::new(WebUIProtocol::new(fragments))
+    Protocol::new(webhubProtocol::new(fragments))
 }
 
 fn handler_plugin_fast_bench(c: &mut Criterion) {
@@ -147,7 +147,7 @@ fn handler_plugin_fast_bench(c: &mut Criterion) {
     let protocol = build_mixed_protocol();
     let state = build_state(120);
 
-    let baseline_handler = WebUIHandler::new();
+    let baseline_handler = webhubHandler::new();
     let mut baseline_writer = BenchWriter::new(16 * 1024);
     baseline_handler
         .render(
@@ -160,7 +160,7 @@ fn handler_plugin_fast_bench(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(baseline_writer.len() as u64));
 
     group.bench_function(BenchmarkId::new("render", "without_plugin"), |b| {
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut writer = BenchWriter::new(16 * 1024);
 
         b.iter(|| {
@@ -177,7 +177,7 @@ fn handler_plugin_fast_bench(c: &mut Criterion) {
     });
 
     group.bench_function(BenchmarkId::new("render", "with_fast_plugin"), |b| {
-        let handler = WebUIHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()));
+        let handler = webhubHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()));
         let mut writer = BenchWriter::new(24 * 1024);
 
         b.iter(|| {
@@ -204,7 +204,7 @@ fn handler_loop_scaling_bench(c: &mut Criterion) {
         let state = build_state(count);
 
         // Pre-render to measure output size for throughput
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut writer = BenchWriter::new(count * 80 + 1024);
         handler
             .render(
@@ -217,7 +217,7 @@ fn handler_loop_scaling_bench(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(writer.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("items", count), &state, |b, st| {
-            let h = WebUIHandler::new();
+            let h = webhubHandler::new();
             let mut w = BenchWriter::new(count * 80 + 1024);
 
             b.iter(|| {
@@ -243,21 +243,21 @@ fn build_condition_protocol() -> Protocol {
         "index.html".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<div class=\"conditions\">"),
+                webhubFragment::raw("<div class=\"conditions\">"),
                 // Simple identifier condition
-                WebUIFragment::if_cond(ConditionExpr::identifier("isAdmin"), "admin-frag"),
+                webhubFragment::if_cond(ConditionExpr::identifier("isAdmin"), "admin-frag"),
                 // Predicate condition (equality)
-                WebUIFragment::if_cond(
+                webhubFragment::if_cond(
                     ConditionExpr::predicate("status", ComparisonOperator::Equal, "'active'"),
                     "status-frag",
                 ),
                 // Negated condition
-                WebUIFragment::if_cond(
+                webhubFragment::if_cond(
                     ConditionExpr::negated(ConditionExpr::identifier("isDisabled")),
                     "enabled-frag",
                 ),
                 // Compound AND condition
-                WebUIFragment::if_cond(
+                webhubFragment::if_cond(
                     ConditionExpr::compound(
                         ConditionExpr::identifier("isLoggedIn"),
                         LogicalOperator::And,
@@ -266,7 +266,7 @@ fn build_condition_protocol() -> Protocol {
                     "auth-frag",
                 ),
                 // Compound OR condition
-                WebUIFragment::if_cond(
+                webhubFragment::if_cond(
                     ConditionExpr::compound(
                         ConditionExpr::identifier("isOwner"),
                         LogicalOperator::Or,
@@ -274,7 +274,7 @@ fn build_condition_protocol() -> Protocol {
                     ),
                     "access-frag",
                 ),
-                WebUIFragment::raw("</div>"),
+                webhubFragment::raw("</div>"),
             ],
         },
     );
@@ -289,12 +289,12 @@ fn build_condition_protocol() -> Protocol {
         fragments.insert(
             id.to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw(content)],
+                fragments: vec![webhubFragment::raw(content)],
             },
         );
     }
 
-    Protocol::new(WebUIProtocol::new(fragments))
+    Protocol::new(webhubProtocol::new(fragments))
 }
 
 fn build_condition_state() -> Value {
@@ -313,7 +313,7 @@ fn handler_condition_variety_bench(c: &mut Criterion) {
     let protocol = build_condition_protocol();
 
     let state_true = build_condition_state();
-    let handler = WebUIHandler::new();
+    let handler = webhubHandler::new();
     let mut writer = BenchWriter::new(1024);
     handler
         .render(
@@ -326,7 +326,7 @@ fn handler_condition_variety_bench(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(writer.len() as u64));
 
     group.bench_function("all_true", |b| {
-        let h = WebUIHandler::new();
+        let h = webhubHandler::new();
         let mut w = BenchWriter::new(1024);
         b.iter(|| {
             w.clear();
@@ -350,7 +350,7 @@ fn handler_condition_variety_bench(c: &mut Criterion) {
     });
 
     group.bench_function("mixed", |b| {
-        let h = WebUIHandler::new();
+        let h = webhubHandler::new();
         let mut w = BenchWriter::new(1024);
         b.iter(|| {
             w.clear();
@@ -374,9 +374,9 @@ fn build_nested_component_protocol() -> Protocol {
         "index.html".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<!DOCTYPE html><html><body>"),
-                WebUIFragment::component("app"),
-                WebUIFragment::raw("</body></html>"),
+                webhubFragment::raw("<!DOCTYPE html><html><body>"),
+                webhubFragment::component("app"),
+                webhubFragment::raw("</body></html>"),
             ],
         },
     );
@@ -385,13 +385,13 @@ fn build_nested_component_protocol() -> Protocol {
         "app".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<div class=\"app\"><header><h1>"),
-                WebUIFragment::signal("title", false),
-                WebUIFragment::raw("</h1><span>"),
-                WebUIFragment::signal("items.length", false),
-                WebUIFragment::raw(" items</span></header><ul>"),
-                WebUIFragment::for_loop("item", "items", "item-component"),
-                WebUIFragment::raw("</ul></div>"),
+                webhubFragment::raw("<div class=\"app\"><header><h1>"),
+                webhubFragment::signal("title", false),
+                webhubFragment::raw("</h1><span>"),
+                webhubFragment::signal("items.length", false),
+                webhubFragment::raw(" items</span></header><ul>"),
+                webhubFragment::for_loop("item", "items", "item-component"),
+                webhubFragment::raw("</ul></div>"),
             ],
         },
     );
@@ -400,13 +400,13 @@ fn build_nested_component_protocol() -> Protocol {
         "item-component".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<li"),
-                WebUIFragment::attribute("data-id", "item.id"),
-                WebUIFragment::raw("><span>"),
-                WebUIFragment::signal("item.name", false),
-                WebUIFragment::raw("</span>"),
-                WebUIFragment::if_cond(ConditionExpr::identifier("item.enabled"), "enabled-badge"),
-                WebUIFragment::raw("</li>"),
+                webhubFragment::raw("<li"),
+                webhubFragment::attribute("data-id", "item.id"),
+                webhubFragment::raw("><span>"),
+                webhubFragment::signal("item.name", false),
+                webhubFragment::raw("</span>"),
+                webhubFragment::if_cond(ConditionExpr::identifier("item.enabled"), "enabled-badge"),
+                webhubFragment::raw("</li>"),
             ],
         },
     );
@@ -414,11 +414,11 @@ fn build_nested_component_protocol() -> Protocol {
     fragments.insert(
         "enabled-badge".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<span class=\"badge\">✓</span>")],
+            fragments: vec![webhubFragment::raw("<span class=\"badge\">✓</span>")],
         },
     );
 
-    Protocol::new(WebUIProtocol::new(fragments))
+    Protocol::new(webhubProtocol::new(fragments))
 }
 
 fn handler_nested_components_bench(c: &mut Criterion) {
@@ -426,7 +426,7 @@ fn handler_nested_components_bench(c: &mut Criterion) {
     let protocol = build_nested_component_protocol();
     let state = build_state(50);
 
-    let handler = WebUIHandler::new();
+    let handler = webhubHandler::new();
     let mut writer = BenchWriter::new(8 * 1024);
     handler
         .render(
@@ -439,7 +439,7 @@ fn handler_nested_components_bench(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(writer.len() as u64));
 
     group.bench_function("three_levels_50_items", |b| {
-        let h = WebUIHandler::new();
+        let h = webhubHandler::new();
         let mut w = BenchWriter::new(8 * 1024);
         b.iter(|| {
             w.clear();
@@ -462,13 +462,13 @@ fn build_signal_protocol(signal_path: &str) -> Protocol {
         "index.html".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<div>"),
-                WebUIFragment::signal(signal_path, false),
-                WebUIFragment::raw("</div>"),
+                webhubFragment::raw("<div>"),
+                webhubFragment::signal(signal_path, false),
+                webhubFragment::raw("</div>"),
             ],
         },
     );
-    Protocol::new(WebUIProtocol::new(fragments))
+    Protocol::new(webhubProtocol::new(fragments))
 }
 
 fn handler_state_depth_bench(c: &mut Criterion) {
@@ -493,7 +493,7 @@ fn handler_state_depth_bench(c: &mut Criterion) {
         let protocol = build_signal_protocol(path);
 
         group.bench_function(*label, |b| {
-            let h = WebUIHandler::new();
+            let h = webhubHandler::new();
             let mut w = BenchWriter::new(256);
             b.iter(|| {
                 w.clear();

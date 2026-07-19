@@ -160,7 +160,7 @@ mod tests {
                 .duration_since(UNIX_EPOCH)
                 .map_or(0, |duration| duration.as_nanos());
             let path = std::env::temp_dir().join(format!(
-                "webui-commerce-image-cache-{}-{unique}",
+                "webhub-commerce-image-cache-{}-{unique}",
                 std::process::id()
             ));
 

@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
 // Child component — has its own event binding.
-export class TestNestedChild extends WebUIElement {
+export class TestNestedChild extends webhubElement {
   @observable childClicks = 0;
 
   onChildClick(): void {
@@ -17,7 +17,7 @@ TestNestedChild.define('test-nested-child');
 // Parent component — has its own event binding AND contains test-nested-child.
 // Verifies that event wiring during SSR hydration correctly scopes to
 // the parent's own event targets without interfering with the child.
-export class TestNestedEvent extends WebUIElement {
+export class TestNestedEvent extends webhubElement {
   @observable parentClicks = 0;
 
   onParentClick(): void {

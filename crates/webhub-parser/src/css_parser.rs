@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! CSS scanner for WebUI components.
+//! CSS scanner for webhub components.
 
 use crate::{comment_policy, LegalComments, ParserError, Result};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::fmt;
-use webui_tokens::CssFallbackChain;
+use webhub_tokens::CssFallbackChain;
 
 /// Parser for CSS files.
 pub struct CssParser;

@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement } from '@microsoft/webui-framework';
+import { webhubElement } from '@microsoft/webhub-framework';
 
-export class SectionPage extends WebUIElement {
+export class SectionPage extends webhubElement {
   counterLabel!: HTMLSpanElement;
   onCounterClick(): void {
     this.counterLabel.textContent = String(Number(this.counterLabel.textContent) + 1);

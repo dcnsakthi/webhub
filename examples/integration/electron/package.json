@@ -1,5 +1,5 @@
 {
-  "name": "webui-electron-example",
+  "name": "webhub-electron-example",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
     "start": "npm run build && electron dist/main.js --"
   },
   "dependencies": {
-    "@microsoft/webui": "workspace:*"
+    "@microsoft/webhub": "workspace:*"
   },
   "devDependencies": {
     "electron": "catalog:",

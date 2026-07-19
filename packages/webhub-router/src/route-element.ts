@@ -3,14 +3,14 @@
 
 /**
  * Route-element helpers — constants, DOM accessors, and the
- * `<webui-route>` custom element extracted from the monolithic router.
+ * `<webhub-route>` custom element extracted from the monolithic router.
  */
 
 import { isStateful } from './types.js';
 
 // ── Constants ────────────────────────────────────────────────────
 
-export const ROUTE_SELECTOR = 'webui-route';
+export const ROUTE_SELECTOR = 'webhub-route';
 
 // ── Module-scope state ───────────────────────────────────────────
 
@@ -68,7 +68,7 @@ export function renderRoot(el: Element): Element | ShadowRoot {
   return (el as HTMLElement).shadowRoot ?? el;
 }
 
-/** Create a hidden `<webui-route>` stub element. */
+/** Create a hidden `<webhub-route>` stub element. */
 export function createRouteStub(entry: { path?: string; component?: string; exact?: boolean }): HTMLElement {
   const el = document.createElement(ROUTE_SELECTOR);
   if (entry.path) el.setAttribute('path', entry.path);
@@ -260,10 +260,10 @@ export function applyParamsQueryState(
   }
 }
 
-// ── WebUIRouteElement custom element ─────────────────────────────
+// ── webhubRouteElement custom element ─────────────────────────────
 
-/** Custom element backing `<webui-route>`. */
-export class WebUIRouteElement extends HTMLElement {
+/** Custom element backing `<webhub-route>`. */
+export class webhubRouteElement extends HTMLElement {
   get path(): string { return this.getAttribute('path') ?? ''; }
   get exact(): boolean { return this.hasAttribute('exact'); }
   get component(): string { return this.getAttribute('component') ?? ''; }

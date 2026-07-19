@@ -63,11 +63,11 @@ export interface ConformanceSuiteOptions {
   filter?: (value: ConformanceCase) => boolean;
 }
 
-const FIXTURE_ROOT = path.resolve(".webui-projection-conformance");
+const FIXTURE_ROOT = path.resolve(".webhub-projection-conformance");
 const MANIFEST_PATH = path.join(
   FIXTURE_ROOT,
   "dist",
-  "webui-projection.json"
+  "webhub-projection.json"
 );
 
 /**
@@ -348,14 +348,14 @@ function resolved(
 }
 
 function framework(
-  specifier = "@microsoft/webui-framework"
+  specifier = "@microsoft/webhub-framework"
 ): ResolvedImport {
   return {
     specifier,
     resolvedId: undefined,
     external: true,
     kind: "static",
-    packageName: "@microsoft/webui-framework",
+    packageName: "@microsoft/webhub-framework",
   };
 }
 
@@ -455,8 +455,8 @@ const contactGraph = graph(
     fileModule(
       "src/contact-card.ts",
       `
-import { observable, attr, WebUIElement } from '@microsoft/webui-framework';
-class ContactCard extends WebUIElement {
+import { observable, attr, webhubElement } from '@microsoft/webhub-framework';
+class ContactCard extends webhubElement {
   @observable email = '';
   @attr firstName = '';
   @attr({ attribute: 'last-name' }) lastName = '';
@@ -495,14 +495,14 @@ export const ALL_CASES: ReadonlyArray<ConformanceCase> = [
   ),
   success(
     "empty-keys",
-    "A proven WebUI class with no reactive properties emits empty surfaces.",
+    "A proven webhub class with no reactive properties emits empty surfaces.",
     graph(
       [
         fileModule(
           "src/static-banner.ts",
           `
-import { WebUIElement } from '@microsoft/webui-framework';
-class StaticBanner extends WebUIElement {}
+import { webhubElement } from '@microsoft/webhub-framework';
+class StaticBanner extends webhubElement {}
 StaticBanner.define('static-banner');
 `,
           [framework()]
@@ -533,8 +533,8 @@ StaticBanner.define('static-banner');
         fileModule(
           "src/counter.ts",
           `
-import { observable as obs, WebUIElement } from '@microsoft/webui-framework';
-class Counter extends WebUIElement { @obs count = 0; }
+import { observable as obs, webhubElement } from '@microsoft/webhub-framework';
+class Counter extends webhubElement { @obs count = 0; }
 Counter.define('my-counter');
 `,
           [framework()]
@@ -561,8 +561,8 @@ Counter.define('my-counter');
         fileModule(
           "src/widget.ts",
           `
-import * as webui from '@microsoft/webui-framework';
-class Widget extends webui.WebUIElement { @webui.observable value = ''; }
+import * as webhub from '@microsoft/webhub-framework';
+class Widget extends webhub.webhubElement { @webhub.observable value = ''; }
 Widget.define('my-widget');
 `,
           [framework()]
@@ -589,11 +589,11 @@ Widget.define('my-widget');
         fileModule(
           "src/alias-card.ts",
           `
-import { observable, WebUIElement } from '#webui';
-class AliasCard extends WebUIElement { @observable value = ''; }
+import { observable, webhubElement } from '#webhub';
+class AliasCard extends webhubElement { @observable value = ''; }
 AliasCard.define('alias-card');
 `,
-          [framework("#webui")]
+          [framework("#webhub")]
         ),
       ],
       [fileId("src/alias-card.ts")]
@@ -620,7 +620,7 @@ AliasCard.define('alias-card');
       [
         fileModule(
           "src/framework-barrel.ts",
-          "export { observable } from '@microsoft/webui-framework';",
+          "export { observable } from '@microsoft/webhub-framework';",
           [framework()]
         ),
         fileModule(
@@ -632,8 +632,8 @@ AliasCard.define('alias-card');
           "src/card.ts",
           `
 import { observable } from './app-barrel.ts';
-import { WebUIElement } from '@microsoft/webui-framework';
-class Card extends WebUIElement { @observable title = ''; }
+import { webhubElement } from '@microsoft/webhub-framework';
+class Card extends webhubElement { @observable title = ''; }
 Card.define('my-card');
 `,
           [
@@ -671,15 +671,15 @@ Card.define('my-card');
         fileModule(
           "src/base.ts",
           `
-import { observable, WebUIElement } from '@microsoft/webui-framework';
-export class Base extends WebUIElement { @observable shared = ''; }
+import { observable, webhubElement } from '@microsoft/webhub-framework';
+export class Base extends webhubElement { @observable shared = ''; }
 `,
           [framework()]
         ),
         fileModule(
           "src/derived.ts",
           `
-import { observable } from '@microsoft/webui-framework';
+import { observable } from '@microsoft/webhub-framework';
 import { Base } from './base.ts';
 class Derived extends Base { @observable own = ''; }
 Derived.define('my-derived');
@@ -712,15 +712,15 @@ Derived.define('my-derived');
         fileModule(
           "src/a.ts",
           `
-import { observable, WebUIElement } from '@microsoft/webui-framework';
-export class A extends WebUIElement { @observable aKey = ''; }
+import { observable, webhubElement } from '@microsoft/webhub-framework';
+export class A extends webhubElement { @observable aKey = ''; }
 `,
           [framework()]
         ),
         fileModule(
           "src/b.ts",
           `
-import { observable } from '@microsoft/webui-framework';
+import { observable } from '@microsoft/webhub-framework';
 import { A } from './a.ts';
 export class B extends A { @observable bKey = ''; }
 `,
@@ -729,7 +729,7 @@ export class B extends A { @observable bKey = ''; }
         fileModule(
           "src/c.ts",
           `
-import { observable } from '@microsoft/webui-framework';
+import { observable } from '@microsoft/webhub-framework';
 import { B } from './b.ts';
 class C extends B { @observable cKey = ''; }
 C.define('my-c');
@@ -765,8 +765,8 @@ C.define('my-c');
         fileModule(
           "src/detail.ts",
           `
-import { observable, WebUIElement } from '@microsoft/webui-framework';
-class DetailPane extends WebUIElement { @observable item = null; }
+import { observable, webhubElement } from '@microsoft/webhub-framework';
+class DetailPane extends webhubElement { @observable item = null; }
 DetailPane.define('detail-pane');
 `,
           [framework()]
@@ -798,8 +798,8 @@ DetailPane.define('detail-pane');
         fileModule(
           "src/unused.ts",
           `
-import { observable, WebUIElement } from '@microsoft/webui-framework';
-class Unused extends WebUIElement { @observable value = ''; }
+import { observable, webhubElement } from '@microsoft/webhub-framework';
+class Unused extends webhubElement { @observable value = ''; }
 Unused.define('unused-card');
 `,
           [framework()]
@@ -821,8 +821,8 @@ Unused.define('unused-card');
         fileModule(
           "src/shared.ts",
           `
-import { attr, WebUIElement } from '@microsoft/webui-framework';
-export class Shared extends WebUIElement { @attr label = ''; }
+import { attr, webhubElement } from '@microsoft/webhub-framework';
+export class Shared extends webhubElement { @attr label = ''; }
 Shared.define('shared-btn');
 `,
           [framework()]
@@ -861,8 +861,8 @@ Shared.define('shared-btn');
         fileModule(
           "src/card.ts",
           `
-import { observable, WebUIElement } from '@microsoft/webui-framework';
-export class Card extends WebUIElement { @observable value = ''; }
+import { observable, webhubElement } from '@microsoft/webhub-framework';
+export class Card extends webhubElement { @observable value = ''; }
 `,
           [framework()]
         ),
@@ -900,8 +900,8 @@ customElements.define('imported-card', ImportedCard);
         fileModule(
           "src/expression.ts",
           `
-import { observable, WebUIElement } from '@microsoft/webui-framework';
-const ExpressionCard = class extends WebUIElement { @observable value = ''; };
+import { observable, webhubElement } from '@microsoft/webhub-framework';
+const ExpressionCard = class extends webhubElement { @observable value = ''; };
 ExpressionCard.define('expression-card');
 `,
           [framework()]
@@ -973,14 +973,14 @@ Schema.define(dynamicName);
   ),
   failure(
     "duplicate-tag-error",
-    "Two shipped WebUI classes cannot own one tag.",
+    "Two shipped webhub classes cannot own one tag.",
     graph(
       [
         fileModule(
           "src/a.ts",
           `
-import { WebUIElement } from '@microsoft/webui-framework';
-class A extends WebUIElement {}
+import { webhubElement } from '@microsoft/webhub-framework';
+class A extends webhubElement {}
 A.define('duplicate-card');
 `,
           [framework()]
@@ -988,8 +988,8 @@ A.define('duplicate-card');
         fileModule(
           "src/b.ts",
           `
-import { WebUIElement } from '@microsoft/webui-framework';
-class B extends WebUIElement {}
+import { webhubElement } from '@microsoft/webhub-framework';
+class B extends webhubElement {}
 B.define('duplicate-card');
 `,
           [framework()]
@@ -1008,13 +1008,13 @@ B.define('duplicate-card');
   ),
   failure(
     "unresolvable-base-error",
-    "A likely WebUI class with unresolved inheritance cannot prove exact keys.",
+    "A likely webhub class with unresolved inheritance cannot prove exact keys.",
     graph(
       [
         fileModule(
           "src/derived.ts",
           `
-import { observable } from '@microsoft/webui-framework';
+import { observable } from '@microsoft/webhub-framework';
 import { MissingBase } from './missing.ts';
 class Derived extends MissingBase { @observable value = ''; }
 Derived.define('derived-card');
@@ -1035,15 +1035,15 @@ Derived.define('derived-card');
   ),
   failure(
     "dynamic-tag-error",
-    "A proven WebUI class requires a literal component tag.",
+    "A proven webhub class requires a literal component tag.",
     graph(
       [
         fileModule(
           "src/dynamic.ts",
           `
-import { WebUIElement } from '@microsoft/webui-framework';
+import { webhubElement } from '@microsoft/webhub-framework';
 const tag = 'dynamic-card';
-class DynamicCard extends WebUIElement {}
+class DynamicCard extends webhubElement {}
 DynamicCard.define(tag);
 `,
           [framework()]

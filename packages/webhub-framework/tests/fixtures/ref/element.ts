@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '../../../src/index.js';
+import { webhubElement, attr } from '../../../src/index.js';
 
-export class TestRef extends WebUIElement {
+export class TestRef extends webhubElement {
   @attr value = 'hello';
   inputEl!: HTMLInputElement;
 

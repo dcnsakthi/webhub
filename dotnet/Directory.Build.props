@@ -4,10 +4,10 @@
     <Authors>Microsoft</Authors>
     <Company>Microsoft</Company>
     <PackageOwners>Microsoft</PackageOwners>
-    <PackageLicenseUrl>https://github.com/microsoft/webui/blob/main/LICENSE</PackageLicenseUrl>
+    <PackageLicenseUrl>https://github.com/microsoft/webhub/blob/main/LICENSE</PackageLicenseUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageProjectUrl>https://github.com/microsoft/webui</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/microsoft/webui</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/microsoft/webhub</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/microsoft/webhub</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -15,18 +15,18 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true' or '$(TF_BUILD)' == 'true'">true</ContinuousIntegrationBuild>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
-    <Description>WebUI is a high-performance server-side rendering framework without JavaScript runtimes.</Description>
-    <PackageReleaseNotes>See https://github.com/microsoft/webui/releases for release notes.</PackageReleaseNotes>
-    <PackageTags>webui dotnet server-side-rendering ssr templates web-components ffi</PackageTags>
+    <Description>webhub is a high-performance server-side rendering framework without JavaScript runtimes.</Description>
+    <PackageReleaseNotes>See https://github.com/microsoft/webhub/releases for release notes.</PackageReleaseNotes>
+    <PackageTags>webhub dotnet server-side-rendering ssr templates web-components ffi</PackageTags>
     <!-- PackageIcon will be set once an approved 128x128 transparent PNG is available. -->
   </PropertyGroup>
-  <PropertyGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('Microsoft.WebUI.Runtime.'))">
-    <IsWebUIRuntimePackage>true</IsWebUIRuntimePackage>
+  <PropertyGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('Microsoft.webhub.Runtime.'))">
+    <IswebhubRuntimePackage>true</IswebhubRuntimePackage>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>WebUI native runtime assets for this release. See https://github.com/microsoft/webui/releases for release notes.</PackageReleaseNotes>
-    <PackageTags>webui dotnet native runtime ffi server-side-rendering</PackageTags>
+    <PackageReleaseNotes>webhub native runtime assets for this release. See https://github.com/microsoft/webhub/releases for release notes.</PackageReleaseNotes>
+    <PackageTags>webhub dotnet native runtime ffi server-side-rendering</PackageTags>
   </PropertyGroup>
-  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Microsoft.WebUI.Tests'">
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Microsoft.webhub.Tests'">
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 </Project>

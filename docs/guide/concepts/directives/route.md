@@ -1,6 +1,6 @@
 # `<route>` Directive
 
-The `<route>` directive defines a URL route that maps a path to a component. Routes are declared in the entry HTML (`index.html`) as a nested tree. At build time, they're compiled into `<webui-route>` custom elements. The server renders the matched route chain via SSR, and the client router handles subsequent navigations.
+The `<route>` directive defines a URL route that maps a path to a component. Routes are declared in the entry HTML (`index.html`) as a nested tree. At build time, they're compiled into `<webhub-route>` custom elements. The server renders the matched route chain via SSR, and the client router handles subsequent navigations.
 
 ## Declaring Routes
 

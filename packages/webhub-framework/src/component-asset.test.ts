@@ -43,7 +43,7 @@ function assetObjectModule(asset: unknown): string {
 
 function componentAsset(templates: Record<string, TemplateMeta>): Record<string, unknown> {
   return {
-    type: 'webui-component-asset',
+    type: 'webhub-component-asset',
     version: 1,
     components: Object.keys(templates),
     templates,
@@ -54,7 +54,7 @@ describe('component asset helpers', () => {
   test('manifest preload registers templates and injects nonce importmaps', async () => {
     const appended: ScriptMock[] = [];
     const template: TemplateMeta = { h: '<p>Lazy</p>' };
-    const previousWindow = setGlobal('window', { __webui: { nonce: 'abc123' } });
+    const previousWindow = setGlobal('window', { __webhub: { nonce: 'abc123' } });
     const previousDocument = setGlobal('document', {
       baseURI: 'https://example.test/app/',
       createElement(tag: string) {
@@ -103,7 +103,7 @@ describe('component asset helpers', () => {
   });
 
   test('manifest preload registers template functions from the asset module', async () => {
-    const previousWindow = setGlobal('window', { __webui: {} });
+    const previousWindow = setGlobal('window', { __webhub: {} });
     const previousDocument = setGlobal('document', {
       baseURI: 'https://example.test/app/',
       getElementById() {
@@ -118,7 +118,7 @@ describe('component asset helpers', () => {
       const assets = defineComponentAssets({
         'fn-card': {
           asset: assetModule(`{
-            type: 'webui-component-asset',
+            type: 'webhub-component-asset',
             version: 1,
             components: ['fn-card'],
             templates: { 'fn-card': { h: '<p>Fn</p>' } },
@@ -129,7 +129,7 @@ describe('component asset helpers', () => {
 
       await assets.preload('fn-card').asset;
 
-      const fns = window.__webui?.templateFns?.['fn-card'];
+      const fns = window.__webhub?.templateFns?.['fn-card'];
       assert.equal(typeof fns?.[0], 'function');
       assert.equal(getTemplate('fn-card')?.h, '<p>Fn</p>');
     } finally {
@@ -139,7 +139,7 @@ describe('component asset helpers', () => {
   });
 
   test('manifest preload reuses in-flight work and starts module plus data', async () => {
-    const previousWindow = setGlobal('window', { __webui: {} });
+    const previousWindow = setGlobal('window', { __webhub: {} });
     const previousDocument = setGlobal('document', {
       baseURI: 'https://example.test/app/',
       createElement() {
@@ -199,7 +199,7 @@ describe('component asset helpers', () => {
   test('manifest create applies data asynchronously by default', async () => {
     let applied: Record<string, unknown> | undefined;
     let resolveData!: (state: Record<string, unknown>) => void;
-    const previousWindow = setGlobal('window', { __webui: {} });
+    const previousWindow = setGlobal('window', { __webhub: {} });
     const previousDocument = setGlobal('document', {
       baseURI: 'https://example.test/app/',
       createElement(tag: string) {
@@ -250,7 +250,7 @@ describe('component asset helpers', () => {
 
   test('manifest create can wait for data before returning', async () => {
     let applied: Record<string, unknown> | undefined;
-    const previousWindow = setGlobal('window', { __webui: {} });
+    const previousWindow = setGlobal('window', { __webhub: {} });
     const previousDocument = setGlobal('document', {
       baseURI: 'https://example.test/app/',
       createElement(tag: string) {
@@ -297,7 +297,7 @@ describe('component asset helpers', () => {
   test('manifest create data timeout returns element and applies data later', async () => {
     let applied: Record<string, unknown> | undefined;
     let resolveData!: (state: Record<string, unknown>) => void;
-    const previousWindow = setGlobal('window', { __webui: {} });
+    const previousWindow = setGlobal('window', { __webhub: {} });
     const previousDocument = setGlobal('document', {
       baseURI: 'https://example.test/app/',
       createElement(tag: string) {
@@ -351,7 +351,7 @@ describe('component asset helpers', () => {
 
   test('manifest preload skips import when root template is already registered', async () => {
     const previousWindow = setGlobal('window', {
-      __webui: {
+      __webhub: {
         styles: ['already-loaded'],
         templates: { 'already-loaded': { h: '<p>Already loaded</p>' } },
       },

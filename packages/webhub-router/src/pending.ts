@@ -56,7 +56,7 @@ export class PendingState {
     if (!container) return;
 
     const pending = document.createElement(componentTag);
-    pending.setAttribute('data-webui-pending', '');
+    pending.setAttribute('data-webhub-pending', '');
     container.appendChild(pending);
     this.pendingElement = pending;
   }
@@ -91,7 +91,7 @@ export class PendingState {
     }
 
     const errorEl = document.createElement(componentTag);
-    errorEl.setAttribute('data-webui-error', '');
+    errorEl.setAttribute('data-webhub-error', '');
     container.appendChild(errorEl);
     this.errorElement = errorEl;
     if (isStateful(errorEl)) {

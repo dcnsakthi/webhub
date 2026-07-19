@@ -117,7 +117,7 @@ define_attr_property_mappings! {
 ///
 /// # Examples
 /// ```
-/// # use webui_protocol::attrs::camel_to_kebab;
+/// # use webhub_protocol::attrs::camel_to_kebab;
 /// assert_eq!(camel_to_kebab("ariaDescribedBy"), "aria-describedby");
 /// assert_eq!(camel_to_kebab("readOnly"), "readonly");
 /// assert_eq!(camel_to_kebab("totalContacts"), "total-contacts");
@@ -149,7 +149,7 @@ pub fn camel_to_kebab(name: &str) -> String {
 ///
 /// # Examples
 /// ```
-/// # use webui_protocol::attrs::attribute_to_camel;
+/// # use webhub_protocol::attrs::attribute_to_camel;
 /// assert_eq!(attribute_to_camel("aria-describedby"), "ariaDescribedBy");
 /// assert_eq!(attribute_to_camel("readonly"), "readOnly");
 /// assert_eq!(attribute_to_camel("data-title"), "dataTitle");

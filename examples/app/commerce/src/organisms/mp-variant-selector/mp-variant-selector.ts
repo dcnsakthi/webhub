@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable, attr } from '@microsoft/webui-framework';
+import { webhubElement, observable, attr } from '@microsoft/webhub-framework';
 
 interface VariantOption {
   value: string;
@@ -14,7 +14,7 @@ interface OptionGroup {
   values: VariantOption[];
 }
 
-export class MpVariantSelector extends WebUIElement {
+export class MpVariantSelector extends webhubElement {
   @observable optionGroups: OptionGroup[] = [];
 
   onVariantClick(e: MouseEvent): void {

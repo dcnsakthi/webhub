@@ -7,7 +7,7 @@
 //! element/comment/text ranges so callers get a clean traversal API without
 //! giving up the single-pass scanner performance.
 //! It is not a browser-conformance parser; semantic validation in `HtmlParser`
-//! rejects malformed input for WebUI's build-time template subset.
+//! rejects malformed input for webhub's build-time template subset.
 
 use std::ops::Range;
 

@@ -2,14 +2,14 @@
 // Licensed under the MIT license.
 
 /**
- * Reactive decorators for WebUIElement properties.
+ * Reactive decorators for webhubElement properties.
  *
  * Uses TypeScript's `experimentalDecorators` emit, matching the FAST ecosystem
  * conventions. This module holds both the reactive metadata registries (the
- * read side that {@link WebUIElement} consults to route `setState`/SSR seeding)
+ * read side that {@link webhubElement} consults to route `setState`/SSR seeding)
  * and the `@observable`/`@attr` decorators (the write side that populates them).
  *
- * Note on bundling: esbuild — the bundler every WebUI app and example uses —
+ * Note on bundling: esbuild — the bundler every webhub app and example uses —
  * performs function-level dead-code elimination, so an HTML-only app that never
  * references `@observable`/`@attr` already tree-shakes the write side away while
  * keeping only the read helpers the engine imports. Splitting this module would
@@ -89,7 +89,7 @@ interface AttrDefinition {
 
 /** Marks the attribute currently being reflected so the reverse
  *  attributeChangedCallback path does not echo it back into the property. */
-const reflectingAttribute = Symbol('webui.reflectingAttribute');
+const reflectingAttribute = Symbol('webhub.reflectingAttribute');
 
 const EMPTY_SET: Set<string> = Object.freeze(new Set<string>()) as Set<string>;
 
@@ -308,7 +308,7 @@ export function observable(target: object, name: string): void {
  *
  * @example
  * ```ts
- * class MyEl extends WebUIElement {
+ * class MyEl extends webhubElement {
  *   @attr myProp = 'default';
  *   // syncs with attribute "my-prop"
  * }

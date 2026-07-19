@@ -23,7 +23,7 @@ use rustls::ServerConfig;
 use crate::app::AppState;
 use crate::security::security_headers;
 use crate::server::configure_app;
-use webui::CssStrategy;
+use webhub::CssStrategy;
 
 #[derive(Debug, Parser)]
 #[command(name = "marketplace-api")]

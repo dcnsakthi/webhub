@@ -1,7 +1,7 @@
-# WebUI Framework Technical Specification
+# webhub Framework Technical Specification
 
 ## Overview
-WebUI Framework is a high-performance server-side rendering framework that operates without JavaScript runtimes. It separates static and dynamic content at build time, creating an efficient protocol that enables fast server-side rendering in any language (Rust, Go, C#, PHP, Ruby, etc.). On the client, Web Components hydrate as interactive islands — only components that need interactivity ship JavaScript.
+webhub Framework is a high-performance server-side rendering framework that operates without JavaScript runtimes. It separates static and dynamic content at build time, creating an efficient protocol that enables fast server-side rendering in any language (Rust, Go, C#, PHP, Ruby, etc.). On the client, Web Components hydrate as interactive islands — only components that need interactivity ship JavaScript.
 
 ### Core Architecture
 
@@ -21,14 +21,14 @@ The framework consists of four primary modules:
 - Strict context isolation during processing
 - Proactive error handling with actionable messages
 
-## Protocol Specification (webui-protocol)
-The protocol defines the serializable structure representing UI templates. At runtime, the protocol uses protobuf for efficient binary serialization. Types are generated directly from `proto/webui.proto` using prost — there is no separate domain type layer.
+## Protocol Specification (webhub-protocol)
+The protocol defines the serializable structure representing UI templates. At runtime, the protocol uses protobuf for efficient binary serialization. Types are generated directly from `proto/webhub.proto` using prost — there is no separate domain type layer.
 
 ### Data Types
 ```rust
 /// The root protocol structure representing a complete webpage configuration.
-/// Generated from protobuf `message WebUIProtocol`.
-pub struct WebUIProtocol {
+/// Generated from protobuf `message webhubProtocol`.
+pub struct webhubProtocol {
     /// Map of fragment identifiers to their associated fragment lists.
     pub fragments: HashMap<String, FragmentList>,
     /// Sorted, deduplicated CSS custom property names used across all
@@ -40,7 +40,7 @@ pub struct WebUIProtocol {
     pub css_strategy: CssStrategy,
     /// Build-wide DOM encapsulation strategy (Shadow or Light).
     pub dom_strategy: DomStrategy,
-    /// Full initial state or WebUI per-component projection.
+    /// Full initial state or webhub per-component projection.
     pub initial_state_strategy: InitialStateStrategy,
 }
 
@@ -48,7 +48,7 @@ pub struct WebUIProtocol {
 /// Framework-neutral: each plugin populates the fields it needs.
 /// Generated from protobuf `message ComponentData`.
 pub struct ComponentData {
-    /// Non-WebUI client-side template payload, such as FAST `<f-template>` HTML.
+    /// Non-webhub client-side template payload, such as FAST `<f-template>` HTML.
     pub template: String,
     /// Component CSS content for the Module strategy.
     pub css: String,
@@ -58,14 +58,14 @@ pub struct ComponentData {
     /// prepend a CDN/public base URL.
     /// Always set when CssStrategy::Link is active and the component has CSS.
     /// Empty for Style/Module strategies and for components without CSS.
-    /// The handler uses `css_strategy` and `dom_strategy` on `WebUIProtocol` to
+    /// The handler uses `css_strategy` and `dom_strategy` on `webhubProtocol` to
     /// decide what to emit in `<head>`:
     ///   Link + Shadow → `<link rel="preload">` (shadow root has the stylesheet)
     ///   Link + Light  → `<link rel="stylesheet">` (no shadow root to host it)
     pub css_href: String,
-    /// WebUI plugin JSON-safe component metadata.
+    /// webhub plugin JSON-safe component metadata.
     pub template_json: String,
-    /// WebUI plugin component-local JavaScript condition closure array.
+    /// webhub plugin component-local JavaScript condition closure array.
     pub template_functions: String,
     /// Sorted, deduplicated keys used when `hydration_mode` is `Keys`.
     pub hydration_keys: Vec<String>,
@@ -90,49 +90,49 @@ pub enum StateProjectionMode {
 
 /// A list of fragments (needed because protobuf maps cannot have repeated values directly).
 pub struct FragmentList {
-    pub fragments: Vec<WebUIFragment>,
+    pub fragments: Vec<webhubFragment>,
 }
 
 /// A mapping of unique fragment identifiers to their corresponding fragment lists.
-pub type WebUIFragmentRecords = HashMap<String, FragmentList>;
+pub type webhubFragmentRecords = HashMap<String, FragmentList>;
 
 /// A single fragment — one of several types.
-/// Generated from protobuf `message WebUIFragment` with a `oneof fragment` field.
-pub struct WebUIFragment {
+/// Generated from protobuf `message webhubFragment` with a `oneof fragment` field.
+pub struct webhubFragment {
     pub fragment: Option<web_ui_fragment::Fragment>,
 }
 
 /// The fragment oneof variants.
 pub enum Fragment {
-    Raw(WebUIFragmentRaw),
-    Component(WebUIFragmentComponent),
-    ForLoop(WebUIFragmentFor),
-    Signal(WebUIFragmentSignal),
-    IfCond(WebUIFragmentIf),
-    Attribute(WebUIFragmentAttribute),
-    Plugin(WebUIFragmentPlugin),
-    Route(WebUIFragmentRoute),
-    Outlet(WebUIFragmentOutlet),
+    Raw(webhubFragmentRaw),
+    Component(webhubFragmentComponent),
+    ForLoop(webhubFragmentFor),
+    Signal(webhubFragmentSignal),
+    IfCond(webhubFragmentIf),
+    Attribute(webhubFragmentAttribute),
+    Plugin(webhubFragmentPlugin),
+    Route(webhubFragmentRoute),
+    Outlet(webhubFragmentOutlet),
 }
 ```
 ### Fragment Types
 #### Raw Fragment
 ```rust
-pub struct WebUIFragmentRaw {
+pub struct webhubFragmentRaw {
     /// The content to render.
     pub value: String,
 }
 ```
 #### Component Fragment
 ```rust
-pub struct WebUIFragmentComponent {
+pub struct webhubFragmentComponent {
     /// The identifier for the associated fragment record.
     pub fragment_id: String,
 }
 ```
 #### For Loop Fragment
 ```rust
-pub struct WebUIFragmentFor {
+pub struct webhubFragmentFor {
     /// The name representing a singular item (e.g., "person").
     pub item: String,
     /// The collection name (e.g., "people").
@@ -143,7 +143,7 @@ pub struct WebUIFragmentFor {
 ```
 #### Signal Fragment
 ```rust
-pub struct WebUIFragmentSignal {
+pub struct webhubFragmentSignal {
     /// The value or identifier of the signal.
     pub value: String,
     /// Determines if the value should be rendered as raw content.
@@ -152,7 +152,7 @@ pub struct WebUIFragmentSignal {
 ```
 #### Conditional Fragment
 ```rust
-pub struct WebUIFragmentIf {
+pub struct webhubFragmentIf {
     /// The condition expression to evaluate.
     pub condition: Option<ConditionExpr>,
     /// The identifier for the fragment record to render if true.
@@ -162,7 +162,7 @@ pub struct WebUIFragmentIf {
 #### Attribute Fragment
 Attribute fragments represent dynamic HTML attributes with various binding types:
 ```rust
-pub struct WebUIFragmentAttribute {
+pub struct webhubFragmentAttribute {
     /// The attribute name (may include `:` prefix for complex attributes).
     pub name: String,
     /// For simple dynamic attributes, the signal name.
@@ -186,7 +186,7 @@ pub struct WebUIFragmentAttribute {
 
 Some HTML attributes use concatenated lowercase names that do not follow
 standard camelCase-to-kebab-case conversion rules. The canonical lookup
-table lives in `webui-protocol` (`webui_protocol::attrs`) and covers two
+table lives in `webhub-protocol` (`webhub_protocol::attrs`) and covers two
 categories:
 
 1. **Multi-word ARIA attributes** — e.g., `aria-describedby` ↔
@@ -195,7 +195,7 @@ categories:
 2. **HTML global/element attributes** — e.g., `readonly` ↔ `readOnly`,
    `tabindex` ↔ `tabIndex`, `contenteditable` ↔ `contentEditable`.
 
-The handler and parser both call into `webui_protocol::attrs` — there is
+The handler and parser both call into `webhub_protocol::attrs` — there is
 no duplicated table. The framework (`toKebabCase` in `decorators.ts`)
 maintains a TypeScript copy of the same table for client-side use.
 
@@ -204,10 +204,10 @@ Attributes that follow standard conversion (e.g., `aria-label` ↔ `ariaLabel`,
 the lookup table.
 
 #### Plugin Fragment
-Plugin fragments carry opaque data from parser plugins to handler plugins. WebUI does
+Plugin fragments carry opaque data from parser plugins to handler plugins. webhub does
 not interpret this data — each parser/handler plugin pair defines its own binary contract.
 ```rust
-pub struct WebUIFragmentPlugin {
+pub struct webhubFragmentPlugin {
     /// Opaque plugin-specific binary data.
     pub data: Vec<u8>,
 }
@@ -217,11 +217,11 @@ pub struct WebUIFragmentPlugin {
 Route fragments define declarative URL-based routes linking path templates to fragment bodies.
 The parser emits these from `<route>` elements; the handler uses them for server-side route matching.
 ```rust
-pub struct WebUIFragmentRoute {
+pub struct webhubFragmentRoute {
     pub path: String,                          // URL path template (e.g., "sections/:id")
     pub fragment_id: String,                   // Fragment containing the route body
     pub exact: bool,                           // Require exact path match
-    pub children: Vec<WebUIFragmentRoute>,     // Nested child routes
+    pub children: Vec<webhubFragmentRoute>,     // Nested child routes
     pub allowed_query: String,                 // Comma-separated allowlist of query params forwarded as attributes
     pub keep_alive: bool,                      // Preserve component across navigations
     pub cache_tags: Vec<String>,               // Cache tag templates (e.g., "thread:{threadId}")
@@ -252,13 +252,13 @@ the component exists at build time. When a navigation fetch fails, the router mo
 component with error details as state (`{ error, status, path }`).
 
 There is no global route registry or route tree — routes are inline in the fragment graph
-via `WebUIFragmentRoute` nesting.
+via `webhubFragmentRoute` nesting.
 
 #### Outlet Fragment
 Outlet fragments mark where matched child route content renders inside a parent route component.
 The parser emits these from `<outlet />` elements.
 ```rust
-pub struct WebUIFragmentOutlet {}
+pub struct webhubFragmentOutlet {}
 ```
 
 Components use `<outlet />` in their templates to declare insertion points:
@@ -291,10 +291,10 @@ optional parameters. Exact matches (most literal segments) take precedence over 
 
 **Server-side rendering:** When the handler encounters `Fragment::Route`:
 1. Pre-scan siblings, pick the best match by specificity.
-2. Matched route: emit `<webui-route path="..." component="..." active data-ri="N">` (where N is the route chain index), render component, recurse into children. Attributes emitted on matched routes: `path`, `component`, `active`, `exact`, `pending`, `error`, `data-ri`. Routing metadata (`query`, `keep-alive`, `cache-tags`, `invalidates`) is **not** emitted as DOM attributes — it is included in the SSR `window.__webui` chain JSON instead.
-3. Non-matched routes: emit `<webui-route ... style="display:none">`.
+2. Matched route: emit `<webhub-route path="..." component="..." active data-ri="N">` (where N is the route chain index), render component, recurse into children. Attributes emitted on matched routes: `path`, `component`, `active`, `exact`, `pending`, `error`, `data-ri`. Routing metadata (`query`, `keep-alive`, `cache-tags`, `invalidates`) is **not** emitted as DOM attributes — it is included in the SSR `window.__webhub` chain JSON instead.
+3. Non-matched routes: emit `<webhub-route ... style="display:none">`.
 
-For the WebUI framework path, matched route components do **not** receive route
+For the webhub framework path, matched route components do **not** receive route
 state as scalar attributes or `data-state`. Initial SSR state comes from the
 rendered DOM plus hydration markers, and client-side navigations apply fresh
 state through the partial-response `setState(...)` path.
@@ -302,15 +302,15 @@ state through the partial-response `setState(...)` path.
 When the handler encounters `Fragment::Outlet`:
 1. Take children from the currently active route.
 2. Match children against the request path (relative to route base).
-3. Emit `<webui-outlet>` containing matched child `<webui-route>` with component, and hidden stubs for siblings.
+3. Emit `<webhub-outlet>` containing matched child `<webhub-route>` with component, and hidden stubs for siblings.
 
 For plugins that participate in client routing, the handler also emits a
-`<meta name="webui-nonce">` tag in `<head>` for CSP nonce discovery, an inert
-`<script type="application/json" id="webui-data">` data block containing shared
+`<meta name="webhub-nonce">` tag in `<head>` for CSP nonce discovery, an inert
+`<script type="application/json" id="webhub-data">` data block containing shared
 non-executable SSR metadata:
 
 ```html
-<script type="application/json" id="webui-data">
+<script type="application/json" id="webhub-data">
 {
   "chain": [{ "component": "app-shell", "path": "/" }],
   "inventory": "0c",
@@ -322,20 +322,20 @@ non-executable SSR metadata:
 </script>
 ```
 
-This is the single metadata startup contract. The client packages first read any existing `window.__webui`, then
-lazily parse and remove `#webui-data` into `window.__webui` when metadata is needed. Note that
+This is the single metadata startup contract. The client packages first read any existing `window.__webhub`, then
+lazily parse and remove `#webhub-data` into `window.__webhub` when metadata is needed. Note that
 **CSS module definitions** are emitted for all **reachable** components (including those in false
 `<if>` blocks), not just rendered ones.
 
-`initial_state_strategy` controls the `state` field. Default and non-WebUI
-plugin builds use `Full` and serialize the complete state object. WebUI builds
+`initial_state_strategy` controls the `state` field. Default and non-webhub
+plugin builds use `Full` and serialize the complete state object. webhub builds
 use `Components`: the handler walks components reachable from the active entry
 and request route and combines their explicit `hydration_mode` values.
 `All` immediately selects complete state, `Keys` contributes its sorted key
 list, and `None` contributes nothing. Unknown numeric enum values also select
 complete state. Components behind active-route `<if>` and `<for>` branches
 remain conservatively reachable; inactive sibling routes are excluded. If every
-reachable WebUI component is exactly `None`, the handler writes `"state":{}`
+reachable webhub component is exactly `None`, the handler writes `"state":{}`
 without serializing the state value.
 
 Projection keeps startup cost proportional to the active proven hydration
@@ -344,26 +344,26 @@ initial hydration or partial navigation is client-facing. Hosts must never put
 secrets in browser render state. See
 [Hydration keys and state projection](#hydration-keys-and-state-projection).
 
-Plugins can still emit executable side-channel data after the inert block. The WebUI framework
+Plugins can still emit executable side-channel data after the inert block. The webhub framework
 plugin uses that extension point to install component-local
-`window.__webui.templateFns[tagName]` closure arrays, paired with JSON-safe `templates` in
-`webui-data`. FAST plugins emit their own `<f-template>` payloads and hydration markers, so they
+`window.__webhub.templateFns[tagName]` closure arrays, paired with JSON-safe `templates` in
+`webhub-data`. FAST plugins emit their own `<f-template>` payloads and hydration markers, so they
 use the shared router metadata (`chain`, `inventory`, `nonce`, `css`, `styles`, `state`) but do not
-emit WebUI `templates` or `templateFns`.
+emit webhub `templates` or `templateFns`.
 
 **Key elements:**
-- `<webui-route>` — light DOM custom element, structural routing wrapper with no shadow DOM
-- `<webui-outlet>` — light DOM custom element, marks insertion point for child route content
+- `<webhub-route>` — light DOM custom element, structural routing wrapper with no shadow DOM
+- `<webhub-outlet>` — light DOM custom element, marks insertion point for child route content
 
 **Client-side navigation:**
-1. On initial load, the router reads `window.__webui` for the SSR chain, inventory, and nonce. It hydrates matched `<webui-route>` elements using the `data-ri` attribute for O(1) indexed lookup instead of DOM walking. While active, it installs a nonce-bearing `@view-transition { navigation: none; }` override and removes it on `destroy()`. This disables automatic cross-document transitions without affecting explicit same-document `document.startViewTransition()` commits.
+1. On initial load, the router reads `window.__webhub` for the SSR chain, inventory, and nonce. It hydrates matched `<webhub-route>` elements using the `data-ri` attribute for O(1) indexed lookup instead of DOM walking. While active, it installs a nonce-bearing `@view-transition { navigation: none; }` override and removes it on `destroy()`. This disables automatic cross-document transitions without affecting explicit same-document `document.startViewTransition()` commits.
 2. `RouterConfig` supports `ssrFresh?: boolean` (default `true`) — when set, the router skips the initial loader replay because SSR state is authoritative. Components can opt into loader replay at startup by declaring `static ssrLoader = true`.
 3. On navigation, fetches a partial response (`Accept: application/x-ndjson, application/json`) from the server.
 4. The server returns the matched route chain; the client does NOT perform route matching.
-5. Newly received templates are registered and published through `webui:templates-registered`, allowing the framework to define compiler-owned hosts before commit.
+5. Newly received templates are registered and published through `webhub:templates-registered`, allowing the framework to define compiler-owned hosts before commit.
 6. Configured authored loaders run. If the destination tag is still unregistered, the router performs document navigation.
 7. Otherwise, the router reconciles old vs new chain — finds first changed level.
-8. Mounts components at changed levels, creates `<webui-route>` stubs at outlet positions.
+8. Mounts components at changed levels, creates `<webhub-route>` stubs at outlet positions.
 9. Parent components and their state are preserved.
 
 **Partial response:** `Protocol::render_partial()` returns the complete response
@@ -385,24 +385,24 @@ values into the response. FFI, Node, WASM, and .NET expose only the complete
 
 **Cache control:** The server can include `cacheControl: { staleTime: number }` in the partial response to override the client's default stale time for this specific route.
 
-**Static component assets:** `webui build --emit-component-assets mail-thread,compose-page`
+**Static component assets:** `webhub build --emit-component-assets mail-thread,compose-page`
 emits CDN-loadable component asset files next to `protocol.bin`. The flag is a
 strict comma-separated allowlist of root component tags; every tag must be a
-discovered lowercase kebab-case component with WebUI template metadata. Static
-component asset runtimes are framework-owned: the WebUI Framework loader lives at
-`@microsoft/webui-framework/component-asset.js`; a FAST runtime should define its
-own asset loader rather than making the core `@microsoft/webui` package know
+discovered lowercase kebab-case component with webhub template metadata. Static
+component asset runtimes are framework-owned: the webhub Framework loader lives at
+`@microsoft/webhub-framework/component-asset.js`; a FAST runtime should define its
+own asset loader rather than making the core `@microsoft/webhub` package know
 plugin details. Asset roots are parsed into the protocol through synthetic
 non-entry fragments, so they do not become reachable from the SSR entry tree and
 are not included in the initial SSR bootstrap unless the entry graph also
-references them. `webui serve --emit-component-assets` parses and validates the
+references them. `webhub serve --emit-component-assets` parses and validates the
 same roots on every dev build — surfacing their HTML and theme-token errors even
 though they are outside the SSR tree — and serves the compiled modules from
 memory. Asset generation is parallelized across requested roots. Each root produces one
-standard ESM module, `<tag>.webui.js`, by default. Use
+standard ESM module, `<tag>.webhub.js`, by default. Use
 `--asset-file-name-template "[name]-[hash].[ext]"` for CDN-cacheable CSS and
 component asset names; `[hash]` is the emitted file's SHA-256 content hash
-truncated to 8 hex characters and `[ext]` resolves to `webui.js` for component
+truncated to 8 hex characters and `[ext]` resolves to `webhub.js` for component
 assets. Programmatic Rust builds expose the rendered files through
 `BuildResult::component_asset_files`; `build_to_disk()` and the CLI validate
 protocol/CSS/component-asset filenames as one output set before writing any
@@ -410,7 +410,7 @@ file. The module default-exports:
 
 ```js
 export default {
-  type: "webui-component-asset",
+  type: "webhub-component-asset",
   version: 1,
   components: ["mail-thread", "mail-message"],
   templateStyles: [],
@@ -426,21 +426,21 @@ component edges, `<if>`, `<for>`, attribute-template edges, and all nested
 `<route>` branches are followed without evaluating runtime state. The JSON file
 is inert data and intentionally omits `inventory`: a build-time static asset does
 not know the page's current loaded bitset, so consumers must not replace
-`window.__webui.inventory` with asset-local state. Component-local condition
+`window.__webhub.inventory` with asset-local state. Component-local condition
 closures are carried in the same ESM request as `templateFunctions`, so the
 template asset, component class chunk, and component data request can all start
 in parallel from the manifest. CSS module importmaps still use the page's current
 CSP nonce when materialized by the optional
-`@microsoft/webui-framework/component-asset.js` `defineComponentAssets()`
+`@microsoft/webhub-framework/component-asset.js` `defineComponentAssets()`
 manifest loader. The manifest loader exposes `preload(tag)` to start asset,
 module, and data work, and `create(tag)` to create the element after
 template/module work is ready. This loader is not re-exported from the framework
 root package entrypoint, keeping it out of normal framework bundles unless an app
 imports the optional subpath. The loader uses the manifest tag as the
 registered-template fast path, so hashed asset filenames still skip importing when
-`window.__webui.templates[tag]` already exists. Otherwise it deduplicates
+`window.__webhub.templates[tag]` already exists. Otherwise it deduplicates
 in-flight imports by resolved asset URL and deduplicates module-style importmaps
-against `window.__webui.styles` plus previously injected asset styles.
+against `window.__webhub.styles` plus previously injected asset styles.
 `create(tag)` waits for the asset/module, mounts without blocking on data by
 default, and applies data later; callers can opt into bounded data blocking with
 `{ awaitData: true, dataTimeoutMs }`.
@@ -459,7 +459,7 @@ overlap with the invalidated tags.
 
 **Mutation actions:** Components can declare `static action(ctx: RouteActionContext)` as the write counterpart to `static loader()`. `Router.start({ actions: true })` opts into the action runtime; otherwise the router core does not import form interception code. When enabled, the router intercepts `<form method="post">` submissions, finds the nearest route component's `static action()`, calls it, and auto-invalidates the cache using both the action's returned tags and the route's build-time `invalidates` attribute. This ensures the compiler-declared invalidation graph is always respected — developers cannot forget.
 
-**Pending UI:** Routes with a `pending` attribute show a loading component during slow navigations (>150ms). The pending component is a normal WebUI component — SSR'd and build-time validated. Keep-alive and cached routes skip pending (no delay to show).
+**Pending UI:** Routes with a `pending` attribute show a loading component during slow navigations (>150ms). The pending component is a normal webhub component — SSR'd and build-time validated. Keep-alive and cached routes skip pending (no delay to show).
 
 **Error boundaries:** Routes with an `error` attribute show an error component when the navigation fetch fails. The error component receives `{ error, status, path }` as state and can call `Router.navigate()` to recover.
 
@@ -468,7 +468,7 @@ overlap with the invalidated tags.
 | Header | Value | Purpose |
 |--------|-------|---------|
 | `Accept` | `application/x-ndjson, application/json` | Requests NDJSON streaming or JSON partial instead of full HTML |
-| `X-WebUI-Inventory` | Hex bitmask | Templates already loaded — server skips re-sending them |
+| `X-webhub-Inventory` | Hex bitmask | Templates already loaded — server skips re-sending them |
 
 The `chain` field is produced by `Protocol::render_partial()`, which walks the
 fragment graph and matches routes at each nesting level using request-local
@@ -559,15 +559,15 @@ pub struct Predicate {
 ```
 #### Serialization Requirements
 - Protobuf binary serialization/deserialization as the primary format, using `prost` for direct encode/decode with no conversion layer
-- Types are generated from `proto/webui.proto` at build time via `prost-build`
-- JSON output supported via `webui inspect` for debugging only (using serde derives on generated types)
+- Types are generated from `proto/webhub.proto` at build time via `prost-build`
+- JSON output supported via `webhub inspect` for debugging only (using serde derives on generated types)
 - Support for custom error types and propagation
 - Validation of protocol structure during deserialization
 - Performance optimizations for large protocol structures
 - Support for fragment reference validation
 - Attribute names starting with '?' are treated as boolean attributes using the `Attribute` fragment type with a `condition_tree`. The attribute is rendered only if the condition evaluates to true.
 
-## State Management (webui-state)
+## State Management (webhub-state)
 ### Path Resolution
 The `find_value_by_dotted_path_ref` function provides the render-time state lookup contract:
 ```rust
@@ -582,7 +582,7 @@ Existing JSON values are returned as `Cow::Borrowed` so handler and expression h
 - Nullable path handling via `Option`
 - Missing paths return `None`; handler text and attribute bindings render empty, and missing condition values evaluate as false
 
-## Expression Evaluation (webui-expressions)
+## Expression Evaluation (webhub-expressions)
 ### Core Function
 ```rust
 pub fn evaluate(condition: &ConditionExpr, state: &Value) -> Result<bool, ExpressionError>
@@ -609,10 +609,10 @@ pub enum ExpressionError {
 }
 ```
 
-## Handler Implementation (webui-handler)
+## Handler Implementation (webhub-handler)
 ### Core API
 ```rust
-pub struct WebUIHandler {
+pub struct webhubHandler {
     plugin: Option<Box<dyn HandlerPlugin>>,
 }
 
@@ -622,7 +622,7 @@ pub struct RenderOptions<'a> {
     pub entry_id: &'a str,
     /// The URL path to match routes against (e.g., `"/contacts/42"`).
     pub request_path: &'a str,
-    /// Optional CSP nonce reflected into the `<meta name="webui-nonce">`
+    /// Optional CSP nonce reflected into the `<meta name="webhub-nonce">`
     /// tag and onto every SSR-emitted inline `<script>` tag (bootstrap
     /// scripts and CSS-module importmaps - see [CssStrategy::Module](#css-strategy)).
     pub nonce: Option<&'a str>,
@@ -641,7 +641,7 @@ impl<'a> RenderOptions<'a> {
     pub fn with_body_inject(self, html: &'a str) -> Self;
 }
 
-impl WebUIHandler {
+impl webhubHandler {
     pub fn new() -> Self;
     pub fn with_plugin(factory: fn() -> Box<dyn HandlerPlugin>) -> Self;
 
@@ -658,25 +658,25 @@ impl WebUIHandler {
 #### Runtime Protocol
 
 `Protocol` is the one public runtime protocol type. It owns a decoded
-`WebUIProtocol`, a deterministic component index, and a lazily populated
+`webhubProtocol`, a deterministic component index, and a lazily populated
 template-metadata cache. Construct it once when the server loads
 `protocol.bin`, then share it across full renders, partial navigation,
 component-template requests, and token queries.
 
 The wire/build model and runtime model remain separate:
 
-- `WebUIProtocol` is the mutable protobuf wire/build model. Builders populate
+- `webhubProtocol` is the mutable protobuf wire/build model. Builders populate
   it, `prost` serializes it, tests compare it, and callers may construct one
   directly before encoding `protocol.bin`.
 - `Protocol` is the immutable runtime wrapper. Its component index,
   locks, and lazy JSON caches are process-local implementation details that must
   never be serialized into the protobuf or rebuilt for every request.
 
-Putting runtime caches on `WebUIProtocol` would make the generated wire type
+Putting runtime caches on `webhubProtocol` would make the generated wire type
 non-serializable and introduce locks into build-time mutation. Removing the
 wrapper would force byte-oriented hosts to decode the protobuf and rebuild
 indices on each request. `Protocol` therefore contains, rather than replaces,
-`WebUIProtocol`.
+`webhubProtocol`.
 
 ```rust
 pub struct Protocol {
@@ -685,8 +685,8 @@ pub struct Protocol {
 
 impl Protocol {
     pub fn from_protobuf(bytes: &[u8]) -> Result<Self, ProtocolError>;
-    pub fn new(protocol: WebUIProtocol) -> Self;
-    pub fn protocol(&self) -> &WebUIProtocol;
+    pub fn new(protocol: webhubProtocol) -> Self;
+    pub fn protocol(&self) -> &webhubProtocol;
     pub fn tokens(&self) -> &[String];
     pub fn render_partial(
         &self,
@@ -710,7 +710,7 @@ route's consumed request segments, so parameter values never become cache
 keys. Parsed template metadata uses a read-write lock limited to individual
 cache lookups. `Protocol` is `Send + Sync`.
 
-There are no public raw-`WebUIProtocol` rendering alternatives and no
+There are no public raw-`webhubProtocol` rendering alternatives and no
 `ProtocolIndex` lifecycle API. This prevents callers from accidentally
 decoding or rebuilding the deterministic index per request. Request-specific
 route-pattern caches do not exist: the immutable protocol-owned route index is
@@ -738,7 +738,7 @@ pub fn get_needed_components(
 
 /// Get the list of components needed for a specific request path.
 pub fn get_needed_components_for_request(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     request_path: &str,
     component_index: &HashMap<String, u32>,
 ) -> Vec<String>;
@@ -752,7 +752,7 @@ template against `options.request_path`:
 
 When processing `Fragment::Outlet`, the handler takes children from the active route,
 matches them against the request path relative to the current route base, and emits
-`<webui-outlet>` containing the matched child and hidden stubs for siblings.
+`<webhub-outlet>` containing the matched child and hidden stubs for siblings.
 
 This eliminates the need for post-render HTML pruning — the handler produces
 correct route output in a single pass.
@@ -766,11 +766,11 @@ pub trait ResponseWriter {
 }
 ```
 
-### Streaming Response Writers (`webui::streaming`)
+### Streaming Response Writers (`webhub::streaming`)
 
 Hosts that support HTTP response streaming can render directly into a
 network-bound channel instead of buffering the full HTML in memory.
-The `webui::streaming` module provides:
+The `webhub::streaming` module provides:
 
 - **`StreamingWriter`** — coalesces writes into ~4 KB chunks and pushes
   them through a **bounded** `tokio::sync::mpsc::Sender<Bytes>`. The
@@ -808,7 +808,7 @@ a dev livereload script, or build-time-derived bytes such as image
 preload `<link>` tags). Passing user-controlled content here is a
 direct cross-site scripting (XSS) vector. If your call path may
 include untrusted data, escape it with the host's HTML escaper (e.g.
-`webui_handler::encode_safe`, re-exported from `webui_handler` for
+`webhub_handler::encode_safe`, re-exported from `webhub_handler` for
 exactly this use) **before** calling `with_head_inject` /
 `with_body_inject`.
 
@@ -835,7 +835,7 @@ actix_web::rt::task::spawn_blocking(move || {
         .with_body_inject(livereload_html); // optional
     if let Err(e) = handler.render(&proto, &state, &opts, &mut writer) {
         log::error!("render failed: {e}");
-        let _ = ResponseWriter::write(&mut writer, "<!-- webui: render error -->");
+        let _ = ResponseWriter::write(&mut writer, "<!-- webhub: render error -->");
         let _ = ResponseWriter::end(&mut writer);
     }
 });
@@ -853,7 +853,7 @@ HttpResponse::Ok()
   before the first chunk is generated. Render errors cannot become
   HTTP errors; hosts must `log::error!` (and ideally increment a
   `render_errors_total` metric) so ops sees them. A fixed-string
-  `<!-- webui: render error -->` HTML comment is appended to the
+  `<!-- webhub: render error -->` HTML comment is appended to the
   partial body — never the error message itself, to prevent attacker-
   controlled error text from breaking out of the comment via `-->`.
 - **Streaming has a small CPU cost** vs buffering (channel sends,
@@ -904,11 +904,11 @@ is loaded by default; output is plain SSR HTML unless a plugin is selected.
 
 The set of available plugin names is implementation-defined; refer to the CLI and
 crate documentation for the current list. Each plugin emits its own framework-specific
-hydration markers and attributes; WebUI itself does not interpret them.
+hydration markers and attributes; webhub itself does not interpret them.
 
 **Usage:**
 ```rust
-let handler = WebUIHandler::with_plugin(|| Box::new(MyHydrationPlugin::new()));
+let handler = webhubHandler::with_plugin(|| Box::new(MyHydrationPlugin::new()));
 handler.render(&protocol, &state, &options, &mut writer)?;
 ```
 ### Fragment Processing
@@ -954,7 +954,7 @@ handler.render(&protocol, &state, &options, &mut writer)?;
 - Validate protocol before processing
 - Maximum recursion depth protection
 
-## Parser Modules (webui-parser)
+## Parser Modules (webhub-parser)
 ### Component Registry
 ```rust
 pub struct ComponentRegistry {
@@ -989,9 +989,9 @@ pub fn get(&self, name: &str) -> Option<&Component>
 - Directory scanning with file matching
 - Cache optimization for repeated lookups
 
-### External Component Discovery (webui-discovery)
+### External Component Discovery (webhub-discovery)
 
-The `webui-discovery` crate discovers components from external sources. It has **no dependency on `webui-parser`** — it returns plain data structs that callers register into their component registry. This makes it reusable by CLI, FFI, and other host integrations.
+The `webhub-discovery` crate discovers components from external sources. It has **no dependency on `webhub-parser`** — it returns plain data structs that callers register into their component registry. This makes it reusable by CLI, FFI, and other host integrations.
 
 #### Source Classification
 ```rust
@@ -1026,7 +1026,7 @@ pub struct DiscoveredComponent {
 1. Walk up from the search directory to find `node_modules/` (Node.js-style resolution)
 2. For scoped packages (`@scope`), enumerate all sub-directories
 3. For each package, read `package.json`:
-   - `exports["./template-webui.html"]` → template HTML path
+   - `exports["./template-webhub.html"]` → template HTML path
    - `exports["./styles.css"]` → styles CSS path (optional)
    - `customElements` → path to Custom Elements Manifest
    - root JS entry (`exports["."]`, `main`, `module`, or `browser`) → authored component ownership
@@ -1049,7 +1049,7 @@ manifest; external/separately built packages provide their own fragment.
 - **File size limits**: Manifests and templates are capped at 10 MB to prevent denial-of-service
 
 #### Discovery Cache
-- Location: `~/.webui/cache/components/`
+- Location: `~/.webhub/cache/components/`
 - Cache key: hash of source identifier + resolved path
 - Invalidation: hash of `package.json` content (re-discover on change)
 - Atomic writes: temp file + rename to prevent corruption from concurrent builds
@@ -1093,7 +1093,7 @@ pub enum CssStrategy {
 
 - **Link** (default): Emits `<link>` tags referencing external `.css` files only for components whose discovery/registration data included CSS. Used by the CLI for production builds where CSS files are served separately. Output filenames are configurable with a naming template (`[name]`, `[hash]`, `[ext]`), defaulting to `[name].[ext]`. `[hash]` is SHA-256 truncated to 8 hex chars. An optional public base prefix can be applied so protocol `css_href` values point to CDN URLs. The resolved href is used consistently for handler-emitted head links and parser/plugin-generated component template stylesheet links. Handler-emitted `<head>` links are ordered by **document/traversal order** (the order components are first discovered while walking the fragment graph), not alphabetically by tag name. This keeps the Light-DOM cascade aligned with source order (stable across component renames) and prioritizes Shadow-DOM `<link rel="preload">` hints by appearance. The order is deterministic because the graph walk is deterministic.
 - **Style**: Embeds the full CSS content in `<style>` tags inside the shadow DOM template. Used when all files are needed in-memory.
-- **Module**: Registers each component's CSS as a CSS Module via an [Import Map](https://html.spec.whatwg.org/multipage/webappapis.html#import-maps) entry whose value is a `data:text/css,...` URI. During SSR, the handler emits a `<script type="importmap">{"imports":{"component-name":"data:text/css,..."}}</script>` in each component's light DOM on first render (e.g., `<my-comp><script type="importmap">...</script><template ...>`) and adds `shadowrootadoptedstylesheets="component-name"` to each shadow root `<template>`. When the developer supplies their own `<template>` wrapper (e.g., to attach `@event` handlers), the parser preserves the wrapper attributes and appends `shadowrootadoptedstylesheets="component-name"` when it is missing. Multi-specifier values already authored by the developer (`shadowrootadoptedstylesheets="component-name other-sheet"`) are honored verbatim. Components inside false `<if>` blocks or empty `<for>` loops that were not rendered during SSR get their importmap definitions emitted at `body_end`, so client-side activation can adopt them. CSS bytes are percent-encoded as needed to survive the `data:` URI parser (`%`, `#`, `"`, whitespace, and non-ASCII / control bytes); the importmap JSON object is built via `serde_json` so the specifier and URI value are correctly JSON-escaped. **Requires browser support for [Multiple Import Maps](https://github.com/WICG/import-maps/blob/main/proposals/multiple-import-maps.md) (Chrome 133+)** so each component's importmap can be emitted independently and merged into the document-level resolution table by the browser. When a CSP nonce is configured (via `RenderOptions::with_nonce` / `webui_handler_set_nonce`), the SSR-emitted `<script type="importmap">` tags include `nonce="VALUE"` (in `type`, `nonce` order) so strict `script-src 'nonce-...'` policies allow them, matching the existing nonce treatment of inline `<script>` tags. The browser registers the CSS module globally and shares a single `CSSStyleSheet` across all shadow roots that adopt it. No external CSS files are produced. During SPA partial navigation, definitions for newly needed components are sent in the `templateStyles` array as `<script type="importmap">{"imports":{...}}</script>` strings (without a `nonce` attribute - the router materializes each tag client-side and applies the per-request nonce when appending to `<head>` before installing component template closure arrays). WebUI Framework compiled metadata carries the adopted stylesheet specifier (`sa`) so client-created components can adopt the registered stylesheet on their shadow root.
+- **Module**: Registers each component's CSS as a CSS Module via an [Import Map](https://html.spec.whatwg.org/multipage/webappapis.html#import-maps) entry whose value is a `data:text/css,...` URI. During SSR, the handler emits a `<script type="importmap">{"imports":{"component-name":"data:text/css,..."}}</script>` in each component's light DOM on first render (e.g., `<my-comp><script type="importmap">...</script><template ...>`) and adds `shadowrootadoptedstylesheets="component-name"` to each shadow root `<template>`. When the developer supplies their own `<template>` wrapper (e.g., to attach `@event` handlers), the parser preserves the wrapper attributes and appends `shadowrootadoptedstylesheets="component-name"` when it is missing. Multi-specifier values already authored by the developer (`shadowrootadoptedstylesheets="component-name other-sheet"`) are honored verbatim. Components inside false `<if>` blocks or empty `<for>` loops that were not rendered during SSR get their importmap definitions emitted at `body_end`, so client-side activation can adopt them. CSS bytes are percent-encoded as needed to survive the `data:` URI parser (`%`, `#`, `"`, whitespace, and non-ASCII / control bytes); the importmap JSON object is built via `serde_json` so the specifier and URI value are correctly JSON-escaped. **Requires browser support for [Multiple Import Maps](https://github.com/WICG/import-maps/blob/main/proposals/multiple-import-maps.md) (Chrome 133+)** so each component's importmap can be emitted independently and merged into the document-level resolution table by the browser. When a CSP nonce is configured (via `RenderOptions::with_nonce` / `webhub_handler_set_nonce`), the SSR-emitted `<script type="importmap">` tags include `nonce="VALUE"` (in `type`, `nonce` order) so strict `script-src 'nonce-...'` policies allow them, matching the existing nonce treatment of inline `<script>` tags. The browser registers the CSS module globally and shares a single `CSSStyleSheet` across all shadow roots that adopt it. No external CSS files are produced. During SPA partial navigation, definitions for newly needed components are sent in the `templateStyles` array as `<script type="importmap">{"imports":{...}}</script>` strings (without a `nonce` attribute - the router materializes each tag client-side and applies the per-request nonce when appending to `<head>` before installing component template closure arrays). webhub Framework compiled metadata carries the adopted stylesheet specifier (`sa`) so client-created components can adopt the registered stylesheet on their shadow root.
 
 Set at construction time with
 `HtmlParser::with_options(ParserOptions::try_new(css, dom, css_file_name_template, css_public_base, legal_comments))`.
@@ -1111,7 +1111,7 @@ pub enum LegalComments {
 
 The default is `LegalComments::Inline`, which preserves CSS comments that match
 esbuild's legal-comment convention: comments containing `@license` or
-`@preserve`, or comments starting with `/*!` or `//!`. WebUI supports only
+`@preserve`, or comments starting with `/*!` or `//!`. webhub supports only
 `none` and `inline` modes. HTML comments are always stripped, and bindings or
 directives inside HTML comments never produce fragments or plugin metadata.
 CSS comments are stripped from external component CSS, inline `<style>` content,
@@ -1121,7 +1121,7 @@ legal comments and `inline` preservation is active.
 #### Primary Method
 ```rust
 pub fn parse(&mut self, fragment_id: &str, html_content: &str) -> Result<(), ParserError>
-pub fn into_fragment_records(self) -> WebUIFragmentRecords
+pub fn into_fragment_records(self) -> webhubFragmentRecords
 ```
 
 ### Parser Plugin System
@@ -1162,9 +1162,9 @@ documentation for the current list. Each plugin defines:
 - Any post-parse artifacts (e.g., client component templates) it injects at `</body>`
 - Any template-syntax conversions it performs inside component templates
 
-WebUI itself does not interpret plugin-emitted bytes; each parser plugin pairs with
-a matching handler plugin that consumes them at render time. See [packages/webui-framework/README.md](packages/webui-framework/README.md)
-for the WebUI Framework's public authoring model.
+webhub itself does not interpret plugin-emitted bytes; each parser plugin pairs with
+a matching handler plugin that consumes them at render time. See [packages/webhub-framework/README.md](packages/webhub-framework/README.md)
+for the webhub Framework's public authoring model.
 
 **Usage:**
 ```rust
@@ -1174,19 +1174,19 @@ parser.parse("index.html", &html)?;
 
 **CLI integration:**
 ```bash
-webui build ./templates --out ./dist --plugin=<name>
-webui build ./templates --out ./dist --asset-file-name-template="[name]-[hash].[ext]" --css-public-base="https://cdn.example.com/assets"
-webui build ./templates --out ./dist --plugin=webui --emit-component-assets mail-thread,compose-page
-webui build ./templates --out ./dist --plugin=webui --emit-component-assets mail-thread --asset-file-name-template="[name]-[hash].[ext]"
-webui serve ./templates --state ./data/state.json --plugin=<name>
-webui serve ./templates --state ./data/state.json --plugin=webui --emit-component-assets mail-thread,compose-page --watch
+webhub build ./templates --out ./dist --plugin=<name>
+webhub build ./templates --out ./dist --asset-file-name-template="[name]-[hash].[ext]" --css-public-base="https://cdn.example.com/assets"
+webhub build ./templates --out ./dist --plugin=webhub --emit-component-assets mail-thread,compose-page
+webhub build ./templates --out ./dist --plugin=webhub --emit-component-assets mail-thread --asset-file-name-template="[name]-[hash].[ext]"
+webhub serve ./templates --state ./data/state.json --plugin=<name>
+webhub serve ./templates --state ./data/state.json --plugin=webhub --emit-component-assets mail-thread,compose-page --watch
 ```
 
-`webui serve` performs a preflight bind check on its configured HTTP port and
+`webhub serve` performs a preflight bind check on its configured HTTP port and
 fails before the initial build if that port is already in use, returning an
 actionable message so stale dev processes can be stopped explicitly.
 
-In `webui serve --watch`, the file watcher is **content-aware**: it hashes each
+In `webhub serve --watch`, the file watcher is **content-aware**: it hashes each
 changed file and drops events whose bytes are unchanged, so a no-op save
 (repeated Ctrl+S that rewrites identical content) triggers no rebuild in the
 clean state. While a rebuild error is active, unchanged events are forwarded so a
@@ -1240,7 +1240,7 @@ surfaced on every rebuild attempt.
 pub struct HandlebarsParser;
 
 impl HandlebarsParser {
-    pub fn parse(&self, text: &str) -> Result<Vec<WebUIFragment>, ParserError>
+    pub fn parse(&self, text: &str) -> Result<Vec<webhubFragment>, ParserError>
 }
 ```
 #### Requirements
@@ -1285,7 +1285,7 @@ impl CssParser {
 
 #### Requirements
 - Process CSS variables
-- Extract dynamic variables with --webui- prefix
+- Extract dynamic variables with --webhub- prefix
 - Convert dynamic variables to signals
 - Handle nested variable references
 - Process inline and external CSS
@@ -1322,10 +1322,10 @@ child range pushes an explicit parse operation, and directive bodies (`<for>`,
   attribute values never terminates a tag.
 - HTML tag names are matched ASCII-case-insensitively where the HTML
   specification requires it: void elements (`<BR>`), closing-tag matching, and
-  `<style>`/`<STYLE>` are recognized regardless of case. WebUI directives
+  `<style>`/`<STYLE>` are recognized regardless of case. webhub directives
   (`<for>`, `<if>`, `<route>`, `<outlet>`) and component names remain
   case-sensitive.
-- This is not a browser HTML parser. It supports the WebUI template subset used
+- This is not a browser HTML parser. It supports the webhub template subset used
   at build time and should not be used for arbitrary browser DOM conformance.
 
 #### Guardrails
@@ -1391,9 +1391,9 @@ trimmed body is exactly one handlebars expression:
 Bare handlebars expressions in CSS are raw text. Dynamic CSS fragments must use
 the comment wrapper so the CSS parser can distinguish them from invalid CSS.
 
-### Design Token Resolution (`webui-tokens`)
+### Design Token Resolution (`webhub-tokens`)
 
-The `webui-tokens` crate provides build/serve-time validation and resolution of design token values. While the parser extracts token **names** and `var()` fallback chains, the token crate owns the theme-coverage policy: `validate_chain_tokens` decides which chain candidates a theme must provide (literal-fallback chains are exempt) and `unthemed_literal_fallback_tokens` reports likely typos, while `resolve_tokens` generates CSS declarations for injection into state. The parser only adapts the resulting [`webui_tokens::TokenError`] into a structured `Diagnostic`.
+The `webhub-tokens` crate provides build/serve-time validation and resolution of design token values. While the parser extracts token **names** and `var()` fallback chains, the token crate owns the theme-coverage policy: `validate_chain_tokens` decides which chain candidates a theme must provide (literal-fallback chains are exempt) and `unthemed_literal_fallback_tokens` reports likely typos, while `resolve_tokens` generates CSS declarations for injection into state. The parser only adapts the resulting [`webhub_tokens::TokenError`] into a structured `Diagnostic`.
 
 #### Theme File Format
 
@@ -1425,29 +1425,29 @@ inject_token_css(state, css) → state["tokens"]["light"] = "..."
 1. **Validate**: Every *required* token must exist in every theme. A token is required when it appears in at least one unresolved `var()` chain with no literal CSS fallback. Local and ancestor CSS definitions are removed before validation, so `--token-a: red; --foo: var(--token-a, var(--token-b))` requires `token-b` from the theme but not `token-a`. A literal-terminated chain such as `var(--brand, #000)` is exempt — `--brand` stays in `protocol.tokens` for runtime resolution (the theme value still wins when present) but does not fail the build when the theme omits it. The same token referenced once with a bare `var(--brand)` and once as `var(--brand, #000)` is still required (the bare usage has no fallback). Missing required tokens fail with `missing-theme-token`. Theme token values are trusted: unresolved or cyclic `var(--x)` references inside the theme remain browser CSS semantics rather than build failures.
 2. **Dependency closure**: Token values referencing other tokens via `var(--x)` trigger transitive inclusion when the referenced token is present in the same theme. Missing transitive references are left in the CSS value as authored.
 3. **CSS generation**: Sorted `--name: value;` declarations. Output is deterministic.
-4. **State injection**: Per-theme CSS strings are set on `state.tokens.<theme>`, where `/*{{{tokens.<theme>}}}*/` signals resolve them during rendering. These render-only token strings are omitted from the emitted `webui-data` client bootstrap.
+4. **State injection**: Per-theme CSS strings are set on `state.tokens.<theme>`, where `/*{{{tokens.<theme>}}}*/` signals resolve them during rendering. These render-only token strings are omitted from the emitted `webhub-data` client bootstrap.
 
-A token used **only** with a literal `var()` fallback and defined in no theme (e.g. a misspelled `var(--colr-brand, #000)`) is reported as a non-fatal `unthemed-token` warning in `BuildResult::warnings` (a `Vec<Diagnostic>`) rather than failing the build. These are warning-severity `Diagnostic`s carrying location, snippet, and a `did you mean …?` suggestion, so `webui build` and `webui serve` render them with the same layout as errors; Node receives their plain `Display` text.
+A token used **only** with a literal `var()` fallback and defined in no theme (e.g. a misspelled `var(--colr-brand, #000)`) is reported as a non-fatal `unthemed-token` warning in `BuildResult::warnings` (a `Vec<Diagnostic>`) rather than failing the build. These are warning-severity `Diagnostic`s carrying location, snippet, and a `did you mean …?` suggestion, so `webhub build` and `webhub serve` render them with the same layout as errors; Node receives their plain `Display` text.
 
 #### Package Resolution (`resolve_theme_path`)
 
 The CLI `--theme` flag accepts a file path or an npm package name:
 
 ```bash
-webui build ./src --out ./dist --theme=@microsoft/webui-examples-theme
-webui serve ./src --theme=@microsoft/webui-examples-theme
-webui serve ./src --theme=./my-theme.json
+webhub build ./src --out ./dist --theme=@microsoft/webhub-examples-theme
+webhub serve ./src --theme=@microsoft/webhub-examples-theme
+webhub serve ./src --theme=./my-theme.json
 ```
 
 Package names are resolved by walking up from `search_root` looking for `node_modules/<pkg>/tokens.json`. Scoped packages (`@scope/name`) and explicit subpaths (`@scope/name/custom.json`) are supported.
 
-`BuildOptions::theme` accepts a loaded `TokenFile`. When present, `webui::build`
+`BuildOptions::theme` accepts a loaded `TokenFile`. When present, `webhub::build`
 validates parser-discovered unresolved tokens before protocol serialization and
-returns `WebUIError::Parse { source: ParserError::Template(..) }` when required
-tokens are missing from the theme. CLI `webui build --theme`, `webui serve
+returns `webhubError::Parse { source: ParserError::Template(..) }` when required
+tokens are missing from the theme. CLI `webhub build --theme`, `webhub serve
 --theme`, and Node `build({ theme })` all use this same build validation path.
 
-When `webui serve --watch` hits one of these theme-token validation failures
+When `webhub serve --watch` hits one of these theme-token validation failures
 during an incremental rebuild, the failure is retained as the current dev-server
 state so refreshes keep showing the diagnostic until the next successful rebuild.
 
@@ -1474,16 +1474,16 @@ pub enum ParserError {
     Io(#[from] std::io::Error),
 }
 ```
-## WebUI Framework Plugin
+## webhub Framework Plugin
 
-This section specifies only the cross-crate wire contract for `--plugin=webui`: the metadata emitted by `webui-parser`, the SSR markers emitted by `webui-handler`, and the hydration/runtime expectations consumed by `@microsoft/webui-framework`.
+This section specifies only the cross-crate wire contract for `--plugin=webhub`: the metadata emitted by `webhub-parser`, the SSR markers emitted by `webhub-handler`, and the hydration/runtime expectations consumed by `@microsoft/webhub-framework`.
 
-It intentionally does **not** duplicate package tutorials or framework API docs. Use the canonical sources instead, WebUI Framework public API, decorators, and component authoring: [packages/webui-framework/README.md](packages/webui-framework/README.md)
+It intentionally does **not** duplicate package tutorials or framework API docs. Use the canonical sources instead, webhub Framework public API, decorators, and component authoring: [packages/webhub-framework/README.md](packages/webhub-framework/README.md)
 
 ### Metadata object format
 
 Each component's compiled template metadata is emitted as JSON-safe data in
-`template_json` and registered in `window.__webui.templates[tagName]`. Condition
+`template_json` and registered in `window.__webhub.templates[tagName]`. Condition
 expressions are the only executable part: the parser emits them into
 `template_functions` as a component-local JavaScript closure array, and metadata
 condition references link to that array by index. The framework normalizes
@@ -1511,11 +1511,11 @@ All arrays are optional and omitted from the output when empty to minimize paylo
 
 `ConditionRef` in JSON metadata is `[functionIndex, paths]`:
 
-- `functionIndex` indexes the component-local `window.__webui.templateFns[tagName]` array.
+- `functionIndex` indexes the component-local `window.__webhub.templateFns[tagName]` array.
 - `paths` lists every state path referenced by the condition so the framework can build its targeted reactive path index without inspecting function source.
 
 The closure itself has the shape `(resolve, scope) => boolean`; generated source calls
-`resolve(path, scope)` for identifier lookups and preserves the existing WebUI condition
+`resolve(path, scope)` for identifier lookups and preserves the existing webhub condition
 semantics for truthiness, comparison, negation, and `&&` / `||` compounds.
 - `5` = `GREATER_THAN_OR_EQUAL`
 - `6` = `LESS_THAN_OR_EQUAL`
@@ -1528,7 +1528,7 @@ Logical operators also match the protocol enum values:
 `tr` and `ta` are emitted by the compiler so the browser runtime does not walk
 every binding at startup to rediscover roots or observed attributes. `ta` is
 index-aligned with `tr`: `ta[i]` is the host attribute observed for template
-root `tr[i]`. Metadata generated by `--plugin=webui` must include these fields
+root `tr[i]`. Metadata generated by `--plugin=webhub` must include these fields
 when applicable; runtimes treat missing fields as empty. Authored components
 emit normal metadata. Scriptless components retain the same compiled template
 metadata with `th: 1`, allowing the framework to register a compiler-owned
@@ -1538,13 +1538,13 @@ dormant host without requiring an empty authored module.
 
 Deriving a component's initial hydration surface is a build-time decision, and
 Rust never performs JavaScript/TypeScript analysis to make it. Default and
-FAST builds always set `InitialStateStrategy::Full`. The WebUI plugin sets
+FAST builds always set `InitialStateStrategy::Full`. The webhub plugin sets
 `InitialStateStrategy::Components` only when one or more
 `--projection-manifest` fragments were supplied, loaded, and merged
 successfully (see "Bundler-Neutral State Projection Compiler" below); absent
-any manifest, WebUI builds also use `InitialStateStrategy::Full`.
+any manifest, webhub builds also use `InitialStateStrategy::Full`.
 
-The WebUI parser plugin represents both initial hydration and partial
+The webhub parser plugin represents both initial hydration and partial
 navigation with an explicit `StateSurface`:
 
 - `None`: the complete surface is known to be empty.
@@ -1627,7 +1627,7 @@ For example, `@click="{selectItem(item.id)}"` calls `selectItem` with the curren
 
 ### Compilation rules
 
-The Rust compiler (`generate_compiled_template` in `webui-parser/src/plugin/webui.rs`) transforms the HTML template in a single forward pass, then finalizes it into marker-free client HTML plus locator metadata:
+The Rust compiler (`generate_compiled_template` in `webhub-parser/src/plugin/webhub.rs`) transforms the HTML template in a single forward pass, then finalizes it into marker-free client HTML plus locator metadata:
 
 | Source syntax                        | Metadata field(s)      | Client `h` result                 |
 |--------------------------------------|------------------------|-----------------------------------|
@@ -1643,7 +1643,7 @@ The Rust compiler (`generate_compiled_template` in `webui-parser/src/plugin/webu
 | `w-ref="{name}"`                     | *(stays)*              | *(unchanged)*                     |
 | `<outlet />`                         | *(stays)*              | `<outlet></outlet>`               |
 
-**Authoring validation.** Build-time authoring mistakes are returned as a structured `ParserError::Template(Box<Diagnostic>)`, never panicked. This covers invalid `@event` handlers (e.g. `@click="e.preventDefault()"`, or a bare `@click="{closeMenu}"`), scriptless components that contain `@event` bindings, non-braced `w-ref` (`w-ref="name"` instead of `w-ref="{name}"`), core-parser mistakes — an invalid `<for each>` expression, a missing/invalid `<if condition>`, an unknown component tag, a recursive template reference — malformed CSS in a `<style>` block, and structural HTML well-formedness errors (unclosed/malformed tags, unterminated comments/declarations, unexpected closing tags, excessive nesting), so every build error renders identically. The `Diagnostic` is plain, actionable data — a **stable machine-readable `code`** (e.g. `invalid-for-each` or `scriptless-event-handler`; see `diagnostic::codes`), title, source location (rendered rustc-style as `--> owner:line:column` when the offending byte offset is known, otherwise `in component <c> · element <e>`), offending snippet, and a `help:` fix — and carries **no color**: `webui-cli` styles it with `console`, while Node/FFI/WASM forward the plain `Display` text through their native error channel. Where a fix is likely a typo, the `help:` offers a **"did you mean …?" suggestion** via an iterative Levenshtein match (`suggest::closest_match`): a misspelled directive attribute (`eahc` → `each`), or an unregistered custom-element tag that closely matches a registered component **in the same namespace** (`<mp-buton>` → `<mp-button>`; cross-namespace tags like `<md-button>` still pass through as genuine custom elements).
+**Authoring validation.** Build-time authoring mistakes are returned as a structured `ParserError::Template(Box<Diagnostic>)`, never panicked. This covers invalid `@event` handlers (e.g. `@click="e.preventDefault()"`, or a bare `@click="{closeMenu}"`), scriptless components that contain `@event` bindings, non-braced `w-ref` (`w-ref="name"` instead of `w-ref="{name}"`), core-parser mistakes — an invalid `<for each>` expression, a missing/invalid `<if condition>`, an unknown component tag, a recursive template reference — malformed CSS in a `<style>` block, and structural HTML well-formedness errors (unclosed/malformed tags, unterminated comments/declarations, unexpected closing tags, excessive nesting), so every build error renders identically. The `Diagnostic` is plain, actionable data — a **stable machine-readable `code`** (e.g. `invalid-for-each` or `scriptless-event-handler`; see `diagnostic::codes`), title, source location (rendered rustc-style as `--> owner:line:column` when the offending byte offset is known, otherwise `in component <c> · element <e>`), offending snippet, and a `help:` fix — and carries **no color**: `webhub-cli` styles it with `console`, while Node/FFI/WASM forward the plain `Display` text through their native error channel. Where a fix is likely a typo, the `help:` offers a **"did you mean …?" suggestion** via an iterative Levenshtein match (`suggest::closest_match`): a misspelled directive attribute (`eahc` → `each`), or an unregistered custom-element tag that closely matches a registered component **in the same namespace** (`<mp-buton>` → `<mp-button>`; cross-namespace tags like `<md-button>` still pass through as genuine custom elements).
 
 ---
 
@@ -1657,19 +1657,19 @@ independent agents without semantic drift.
 
 ### Canonical build order
 
-State projection requires exactly one bundler run followed by one WebUI build
+State projection requires exactly one bundler run followed by one webhub build
 invocation. There is no second bundler pass and no in-process analysis.
 
 ```text
 Step 1 — Bundler (esbuild or compatible adapter)
   Input:  application entry points, TypeScript/JavaScript sources
   Output: dist/index.js (+ split chunks)
-          dist/webui-projection.json   ← projection manifest
+          dist/webhub-projection.json   ← projection manifest
 
-Step 2 — WebUI build
-  webui build ./src \
-    --plugin webui \
-    --projection-manifest ./dist/webui-projection.json \
+Step 2 — webhub build
+  webhub build ./src \
+    --plugin webhub \
+    --projection-manifest ./dist/webhub-projection.json \
     --out ./dist
   Input:  HTML/CSS templates, projection manifest(s)
   Output: dist/protocol.bin
@@ -1683,27 +1683,27 @@ Step 3 — Runtime handler
 The manifest is a build-time handoff artifact. It is not deployed as a handler
 runtime dependency.
 
-An optional `buildWebUI()` convenience helper may run steps 1 and 2
+An optional `buildwebhub()` convenience helper may run steps 1 and 2
 sequentially, but it must be orchestration sugar over the same manifest contract
 and must not create a second projection architecture.
 
 ### Package architecture
 
-No new npm package is created. The existing `@microsoft/webui` package gains
+No new npm package is created. The existing `@microsoft/webhub` package gains
 one build-only subpath:
 
 ```typescript
-import { compileProjection, esbuildProjection } from '@microsoft/webui/projection.js';
+import { compileProjection, esbuildProjection } from '@microsoft/webhub/projection.js';
 ```
 
-The root `@microsoft/webui` entry does **not** import or re-export the
+The root `@microsoft/webhub` entry does **not** import or re-export the
 projection subpath so that render/build consumers do not load compiler or
 adapter code.
 
 Internal source organization:
 
 ```text
-packages/webui/src/projection/
+packages/webhub/src/projection/
   index.ts          — public subpath barrel
   compiler.ts       — TypeScript AST analysis and symbol graph
   graph.ts          — normalized module graph types and adapter SPI
@@ -1720,14 +1720,14 @@ packages/webui/src/projection/
     conformance.ts  — adapter conformance test helpers and reference cases
 ```
 
-The canonical TypeScript type definitions live in `packages/webui/src/projection/`
+The canonical TypeScript type definitions live in `packages/webhub/src/projection/`
 and are the machine-readable specification that both the TypeScript compiler
 implementation and the Rust manifest consumer must satisfy.
 
 ### Optional peer dependency policy
 
 `typescript` and each officially supported bundler are optional peer
-dependencies of `@microsoft/webui`. The first supported bundler is esbuild:
+dependencies of `@microsoft/webhub`. The first supported bundler is esbuild:
 
 ```json
 {
@@ -1743,8 +1743,8 @@ dependencies of `@microsoft/webui`. The first supported bundler is esbuild:
 ```
 
 **`esbuild` must not be a direct dependency and must not be bundled into
-`@microsoft/webui`.** The application owns the esbuild installation and version.
-Importing or invoking `@microsoft/webui/projection.js` without the required
+`@microsoft/webhub`.** The application owns the esbuild installation and version.
+Importing or invoking `@microsoft/webhub/projection.js` without the required
 peer produces an actionable diagnostic (`PROJ-P001`/`PROJ-P002`; see
 [Diagnostic codes](#projection-diagnostic-codes)).
 
@@ -1757,7 +1757,7 @@ add their bundlers as optional peers under the same policy.
 
 ### Normalized module graph and adapter SPI
 
-The adapter SPI is defined in `packages/webui/src/projection/graph.ts`. It
+The adapter SPI is defined in `packages/webhub/src/projection/graph.ts`. It
 isolates bundler-specific semantics behind a stable interface so the projection
 compiler never depends on a particular bundler.
 
@@ -1834,8 +1834,8 @@ export interface AdapterContext {
   adapter-resolved `resolvedId`. The compiler never joins paths, substitutes
   extensions, reads package exports, or performs filesystem resolution.
 - `packageName` carries semantic package identity independently of path layout.
-  A specifier is treated as WebUI framework semantics only when the adapter
-  proves `packageName: "@microsoft/webui-framework"`. Literal source text does
+  A specifier is treated as webhub framework semantics only when the adapter
+  proves `packageName: "@microsoft/webhub-framework"`. Literal source text does
   not override adapter resolution.
 - Every physical module has raw source and every physical output has exact
   bytes. Disk outputs can never be represented as `"virtual"` to skip stale
@@ -1900,9 +1900,9 @@ For each class declaration or expression that is exported or associated with a
 2. For each decorator:
    - Resolve the decorator identifier through the symbol graph back to its
      export in the defining module.
-   - If the resolved export is `observable` from `@microsoft/webui-framework`,
+   - If the resolved export is `observable` from `@microsoft/webhub-framework`,
      record the property name in both `hydrationKeys` and `navigationKeys`.
-   - If the resolved export is `attr` from `@microsoft/webui-framework`,
+   - If the resolved export is `attr` from `@microsoft/webhub-framework`,
      record the **JavaScript property name** in both surfaces.
      `@attr({ attribute: "display-value" }) displayValue` therefore emits
      `displayValue`: framework state addresses the property registry, while an
@@ -1910,8 +1910,8 @@ For each class declaration or expression that is exported or associated with a
      hydration.
 3. Walk the class `extends` clause. Resolve the base class through the symbol
    graph. Collect the base class's keys recursively (iterative: push unresolved
-   bases onto a stack). Stop at `WebUIElement` or any class from
-   `@microsoft/webui-framework` whose own keys are already fully resolved.
+   bases onto a stack). Stop at `webhubElement` or any class from
+   `@microsoft/webhub-framework` whose own keys are already fully resolved.
 4. Each final surface is own keys ∪ inherited keys (sorted, deduplicated,
    case-sensitive), and navigation is validated as a hydration superset.
 
@@ -1922,15 +1922,15 @@ following:
 |---|---|
 | `import { observable, attr } from '...'` | Direct named import |
 | `import { observable as obs } from '...'` | Aliased named import |
-| `import * as webui from '...'` | Namespace; `webui.observable` resolved |
+| `import * as webhub from '...'` | Namespace; `webhub.observable` resolved |
 | `export { observable } from '...'` | Re-export chain |
 | `export { observable as obs } from '...'` | Aliased re-export |
 | `export * from '...'` | Star re-export (all public names forwarded) |
 | `export * as ns from '...'` | Namespaced star re-export |
 
 Decorators proven to be non-framework local/imported symbols are irrelevant to
-projection and are ignored. A decorator on a proven WebUI class whose identity
-cannot be resolved through the adapter graph could be an aliased WebUI
+projection and are ignored. A decorator on a proven webhub class whose identity
+cannot be resolved through the adapter graph could be an aliased webhub
 decorator; that uncertainty produces `PROJ-C004` (hard diagnostic).
 
 #### `define()` association
@@ -1948,16 +1948,16 @@ customElements.define("contact-card", ContactCard);
 
 Rules:
 
-- A call is considered a WebUI definition only after its class is proven to
-  inherit from the adapter-identified `WebUIElement`, or it uses a proven WebUI
+- A call is considered a webhub definition only after its class is proven to
+  inherit from the adapter-identified `webhubElement`, or it uses a proven webhub
   decorator and inheritance proof fails. This prevents unrelated libraries
   with a `.define()` API from producing false diagnostics.
 - A locally shadowed `customElements` binding is not the browser registry and
   is ignored.
 - The tag-name argument must be a **string literal** at analysis time. Dynamic
-  tags on a proven WebUI class produce `PROJ-C008`.
+  tags on a proven webhub class produce `PROJ-C008`.
 - An unrelated or unresolvable `.define()` receiver is ignored by the compiler.
-  If it was actually a scripted WebUI component, Rust strict coverage later
+  If it was actually a scripted webhub component, Rust strict coverage later
   fails with `PROJ-B001`; the compiler never guesses based on capitalization or
   method names.
 - The same tag defined more than once (within one adapter context) produces
@@ -1999,24 +1999,24 @@ adapter-provided output membership filter:
    manifest. No diagnostic is emitted for excluded components.
 
 This ensures that a tree-shaken component does not appear in the manifest and
-does not trigger a coverage requirement in `webui build`.
+does not trigger a coverage requirement in `webhub build`.
 
 ### Manifest schema
 
 The manifest is a versioned deterministic UTF-8 JSON file. One bundler
 invocation produces one manifest fragment. Multiple fragments may be merged
-by `webui build` (see [Fragment merge](#projection-fragment-merge)).
+by `webhub build` (see [Fragment merge](#projection-fragment-merge)).
 
 #### Top-level structure
 
 ```typescript
 export interface ProjectionManifest {
-  /** Schema identifier — always "webui.state-projection/v1". */
-  readonly schema: "webui.state-projection/v1";
+  /** Schema identifier — always "webhub.state-projection/v1". */
+  readonly schema: "webhub.state-projection/v1";
 
   /** Producer identity. */
   readonly producer: {
-    readonly name: "@microsoft/webui/projection.js";
+    readonly name: "@microsoft/webhub/projection.js";
     readonly version: string;
   };
 
@@ -2194,7 +2194,7 @@ UTF-16 code units. The final identifier is:
 Cross-language golden vector:
 
 ```text
-producer = @microsoft/webui/projection.js@0.0.18
+producer = @microsoft/webhub/projection.js@0.0.18
 adapter = esbuild / esbuild@0.28.1
 root = ..
 analysisHash = sha256:1111111111111111111111111111111111111111111111111111111111111111
@@ -2208,7 +2208,7 @@ buildId = sha256:8319202a060626c39cce76df50197c92dee27aab29d601161183c188204d7c1
 
 #### Stale validation
 
-`webui build` re-hashes declared input and output files to detect staleness:
+`webhub build` re-hashes declared input and output files to detect staleness:
 
 1. Resolve and canonicalize `root`.
 2. For each physical `inputs` entry: read the root-relative file and compare
@@ -2225,11 +2225,11 @@ written manifest (missing declared files) → `PROJ-M001`.
 
 ### Fragment merge semantics
 
-`webui build` accepts a repeatable `--projection-manifest` option:
+`webhub build` accepts a repeatable `--projection-manifest` option:
 
 ```bash
-webui build ./src \
-  --plugin webui \
+webhub build ./src \
+  --plugin webhub \
   --components @microsoft/shared-controls \
   --projection-manifest ./dist/app-projection.json \
   --projection-manifest ./shared-controls/dist/control-projection.json \
@@ -2240,7 +2240,7 @@ Each argument path must point to a valid, non-stale manifest file. Manifests
 are loaded and merged by component tag:
 
 1. **Schema compatibility.** Every manifest must have `schema:
-   "webui.state-projection/v1"`. An unsupported schema version produces
+   "webhub.state-projection/v1"`. An unsupported schema version produces
    `PROJ-M002`.
 2. **Duplicate ownership.** The same component tag appearing in two or more
    manifests produces `PROJ-M006` (duplicate tag ownership, hard error).
@@ -2255,9 +2255,9 @@ are loaded and merged by component tag:
 
 After merging, the merged map is used for strict coverage validation.
 
-### Strict WebUI build validation
+### Strict webhub build validation
 
-After loading and merging all manifests, `webui build` validates strict coverage:
+After loading and merging all manifests, `webhub build` validates strict coverage:
 
 1. Determine the **compiled scripted components**: every component tag that
    appears in the protocol's compiled fragment graph **and** has a sibling
@@ -2270,10 +2270,10 @@ After loading and merging all manifests, `webui build` validates strict coverage
 3. Manifest entries for components that exist in the template tree but are
    unused (not compiled into the protocol, not in any route or asset closure)
    do **not** trigger an error. They are silently ignored.
-4. The merged manifest may contain components that WebUI has no template for.
+4. The merged manifest may contain components that webhub has no template for.
    This is permitted (external controls, future components). No warning.
 
-After coverage validation, `webui build`:
+After coverage validation, `webhub build`:
 
 1. For each matched scripted component, reads
    `ComponentEntry.hydrationKeys` and `ComponentEntry.navigationKeys`.
@@ -2282,13 +2282,13 @@ After coverage validation, `webui build`:
 3. Sets `ComponentData::navigation_mode = StateProjectionMode::Keys` and
    `ComponentData::navigation_keys =
    union(entry.navigationKeys, template_roots(tag))`.
-4. Sets `WebUIProtocol::initial_state_strategy = InitialStateStrategy::Components`.
+4. Sets `webhubProtocol::initial_state_strategy = InitialStateStrategy::Components`.
 5. Scriptless components continue to use `StateProjectionMode::None` for
    hydration and their template roots for navigation.
 
 ### Rust responsibilities and integration
 
-Rust (`webui build`, `webui serve`, `webui-parser`, `webui` crate) owns:
+Rust (`webhub build`, `webhub serve`, `webhub-parser`, `webhub` crate) owns:
 
 - Template root extraction (`tr` field from compiled template metadata).
 - Scriptless component detection and compiler-owned host emission.
@@ -2300,8 +2300,8 @@ Rust (`webui build`, `webui serve`, `webui-parser`, `webui` crate) owns:
 - Projection-enabled vs. disabled mode selection.
 
 Default and FAST plugin builds continue to use `InitialStateStrategy::Full`.
-Passing `--projection-manifest` with a non-WebUI plugin is a hard error
-(`PROJ-B002`): only the WebUI plugin produces protocol fields compatible with
+Passing `--projection-manifest` with a non-webhub plugin is a hard error
+(`PROJ-B002`): only the webhub plugin produces protocol fields compatible with
 per-component key encoding.
 
 The Rust `BuildOptions` struct accepts composable path and inline sources:
@@ -2321,8 +2321,8 @@ pub projection_manifests: Vec<ProjectionManifestSource>,
 ```
 
 Schema parsing, canonical ordering/reference validation, and build-ID
-recomputation live in `webui-protocol::projection_manifest` so native and WASM
-hosts share one contract. `webui` adds filesystem root, symlink, and stale
+recomputation live in `webhub-protocol::projection_manifest` so native and WASM
+hosts share one contract. `webhub` adds filesystem root, symlink, and stale
 input/output validation for path and inline native sources.
 
 The handler runtime never reads manifest files. Protocol fields are the sole
@@ -2333,8 +2333,8 @@ runtime source of projection metadata.
 #### CLI
 
 ```text
-webui build ./src --plugin webui --projection-manifest <PATH> [--projection-manifest <PATH>] ...
-webui serve ./src --plugin webui --projection-manifest <PATH> [--projection-manifest <PATH>] ...
+webhub build ./src --plugin webhub --projection-manifest <PATH> [--projection-manifest <PATH>] ...
+webhub serve ./src --plugin webhub --projection-manifest <PATH> [--projection-manifest <PATH>] ...
 ```
 
 `--projection-manifest` is repeatable and corresponds to
@@ -2352,13 +2352,13 @@ stored error on the next successful manifest-triggered rebuild.
 
 #### Node
 
-`@microsoft/webui` accepts manifest paths and already-transported objects:
+`@microsoft/webhub` accepts manifest paths and already-transported objects:
 
 ```typescript
-import { build } from '@microsoft/webui';
+import { build } from '@microsoft/webhub';
 await build({
   appDir: './src',
-  projectionManifests: ['./dist/webui-projection.json'],
+  projectionManifests: ['./dist/webhub-projection.json'],
   projectionManifestObjects: [{
     path: './dist/other-projection.json',
     manifest: otherManifest,
@@ -2391,7 +2391,7 @@ JavaScript.
 
 All codes are stable and machine-readable. They appear in the `code` field of
 a `Diagnostic` object alongside `title`, `location`, `snippet`, and `help`.
-No color in diagnostic data; color is added only by `webui-cli` output layer.
+No color in diagnostic data; color is added only by `webhub-cli` output layer.
 
 #### Compiler diagnostics (PROJ-C*)
 
@@ -2400,12 +2400,12 @@ No color in diagnostic data; color is added only by `webui-cli` output layer.
 | `PROJ-C001` | error | TypeScript parse error in source file |
 | `PROJ-C002` | error | Import specifier does not resolve to any module in the graph |
 | `PROJ-C003` | error | Named import not found in the resolved module's exports |
-| `PROJ-C004` | error | Decorator cannot be resolved to `observable` or `attr` from `@microsoft/webui-framework`; cannot prove exact keys |
+| `PROJ-C004` | error | Decorator cannot be resolved to `observable` or `attr` from `@microsoft/webhub-framework`; cannot prove exact keys |
 | `PROJ-C005` | error | Base class cannot be resolved to a class declaration in the graph; cannot prove exact inherited keys |
 | `PROJ-C006` | error | Class uses `@observable`/`@attr` decorators but its module source is unavailable (external/virtual) |
 | `PROJ-C007` | error | Unsupported decorator form (computed property key, call-chain decorator, reflection-based) |
 | `PROJ-C008` | error | `define()` tag argument is not a string literal |
-| `PROJ-C009` | error | Reserved for an adapter that explicitly claims a WebUI class target but cannot supply its declaration |
+| `PROJ-C009` | error | Reserved for an adapter that explicitly claims a webhub class target but cannot supply its declaration |
 | `PROJ-C010` | error | Duplicate `define()` for the same tag within one adapter context |
 | `PROJ-C011` | error | `Class.define(...)` called with wrong argument count |
 | `PROJ-C012` | error | Circular import detected during symbol resolution |
@@ -2425,7 +2425,7 @@ No color in diagnostic data; color is added only by `webui-cli` output layer.
 | Code | Severity | Condition |
 |------|----------|-----------|
 | `PROJ-M001` | error | Manifest file is missing or unreadable |
-| `PROJ-M002` | error | Manifest schema version is not `webui.state-projection/v1` |
+| `PROJ-M002` | error | Manifest schema version is not `webhub.state-projection/v1` |
 | `PROJ-M003` | error | Declared input file hash does not match current file content (stale manifest) |
 | `PROJ-M004` | error | Declared output file hash does not match current file content (stale manifest) |
 | `PROJ-M005` | error | Manifest `buildId` does not match recomputed build ID |
@@ -2439,7 +2439,7 @@ No color in diagnostic data; color is added only by `webui-cli` output layer.
 | Code | Severity | Condition |
 |------|----------|-----------|
 | `PROJ-B001` | error | Compiled scripted component has no manifest entry (missing coverage) |
-| `PROJ-B002` | error | `--projection-manifest` supplied with a non-WebUI plugin |
+| `PROJ-B002` | error | `--projection-manifest` supplied with a non-webhub plugin |
 
 #### Security and resource diagnostics (PROJ-S*)
 
@@ -2470,12 +2470,12 @@ The Rust manifest consumer enforces the following before parsing manifest JSON:
    invokes TypeScript APIs. Manifests are pure data files.
 6. **Atomic writes.** The TypeScript adapter must write the manifest
    atomically (write to a temporary path in the same directory, then rename)
-   to ensure `webui build` never reads a partially written manifest.
+   to ensure `webhub build` never reads a partially written manifest.
 
 ### Adapter conformance fixtures and test contract
 
 The canonical conformance test helpers and reference cases live in
-`packages/webui/src/projection/fixtures/conformance.ts`.
+`packages/webhub/src/projection/fixtures/conformance.ts`.
 
 #### Required fixture scenarios
 
@@ -2488,7 +2488,7 @@ sources and expected manifests are co-located with the conformance helpers.
 | `basic-single-entry` | Single entry; `@observable` and `@attr` property names enter both exact client surfaces |
 | `empty-keys` | Component with no reactive properties; both key arrays are empty |
 | `aliased-decorator` | `@observable` imported under a local alias |
-| `namespace-decorator` | `@observable` accessed through a namespace import (`import * as webui`) |
+| `namespace-decorator` | `@observable` accessed through a namespace import (`import * as webhub`) |
 | `re-export-chain` | `observable` re-exported through multiple barrel files |
 | `inheritance-single` | Class inherits keys from a single base class |
 | `inheritance-multi` | Class inherits keys through a two-level chain |
@@ -2501,7 +2501,7 @@ sources and expected manifests are co-located with the conformance helpers.
 | `unresolvable-base-error` | Base class cannot be found in graph; must produce `PROJ-C005` |
 | `dynamic-tag-error` | `define()` with a non-literal tag; must produce `PROJ-C008` |
 | `stale-input-error` | Manifest input hash mismatches file on disk; must produce `PROJ-M003` |
-| `missing-coverage-error` | WebUI build with compiled scripted component absent from manifest; must produce `PROJ-B001` |
+| `missing-coverage-error` | webhub build with compiled scripted component absent from manifest; must produce `PROJ-B001` |
 
 #### Conformance test helper interface
 
@@ -2571,12 +2571,12 @@ test verifies:
 #### Coverage contract test
 
 The `missing-coverage-error` fixture provides a partial manifest (missing one
-compiled scripted component). The test verifies that `webui build`'s validation
+compiled scripted component). The test verifies that `webhub build`'s validation
 step produces exactly `PROJ-B001` for the missing tag and fails the build.
 
 ### esbuild adapter specification
 
-The esbuild adapter is implemented in `packages/webui/src/projection/adapters/esbuild.ts`.
+The esbuild adapter is implemented in `packages/webhub/src/projection/adapters/esbuild.ts`.
 
 ```typescript
 import type { Plugin } from 'esbuild';
@@ -2584,7 +2584,7 @@ import type { Plugin } from 'esbuild';
 export interface EsbuildProjectionOptions {
   /**
    * Absolute or CWD-relative path where the manifest will be written.
-   * Defaults to `<outdir>/webui-projection.json`.
+   * Defaults to `<outdir>/webhub-projection.json`.
    */
   manifest?: string;
 }
@@ -2615,7 +2615,7 @@ The esbuild adapter:
 5. Reads `metafile.outputs[*].inputs` for final output membership and
    `output.entryPoint` for normalized graph entries.
 6. Reads exact file source bytes/text for physical inputs. Non-file namespace
-   inputs are represented as virtual graph nodes; a WebUI component whose
+   inputs are represented as virtual graph nodes; a webhub component whose
    defining source is unavailable fails strict coverage instead of being
    guessed.
 7. Hashes exact `result.outputFiles` bytes for `write: false`, or reads emitted
@@ -2637,10 +2637,10 @@ fully supported. External components are absent from the application fragment
 and produce their own fragment when built separately with the same adapter.
 The adapter handles all outputs in one `onEnd` pass.
 
-### webui-press integration
+### webhub-press integration
 
-`webui-press` invokes esbuild's JavaScript API once through
-`@microsoft/webui/projection.js`, then validates the generated manifest once.
+`webhub-press` invokes esbuild's JavaScript API once through
+`@microsoft/webhub/projection.js`, then validates the generated manifest once.
 The resulting `PreparedProjectionManifests` is reused by every page and the 404
 build; page builds never re-open or re-hash bundle files. The prepared handle
 is an `Arc`-backed immutable snapshot containing both component surfaces and
@@ -2652,7 +2652,7 @@ To preserve build throughput without exposing a public compile/finalize split,
 press uses a hidden orchestration barrier:
 
 1. Start the one esbuild/projection build on a worker thread.
-2. Start parallel page `webui::build()` calls immediately.
+2. Start parallel page `webhub::build()` calls immediately.
 3. Each build performs template discovery/parsing while esbuild runs.
 4. At the internal projection-finalization point, builds wait for the prepared
    manifest proof, apply exact surfaces, then render.
@@ -2670,17 +2670,17 @@ from 529,140 to 529,136 bytes (−4 bytes, effectively unchanged).
 
 ### Official esbuild examples
 
-Official WebUI examples use small JavaScript-API build scripts instead of the
+Official webhub examples use small JavaScript-API build scripts instead of the
 esbuild CLI so the projection adapter participates in the application's one
 client build:
 
 ```text
 build workspace dependencies
-esbuild + esbuildProjection() → JS chunks + webui-projection.json
-webui build --projection-manifest ... → protocol.bin
+esbuild + esbuildProjection() → JS chunks + webhub-projection.json
+webhub build --projection-manifest ... → protocol.bin
 ```
 
-`examples/build-webui-client.mjs` centralizes watch/color/plugin wiring while
+`examples/build-webhub-client.mjs` centralizes watch/color/plugin wiring while
 each app retains its own esbuild entry/output/splitting options. `cargo xtask
 dev` starts the client watcher first, removes stale manifests, waits for every
 repeated manifest path to appear atomically, and only then starts the server.
@@ -2691,7 +2691,7 @@ external control as a component asset. Its projection-contract check
 deliberately omits the external fragment and requires `PROJ-B001`, covering the
 strict missing-fragment failure.
 
-**Machine-readable diagnostics.** `webui-cli` accepts a global `--format <human|json>` flag. In `json` mode the colorized terminal output is suppressed and each error is emitted as a single JSON object on **stdout** (`{severity, code, message, file, line, column, snippet, help, chain}`), so editors, CI, and AI assistants consume diagnostics without scraping ANSI text. The process exit code follows BSD `sysexits.h` so callers can branch on the cause: `65` (`EX_DATAERR`) for a template/authoring error, `66` (`EX_NOINPUT`) for a missing app folder / state file / serve dir / entry, `69` (`EX_UNAVAILABLE`) for an occupied port, `74` (`EX_IOERR`) for other I/O failures, `2` for argument/usage errors (clap), and `1` otherwise.
+**Machine-readable diagnostics.** `webhub-cli` accepts a global `--format <human|json>` flag. In `json` mode the colorized terminal output is suppressed and each error is emitted as a single JSON object on **stdout** (`{severity, code, message, file, line, column, snippet, help, chain}`), so editors, CI, and AI assistants consume diagnostics without scraping ANSI text. The process exit code follows BSD `sysexits.h` so callers can branch on the cause: `65` (`EX_DATAERR`) for a template/authoring error, `66` (`EX_NOINPUT`) for a missing app folder / state file / serve dir / entry, `69` (`EX_UNAVAILABLE`) for an occupied port, `74` (`EX_IOERR`) for other I/O failures, `2` for argument/usage errors (clap), and `1` otherwise.
 
 `tx[]` stores text runs as `[slot, parts]`, where `parts` reuse the compact attribute-part encoding (`string` for static text, `[path]` for dynamic text). Client-created DOM inserts one runtime `Text` node per run instead of scanning compiled marker comments.
 
@@ -2699,11 +2699,11 @@ Attribute bindings are recorded in `a[]`, while `ag[]` points at the owning elem
 
 Nested `<if>` / `<for>` blocks are recursively compiled into the shared `b[]` block table. The client runtime instantiates compiled child blocks directly and evaluates precompiled condition AST tuples — it does not parse raw template syntax or condition strings from repeat or conditional body content.
 
-The private workspace package `packages/webui-test-support` (`@microsoft/webui-test-support`) exists to build this metadata shape in JS-side tests without duplicating tuple encodings or fixture infrastructure across `webui-framework` and `webui-router`. It centralizes fixture builders such as `buildTemplate`, `registerCompiledTemplate`, and the condition AST helpers, and it also provides shared Node-side fixture bundling/server helpers so browser fixture apps and Playwright servers stay aligned with the runtime/compiler contract as that contract evolves.
+The private workspace package `packages/webhub-test-support` (`@microsoft/webhub-test-support`) exists to build this metadata shape in JS-side tests without duplicating tuple encodings or fixture infrastructure across `webhub-framework` and `webhub-router`. It centralizes fixture builders such as `buildTemplate`, `registerCompiledTemplate`, and the condition AST helpers, and it also provides shared Node-side fixture bundling/server helpers so browser fixture apps and Playwright servers stay aligned with the runtime/compiler contract as that contract evolves.
 
 ### Plugin data and SSR hydration markers
 
-The current WebUI parser emits a 12-byte `Plugin` fragment (`WebUIElementData`) for each element that has attribute bindings or `@event` handlers:
+The current webhub parser emits a 12-byte `Plugin` fragment (`webhubElementData`) for each element that has attribute bindings or `@event` handlers:
 
 ```
 Bytes 0–3:  binding_count   (u32 LE)  — number of dynamic attribute bindings
@@ -2716,7 +2716,7 @@ The handler decodes this in `on_element_data` and emits SSR-only markers:
 - `data-w-b-N` for one bound attribute, or `data-w-c-START-COUNT` for multiple `a[]` entries on the same element
 - `data-ev="COUNT"` once per element, where `COUNT` is the number of consecutive parser event entries that belong to that element
 
-WebUI SSR marker formats are:
+webhub SSR marker formats are:
 
 | Marker | Format | Notes |
 |--------|--------|-------|
@@ -2726,13 +2726,13 @@ WebUI SSR marker formats are:
 | Conditional start | `<!--wc-->` | Opens an `<if>` block |
 | Conditional end | `<!--/wc-->` | Closes the `<if>` block |
 
-The WebUI handler plugin emits only these five comment markers. Text bindings, attribute bindings, and event handlers are resolved from compiled metadata path indices at hydration time - no DOM attribute markers are needed. The handler only emits markers in active child scopes; the root page scope remains marker-free. During hydration the framework keeps `<!--wr-->` and `<!--wc-->` as runtime anchors and removes `<!--/wr-->`, `<!--/wc-->`, and `<!--wi-->` markers.
+The webhub handler plugin emits only these five comment markers. Text bindings, attribute bindings, and event handlers are resolved from compiled metadata path indices at hydration time - no DOM attribute markers are needed. The handler only emits markers in active child scopes; the root page scope remains marker-free. During hydration the framework keeps `<!--wr-->` and `<!--wc-->` as runtime anchors and removes `<!--/wr-->`, `<!--/wc-->`, and `<!--wi-->` markers.
 
-WebUI Framework hydration assumes the SSR DOM, hydration markers, and compiled metadata were generated by the same trusted WebUI compiler/handler version. Hand-authored or partially modified marker streams are unsupported; missing structural closing markers are invalid input, not a recoverable runtime condition.
+webhub Framework hydration assumes the SSR DOM, hydration markers, and compiled metadata were generated by the same trusted webhub compiler/handler version. Hand-authored or partially modified marker streams are unsupported; missing structural closing markers are invalid input, not a recoverable runtime condition.
 
 ### Runtime contract
 
-`@microsoft/webui-framework` consumes the metadata object above plus the SSR markers emitted by `WebUIHydrationPlugin`. This follows an Islands Architecture approach: the server delivers fully-rendered HTML, authored Web Components hydrate on startup, and compiler-owned scriptless hosts remain dormant until browser code actually writes state.
+`@microsoft/webhub-framework` consumes the metadata object above plus the SSR markers emitted by `webhubHydrationPlugin`. This follows an Islands Architecture approach: the server delivers fully-rendered HTML, authored Web Components hydrate on startup, and compiler-owned scriptless hosts remain dormant until browser code actually writes state.
 
 - SSR hydration uses one DOM walk to discover `<!--wr-->`, `<!--wi-->`, and `<!--wc-->` comment markers, wire the relevant bindings using compiled metadata path indices, then remove SSR-only markers.
 - Client-created DOM never reparses template syntax; it clones marker-free `h`,
@@ -2764,17 +2764,17 @@ WebUI Framework hydration assumes the SSR DOM, hydration markers, and compiled m
   The diagnostic is **development-only**. Its comparators and message string live
   in `hydration-mismatch.ts` behind the `reportHydrationMismatch` entry point,
   reached solely through a dynamic `import()` gated by the module-local `DEV`
-  constant — derived from the compile-time flag `__WEBUI_DEV__` as
-  `typeof __WEBUI_DEV__ === 'undefined' || __WEBUI_DEV__`, so an **undefined** flag
+  constant — derived from the compile-time flag `__webhub_DEV__` as
+  `typeof __webhub_DEV__ === 'undefined' || __webhub_DEV__`, so an **undefined** flag
   defaults the diagnostic **on** (raw ESM, the framework's own `tsc` output, and
   unit tests keep the warning without any bundler cooperation). When a bundler
-  folds `__WEBUI_DEV__` to `false`, `DEV` folds with it: `$checkHydrationMismatch`
+  folds `__webhub_DEV__` to `false`, `DEV` folds with it: `$checkHydrationMismatch`
   empties and its lone `import()` is dead-code-eliminated, dropping the whole
   diagnostic module — comparison code *and* strings — from the output. The dynamic
   import is load-bearing: esbuild fixes static-import reachability before
   constant-folding and never re-runs tree-shaking, so a static import would ship
-  even when its only caller folds away. `webui-press build` injects
-  `--define:__WEBUI_DEV__=false` automatically (and `serve` leaves it undefined);
+  even when its only caller folds away. `webhub-press build` injects
+  `--define:__webhub_DEV__=false` automatically (and `serve` leaves it undefined);
   apps that bundle their own client define the flag as `false` for production.
 - Scriptless components receive compiled `template_json` with `th: 1` but no
   `hydration_keys` or initial bootstrap state. The framework registers a
@@ -2786,9 +2786,9 @@ WebUI Framework hydration assumes the SSR DOM, hydration markers, and compiled m
   text, attribute, condition, and repeat roots keep their trusted SSR DOM until
   explicitly supplied; an explicit empty collection removes repeat items.
   Client-created instances mount immediately from the cached template.
-  `WebUIElement` remains the authored layer for events, `w-ref`, lifecycle code,
+  `webhubElement` remains the authored layer for events, `w-ref`, lifecycle code,
   decorators, and `$emit`.
-- Developer-authored `WebUIElement` classes also treat compiled template roots
+- Developer-authored `webhubElement` classes also treat compiled template roots
   as navigation state. `setState()` stores undecorated template-bound roots in
   hidden framework state, so `@observable` is only required when TypeScript
   reads or mutates the property directly. Initial SSR projection includes
@@ -2797,10 +2797,10 @@ WebUI Framework hydration assumes the SSR DOM, hydration markers, and compiled m
   out because they already exist in the trusted SSR DOM. Navigation carries
   `@observable + @attr + template roots`.
 - The router publishes initial and partial template registrations through
-  `webui:templates-registered`. This lets the framework claim scriptless route
+  `webhub:templates-registered`. This lets the framework claim scriptless route
   tags before the router commits a partial, preserving soft navigation without
   empty modules. Tags owned by configured lazy loaders are reserved in
-  `window.__webui.templateHostExclusions`; the framework defers its initial
+  `window.__webhub.templateHostExclusions`; the framework defers its initial
   registry claim by one task and never defines compiler-owned hosts for those
   tags. This keeps `customElements.define()` available to the authored module.
   After configured lazy loaders run, document navigation is used only when
@@ -2815,9 +2815,9 @@ WebUI Framework hydration assumes the SSR DOM, hydration markers, and compiled m
   conditional/repeat instances unregister their delegated listeners when removed
   so detached DOM is not retained. Root events from `re[]` attach directly to the
   host element or shadow root.
-- The full package entrypoint supports repeat metadata (`r[]` / `rl[]`). The additive `@microsoft/webui-framework/element-no-repeat` entrypoint preserves the same public `WebUIElement` API but must reject compiled templates that contain repeat metadata.
+- The full package entrypoint supports repeat metadata (`r[]` / `rl[]`). The additive `@microsoft/webhub-framework/element-no-repeat` entrypoint preserves the same public `webhubElement` API but must reject compiled templates that contain repeat metadata.
 
-Detailed component examples, decorators, and package entrypoint guidance live in [packages/webui-framework/README.md](packages/webui-framework/README.md) rather than being duplicated in this design spec.
+Detailed component examples, decorators, and package entrypoint guidance live in [packages/webhub-framework/README.md](packages/webhub-framework/README.md) rather than being duplicated in this design spec.
 
 ## Integration and Testing
 ### Test Suite Requirements
@@ -2828,39 +2828,39 @@ Detailed component examples, decorators, and package entrypoint guidance live in
 
 ### Project Structure
 ```
-webui/
+webhub/
 ├── crates/
-│   ├── webui/                # Programmatic library API (build, inspect, re-exports)
-│   ├── webui-cli/            # CLI build tool (binary: "webui")
-│   ├── webui-dev-server/     # Shared dev-server toolkit (watcher, livereload, static serving) used by webui-cli and webui-press
-│   ├── webui-discovery/      # External component discovery (npm, paths)
-│   ├── webui-expressions/    # Expression evaluation engine
-│   ├── webui-ffi/            # C-compatible FFI bindings
-│   ├── webui-handler/        # Protocol handler implementation
-│   ├── webui-node/           # Node.js native addon (napi-rs)
-│   ├── webui-parser/         # HTML/CSS/template parser
-│   ├── webui-press/          # Markdown-driven docs site generator + dev server
-│   ├── webui-protocol/       # Protocol definition
-│   ├── webui-state/          # State management
-│   ├── webui-test-utils/     # Testing utilities
-│   └── webui-wasm/           # WebAssembly bindings
+│   ├── webhub/                # Programmatic library API (build, inspect, re-exports)
+│   ├── webhub-cli/            # CLI build tool (binary: "webhub")
+│   ├── webhub-dev-server/     # Shared dev-server toolkit (watcher, livereload, static serving) used by webhub-cli and webhub-press
+│   ├── webhub-discovery/      # External component discovery (npm, paths)
+│   ├── webhub-expressions/    # Expression evaluation engine
+│   ├── webhub-ffi/            # C-compatible FFI bindings
+│   ├── webhub-handler/        # Protocol handler implementation
+│   ├── webhub-node/           # Node.js native addon (napi-rs)
+│   ├── webhub-parser/         # HTML/CSS/template parser
+│   ├── webhub-press/          # Markdown-driven docs site generator + dev server
+│   ├── webhub-protocol/       # Protocol definition
+│   ├── webhub-state/          # State management
+│   ├── webhub-test-utils/     # Testing utilities
+│   └── webhub-wasm/           # WebAssembly bindings
 ├── packages/
 │   ├── @microsoft/
-│   │   ├── webui/            # npm package (CLI + programmatic JS API)
-│   │   ├── webui-darwin-arm64/   # Platform binary (macOS ARM64)
-│   │   ├── webui-darwin-x64/     # Platform binary (macOS x64)
-│   │   ├── webui-linux-x64/      # Platform binary (Linux x64)
-│   │   ├── webui-linux-arm64/    # Platform binary (Linux ARM64)
-│   │   ├── webui-win32-x64/      # Platform binary (Windows x64)
-│   │   └── webui-win32-arm64/    # Platform binary (Windows ARM64)
-│   ├── webui-framework/      # WebUI Framework client runtime (@microsoft/webui-framework)
-│   ├── webui-router/         # SPA router for WebUI Framework (@microsoft/webui-router)
-│   └── webui-test-support/   # Private shared JS test metadata helpers (@microsoft/webui-test-support)
+│   │   ├── webhub/            # npm package (CLI + programmatic JS API)
+│   │   ├── webhub-darwin-arm64/   # Platform binary (macOS ARM64)
+│   │   ├── webhub-darwin-x64/     # Platform binary (macOS x64)
+│   │   ├── webhub-linux-x64/      # Platform binary (Linux x64)
+│   │   ├── webhub-linux-arm64/    # Platform binary (Linux ARM64)
+│   │   ├── webhub-win32-x64/      # Platform binary (Windows x64)
+│   │   └── webhub-win32-arm64/    # Platform binary (Windows ARM64)
+│   ├── webhub-framework/      # webhub Framework client runtime (@microsoft/webhub-framework)
+│   ├── webhub-router/         # SPA router for webhub Framework (@microsoft/webhub-router)
+│   └── webhub-test-support/   # Private shared JS test metadata helpers (@microsoft/webhub-test-support)
 ├── dotnet/
-│   ├── src/Microsoft.WebUI/  # Managed .NET bindings for webui-ffi
+│   ├── src/Microsoft.webhub/  # Managed .NET bindings for webhub-ffi
 │   ├── runtime/              # RID-specific native runtime NuGet packages
-│   └── tool/Microsoft.WebUI.Tool/ # .NET global tool package
-├── examples/                 # Example applications (todo-fast, todo-webui, routes, …)
+│   └── tool/Microsoft.webhub.Tool/ # .NET global tool package
+├── examples/                 # Example applications (todo-fast, todo-webhub, routes, …)
 ├── docs/                     # Documentation (VitePress)
 ├── tests/                    # Integration tests
 └── benchmarks/               # Performance benchmarks
@@ -2869,51 +2869,51 @@ webui/
 ### Crate Dependency Graph
 
 ```
-webui-cli ──────► webui (library) ◄────── webui-node
+webhub-cli ──────► webhub (library) ◄────── webhub-node
                     │                        │
-                    ├── webui-parser          ├── webui-handler
-                    ├── webui-handler         ├── webui-protocol
-                    ├── webui-protocol        └── serde_json
-                    └── webui-discovery
+                    ├── webhub-parser          ├── webhub-handler
+                    ├── webhub-handler         ├── webhub-protocol
+                    ├── webhub-protocol        └── serde_json
+                    └── webhub-discovery
 
-webui-ffi ──────► webui-handler ◄────── webui-wasm (handler feature)
-     └──────────► webui-protocol   ┌──── webui-wasm (parser feature)
-                                   └──── webui-wasm (all/default feature)
+webhub-ffi ──────► webhub-handler ◄────── webhub-wasm (handler feature)
+     └──────────► webhub-protocol   ┌──── webhub-wasm (parser feature)
+                                   └──── webhub-wasm (all/default feature)
 ```
 
-The `webui` library crate is the primary API surface for programmatic use.
-It re-exports `WebUIHandler`, `Protocol`, `ResponseWriter`, and
-`WebUIProtocol` from their respective crates and provides `build()`,
+The `webhub` library crate is the primary API surface for programmatic use.
+It re-exports `webhubHandler`, `Protocol`, `ResponseWriter`, and
+`webhubProtocol` from their respective crates and provides `build()`,
 `build_to_disk()`, and `inspect()` functions with `BuildStats` (duration,
 fragment/component/CSS counts, protocol size).
 
 ### WASM Distribution
 
-The `microsoft-webui-wasm` crate exposes feature-gated browser bindings so
+The `microsoft-webhub-wasm` crate exposes feature-gated browser bindings so
 consumers only ship the parser and/or handler code they need:
 
-- `handler` builds `webui_wasm_handler.js` and exports `Protocol`. It accepts
-  protobuf protocol bytes and depends on `webui-handler` and `webui-protocol`,
-  not `webui-parser`. `Protocol` decodes and indexes once, binds the selected
+- `handler` builds `webhub_wasm_handler.js` and exports `Protocol`. It accepts
+  protobuf protocol bytes and depends on `webhub-handler` and `webhub-protocol`,
+  not `webhub-parser`. `Protocol` decodes and indexes once, binds the selected
   plugin at construction, and provides `render`, `renderStream`,
   `renderPartial`, `renderComponentTemplates`, and `tokens`. Callback rendering
   coalesces handler fragments with a
   16 KiB target before crossing the WASM-to-JavaScript boundary.
-- `parser` builds `webui_wasm_parser.js` and exports `build_protocol`. It
-  returns protobuf protocol bytes and depends on `webui-parser` and
-  `webui-protocol`, not `webui-handler`.
-- `all` is the default feature, builds `webui_wasm_all.js`, and exports the
+- `parser` builds `webhub_wasm_parser.js` and exports `build_protocol`. It
+  returns protobuf protocol bytes and depends on `webhub-parser` and
+  `webhub-protocol`, not `webhub-handler`.
+- `all` is the default feature, builds `webhub_wasm_all.js`, and exports the
   parser plus handler surfaces for playground-style live preview. Callers
   compose `build_protocol()` with a loaded `Protocol`.
 
 `cargo xtask build-wasm` builds all three variants into
-`docs/.webui-press/public/wasm/{all,handler,parser}/` with stable `wasm-pack`
+`docs/.webhub-press/public/wasm/{all,handler,parser}/` with stable `wasm-pack`
 output names.
 
 ### npm Distribution
 
-The `@microsoft/webui` npm package follows the esbuild single-package model:
-- `bin: { "webui": "bin/webui" }` — CLI binary via platform-specific `optionalDependencies`
+The `@microsoft/webhub` npm package follows the esbuild single-package model:
+- `bin: { "webhub": "bin/webhub" }` — CLI binary via platform-specific `optionalDependencies`
 - `exports["."]` points to the compiled `dist/index.js` programmatic API, which
   loads the platform native addon directly
 - `Protocol` is the only runtime rendering API; construction decodes and
@@ -2928,18 +2928,18 @@ The `@microsoft/webui` npm package follows the esbuild single-package model:
 
 ### .NET / NuGet Distribution
 
-The `Microsoft.WebUI` package is the managed .NET binding for `webui-ffi`. It targets `net8.0` and `net9.0`, packs `dotnet/src/Microsoft.WebUI/README.md`, and publishes XML documentation generated from public API comments.
+The `Microsoft.webhub` package is the managed .NET binding for `webhub-ffi`. It targets `net8.0` and `net9.0`, packs `dotnet/src/Microsoft.webhub/README.md`, and publishes XML documentation generated from public API comments.
 
 `Protocol` is a public `IDisposable` type backed by a native
 `SafeHandle`. Applications create one from `protocol.bin` at startup and pass it
-to `WebUIHandler.Render`. Partial navigation, component-template loading, and
+to `webhubHandler.Render`. Partial navigation, component-template loading, and
 token queries are protocol-owned operations exposed as `RenderPartial`,
 `RenderComponentTemplates`, and `Tokens`. The type is thread-safe and releases
 both decoded protocol data and reusable indices on dispose.
 
-Native assets are split into `Microsoft.WebUI.Runtime.<rid>` packages for each supported RID. The runtime packages share `dotnet/runtime/README.md`, include NuGet release notes pointing to the GitHub release notes, and carry the matching `runtimes/<rid>/native` asset. The managed package references every runtime package so NuGet restores them transitively; .NET then resolves `webui_ffi` from the matching native asset. `WEBUI_LIB_PATH` remains the override for custom local native builds.
+Native assets are split into `Microsoft.webhub.Runtime.<rid>` packages for each supported RID. The runtime packages share `dotnet/runtime/README.md`, include NuGet release notes pointing to the GitHub release notes, and carry the matching `runtimes/<rid>/native` asset. The managed package references every runtime package so NuGet restores them transitively; .NET then resolves `webhub_ffi` from the matching native asset. `webhub_LIB_PATH` remains the override for custom local native builds.
 
-`dotnet/Directory.Build.props` applies NuGet metadata to packable .NET projects: `Authors=Microsoft`, `PackageOwners=Microsoft`, a package license URL with `PackageRequireLicenseAcceptance=true`, project and repository URLs, Source Link, release notes links, discoverability tags, the required `© Microsoft Corporation. All rights reserved.` copyright notice, and `.snupkg` symbol package generation. `cargo xtask publish` runs `dotnet pack` on `dotnet/Microsoft.WebUI.sln` and stages both `.nupkg` and `.snupkg` files under `publish/nuget`.
+`dotnet/Directory.Build.props` applies NuGet metadata to packable .NET projects: `Authors=Microsoft`, `PackageOwners=Microsoft`, a package license URL with `PackageRequireLicenseAcceptance=true`, project and repository URLs, Source Link, release notes links, discoverability tags, the required `© Microsoft Corporation. All rights reserved.` copyright notice, and `.snupkg` symbol package generation. `cargo xtask publish` runs `dotnet pack` on `dotnet/Microsoft.webhub.sln` and stages both `.nupkg` and `.snupkg` files under `publish/nuget`.
 
 NuGet publishing is not automated by ESRP today. Release workflows attach staged NuGet artifacts to GitHub Releases for manual/externally tracked nuget.org publishing. Before nuget.org publishing, ownership must be limited to the approved Microsoft package owner/co-owner accounts, every Authenticode-signable file in the package must be signed, and each `.nupkg` must be signed with the Microsoft certificate through the approved signing process.
 
@@ -2951,29 +2951,29 @@ NuGet publishing is not automated by ESRP today. Release workflows attach staged
 - Error handling guidelines
 - Examples for all major features
 
-## FFI Bindings (webui-ffi)
+## FFI Bindings (webhub-ffi)
 
-The FFI crate exposes WebUI to host languages via a C-compatible ABI. The generated
-header is at `crates/webui-ffi/include/webui_ffi.h`.
+The FFI crate exposes webhub to host languages via a C-compatible ABI. The generated
+header is at `crates/webhub-ffi/include/webhub_ffi.h`.
 
 ### Functions
 
 | Function | Description |
 |----------|-------------|
-| `webui_handler_create()` | Create a reusable handler (no plugin). |
-| `webui_handler_create_with_plugin(plugin_id)` | Create a handler with a named plugin. Returns `NULL` on error. Refer to the CLI/crate docs for the current list of plugin identifiers. |
-| `webui_protocol_create(data, len)` | Decode and index a protocol once. Returns a thread-safe opaque handle. |
-| `webui_protocol_destroy(protocol)` | Destroy a loaded protocol handle. `NULL` is a safe no-op. |
-| `webui_handler_render(handler, protocol, json, entry_id, request_path)` | Render a loaded protocol with route matching. `request_path` controls which route is active. Returns a heap-allocated string. |
-| `webui_protocol_render_partial(protocol, state_json, entry_id, request_path, inventory_hex)` | Produce a complete JSON partial response with active-route projected state. |
-| `webui_protocol_render_component_templates(protocol, tags_json, inventory_hex)` | Return requested component template payloads and updated inventory. |
-| `webui_protocol_tokens(protocol)` | Return newline-delimited CSS token names. |
-| `webui_handler_destroy(handler)` | Destroy a handler. `NULL` is a safe no-op. |
-| `webui_free(ptr)` | Free a string returned by any render function. `NULL` is a safe no-op. |
-| `webui_last_error()` | Return per-thread error message. Caller must **not** free. |
+| `webhub_handler_create()` | Create a reusable handler (no plugin). |
+| `webhub_handler_create_with_plugin(plugin_id)` | Create a handler with a named plugin. Returns `NULL` on error. Refer to the CLI/crate docs for the current list of plugin identifiers. |
+| `webhub_protocol_create(data, len)` | Decode and index a protocol once. Returns a thread-safe opaque handle. |
+| `webhub_protocol_destroy(protocol)` | Destroy a loaded protocol handle. `NULL` is a safe no-op. |
+| `webhub_handler_render(handler, protocol, json, entry_id, request_path)` | Render a loaded protocol with route matching. `request_path` controls which route is active. Returns a heap-allocated string. |
+| `webhub_protocol_render_partial(protocol, state_json, entry_id, request_path, inventory_hex)` | Produce a complete JSON partial response with active-route projected state. |
+| `webhub_protocol_render_component_templates(protocol, tags_json, inventory_hex)` | Return requested component template payloads and updated inventory. |
+| `webhub_protocol_tokens(protocol)` | Return newline-delimited CSS token names. |
+| `webhub_handler_destroy(handler)` | Destroy a handler. `NULL` is a safe no-op. |
+| `webhub_free(ptr)` | Free a string returned by any render function. `NULL` is a safe no-op. |
+| `webhub_last_error()` | Return per-thread error message. Caller must **not** free. |
 
-The C ABI uses a typed opaque `webui_protocol_t *` with explicit
-`webui_protocol_create` / `webui_protocol_destroy` ownership because C has no
+The C ABI uses a typed opaque `webhub_protocol_t *` with explicit
+`webhub_protocol_create` / `webhub_protocol_destroy` ownership because C has no
 portable object constructor or RAII lifetime. Automatically caching raw
 `(pointer, length)` inputs would be unsound: the caller may mutate, move, or
 free the bytes, pointer identity is not content identity, hashing on every
@@ -2983,11 +2983,11 @@ their normal `Protocol` object (`IDisposable` / garbage-collected class).
 
 ### Error Model
 Thread-local error storage following the POSIX `dlerror()` pattern. After any
-function returns `NULL`, call `webui_last_error()` for a human-readable diagnostic.
+function returns `NULL`, call `webhub_last_error()` for a human-readable diagnostic.
 
-## CLI Tool (webui-cli)
+## CLI Tool (webhub-cli)
 
-The CLI specification and usage details are maintained in [crates/webui-cli/README.md](crates/webui-cli/README.md).
+The CLI specification and usage details are maintained in [crates/webhub-cli/README.md](crates/webhub-cli/README.md).
 
 ## Example Workflow
 

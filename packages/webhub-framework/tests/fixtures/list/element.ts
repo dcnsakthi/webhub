@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr, observable } from '../../../src/index.js';
+import { webhubElement, attr, observable } from '../../../src/index.js';
 
-export class TestListItem extends WebUIElement {
+export class TestListItem extends webhubElement {
   @attr({ attribute: 'item-id' }) itemId = '';
   @attr title = '';
   @attr state = 'pending';
@@ -22,7 +22,7 @@ interface ListItem {
   flagged?: boolean;
 }
 
-export class TestList extends WebUIElement {
+export class TestList extends webhubElement {
   @observable items: ListItem[] = [
     { id: '1', title: 'Alpha', state: 'pending', flagged: false },
     { id: '2', title: 'Beta', state: 'done', flagged: true },

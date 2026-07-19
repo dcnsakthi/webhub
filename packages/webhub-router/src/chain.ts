@@ -19,11 +19,11 @@ import type { RouteChainEntry } from './cache.js';
 /**
  * Build the initial route chain from SSR data.
  *
- * Reads the `window.__webui.chain` array loaded from `#webui-data`.
+ * Reads the `window.__webhub.chain` array loaded from `#webhub-data`.
  * Each entry already contains the resolved `component`, `path`, `params`, etc.
  */
 export function buildChainFromSSR(): RouteChainEntry[] {
-  const meta = window.__webui;
+  const meta = window.__webhub;
   if (meta?.chain && Array.isArray(meta.chain)) {
     return hydrateChainFromJSON(meta.chain as RouteChainEntry[]);
   }
@@ -94,7 +94,7 @@ export function findChangeLevel(
 }
 
 /**
- * Find or create a `<webui-route>` DOM element for a chain entry.
+ * Find or create a `<webhub-route>` DOM element for a chain entry.
  * For top-level routes, searches direct children of `<body>`.
  * For nested routes, searches the parent component's render root
  * (shadow root or light DOM).
@@ -106,7 +106,7 @@ export function findOrCreateRouteElement(
   // For top-level routes, search direct children of body
   if (!parent) {
     for (const child of document.body.children) {
-      if (child.tagName === 'WEBUI-ROUTE' &&
+      if (child.tagName === 'webhub-ROUTE' &&
           child.getAttribute('component') === entry.component) {
         return child as HTMLElement;
       }

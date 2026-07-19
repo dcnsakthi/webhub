@@ -6,17 +6,17 @@
 //! benchmark time, then measures protocol parsing and handler rendering at
 //! different data scales (10 / 100 / 1,000 contacts).
 //!
-//! Run with: `cargo bench -p webui --bench contact_book_bench`
+//! Run with: `cargo bench -p webhub --bench contact_book_bench`
 
 use criterion::{criterion_group, BenchmarkId, Criterion, Throughput};
 use serde_json::{json, Value};
 use std::hint::black_box;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
-use webui::{build, BuildOptions, CssStrategy, ResponseWriter, WebUIHandler};
-use webui_handler::plugin::fast_v2::FastV2HydrationPlugin;
-use webui_handler::{Protocol, RenderOptions};
-use webui_protocol::WebUIProtocol;
+use webhub::{build, BuildOptions, CssStrategy, ResponseWriter, webhubHandler};
+use webhub_handler::plugin::fast_v2::FastV2HydrationPlugin;
+use webhub_handler::{Protocol, RenderOptions};
+use webhub_protocol::webhubProtocol;
 
 /// Contact counts to benchmark.
 const CONTACT_COUNTS: &[usize] = &[10, 100, 1000];
@@ -91,12 +91,12 @@ impl BenchWriter {
 }
 
 impl ResponseWriter for BenchWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.output.push_str(content);
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -296,7 +296,7 @@ fn protocol_deserialization_bench(c: &mut Criterion) {
 
     group.bench_function("from_protobuf", |b| {
         b.iter(|| {
-            let protocol = WebUIProtocol::from_protobuf(black_box(&fixture.protocol_bytes))
+            let protocol = webhubProtocol::from_protobuf(black_box(&fixture.protocol_bytes))
                 .expect("protocol deserialization failed");
             black_box(&protocol);
         });
@@ -316,7 +316,7 @@ fn handler_rendering_bench(c: &mut Criterion) {
 
     for (count, state) in &fixture.states {
         // Pre-render to measure output size for throughput calculation
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut warmup_writer = BenchWriter::new(count * BYTES_PER_CONTACT + BASE_HTML_BYTES);
         handler
             .render(
@@ -329,7 +329,7 @@ fn handler_rendering_bench(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(warmup_writer.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("contacts", count), state, |b, state| {
-            let h = WebUIHandler::new();
+            let h = webhubHandler::new();
             let mut w = BenchWriter::new(warmup_writer.len() + WRITER_HEADROOM);
 
             b.iter(|| {
@@ -358,7 +358,7 @@ fn handler_rendering_with_plugin_bench(c: &mut Criterion) {
     group.measurement_time(MEASUREMENT_TIME);
 
     for (count, state) in &fixture.states {
-        let handler = WebUIHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()));
+        let handler = webhubHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()));
         let mut warmup_writer =
             BenchWriter::new(count * BYTES_PER_CONTACT_WITH_PLUGIN + BASE_HTML_BYTES_WITH_PLUGIN);
         handler
@@ -374,7 +374,7 @@ fn handler_rendering_with_plugin_bench(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(warmup_writer.len() as u64));
 
         group.bench_with_input(BenchmarkId::new("contacts", count), state, |b, state| {
-            let h = WebUIHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()));
+            let h = webhubHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()));
             let mut w = BenchWriter::new(warmup_writer.len() + WRITER_HEADROOM);
 
             b.iter(|| {
@@ -475,7 +475,7 @@ impl SummaryRow {
 
 fn collect_parse_samples(name: &str, bytes: &[u8]) -> SummaryRow {
     for _ in 0..PARSE_WARMUP_ITERATIONS {
-        let _ = WebUIProtocol::from_protobuf(black_box(bytes));
+        let _ = webhubProtocol::from_protobuf(black_box(bytes));
     }
 
     let mut samples = Vec::with_capacity(EXPECTED_SUMMARY_SAMPLES);
@@ -484,7 +484,7 @@ fn collect_parse_samples(name: &str, bytes: &[u8]) -> SummaryRow {
     while Instant::now() < deadline {
         let start = Instant::now();
         let protocol =
-            WebUIProtocol::from_protobuf(black_box(bytes)).expect("parse failed in summary pass");
+            webhubProtocol::from_protobuf(black_box(bytes)).expect("parse failed in summary pass");
         black_box(&protocol);
         samples.push(start.elapsed().as_secs_f64() * 1000.0);
     }
@@ -505,9 +505,9 @@ fn collect_render_samples(
 ) -> SummaryRow {
     // Warm up — also measures output size
     let handler = if use_plugin {
-        WebUIHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()))
+        webhubHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()))
     } else {
-        WebUIHandler::new()
+        webhubHandler::new()
     };
     let mut writer = BenchWriter::new(SUMMARY_WRITER_CAPACITY);
     for _ in 0..RENDER_WARMUP_ITERATIONS {
@@ -557,7 +557,7 @@ fn print_summary(rows: &[SummaryRow]) {
     eprintln!();
     eprintln!(
         "{:=^width$}",
-        " WebUI Contact Book — Performance Summary ",
+        " webhub Contact Book — Performance Summary ",
         width = width
     );
     eprintln!(

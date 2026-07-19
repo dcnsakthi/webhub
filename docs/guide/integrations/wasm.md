@@ -1,16 +1,16 @@
-# WebUI WebAssembly
+# webhub WebAssembly
 
-WebUI provides browser-ready WebAssembly bindings through `wasm-bindgen`. The bindings are built as three variants so you can choose only the parser, only the handler, or the combined playground bundle.
+webhub provides browser-ready WebAssembly bindings through `wasm-bindgen`. The bindings are built as three variants so you can choose only the parser, only the handler, or the combined playground bundle.
 
 ## Variants
 
 | Variant | Import path | Exports | Use when |
 |---------|-------------|---------|----------|
-| Handler | `wasm/handler/webui_wasm_handler.js` | `Protocol` | You already have protocol bytes and only need rendering |
-| Parser | `wasm/parser/webui_wasm_parser.js` | `build_protocol` | You need to compile virtual browser files into protocol bytes |
-| All | `wasm/all/webui_wasm_all.js` | Parser and handler exports | You need both sides in one module, such as the docs playground |
+| Handler | `wasm/handler/webhub_wasm_handler.js` | `Protocol` | You already have protocol bytes and only need rendering |
+| Parser | `wasm/parser/webhub_wasm_parser.js` | `build_protocol` | You need to compile virtual browser files into protocol bytes |
+| All | `wasm/all/webhub_wasm_all.js` | Parser and handler exports | You need both sides in one module, such as the docs playground |
 
-The handler-only bundle excludes `webui-parser`, and the parser-only bundle excludes `webui-handler`. The combined bundle keeps the previous playground behavior.
+The handler-only bundle excludes `webhub-parser`, and the parser-only bundle excludes `webhub-handler`. The combined bundle keeps the previous playground behavior.
 
 ## Building the WASM bundles
 
@@ -18,19 +18,19 @@ The handler-only bundle excludes `webui-parser`, and the parser-only bundle excl
 cargo xtask build-wasm
 ```
 
-The output is generated under `docs/.webui-press/public/wasm/` for the documentation playground and release staging. Rebuild it when Rust code in `webui-wasm`, `webui-parser`, `webui-handler`, or `webui-protocol` changes.
+The output is generated under `docs/.webhub-press/public/wasm/` for the documentation playground and release staging. Rebuild it when Rust code in `webhub-wasm`, `webhub-parser`, `webhub-handler`, or `webhub-protocol` changes.
 
 ## Handler-only API
 
 Use the handler bundle when the protocol was built elsewhere and loaded as protobuf bytes in the browser.
 
 ```js
-import init, { Protocol } from './wasm/handler/webui_wasm_handler.js';
+import init, { Protocol } from './wasm/handler/webhub_wasm_handler.js';
 
 await init();
 
 const protocolBytes = new Uint8Array(await (await fetch('/protocol.bin')).arrayBuffer());
-const protocol = new Protocol(protocolBytes, 'webui');
+const protocol = new Protocol(protocolBytes, 'webhub');
 const html = protocol.render(
   '{"title": "Hello"}',
   { entry: 'index.html', requestPath: '/' },
@@ -59,7 +59,7 @@ For a complete static/CDN service worker example using this callback to write a
 Use the parser bundle when browser code needs to compile an in-memory file map into protocol bytes.
 
 ```js
-import init, { build_protocol } from './wasm/parser/webui_wasm_parser.js';
+import init, { build_protocol } from './wasm/parser/webhub_wasm_parser.js';
 
 await init();
 
@@ -78,7 +78,7 @@ const protocolBytes = build_protocol(
 
 ### `build_protocol(files, entry, projectionManifests?)`
 
-Parse virtual files into a WebUI protocol without rendering.
+Parse virtual files into a webhub protocol without rendering.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -86,7 +86,7 @@ Parse virtual files into a WebUI protocol without rendering.
 | `entry` | `string` | Entry HTML filename |
 | `projectionManifests` | `object[]` | Optional bundler manifest fragments |
 
-Returns protobuf-serialized `WebUIProtocol` as a `Uint8Array`. Throws on missing entry files, invalid templates, invalid component authoring, or protocol serialization errors.
+Returns protobuf-serialized `webhubProtocol` as a `Uint8Array`. Throws on missing entry files, invalid templates, invalid component authoring, or protocol serialization errors.
 
 Without manifests, initial and scripted navigation state remain full. With
 manifests, WASM applies the shared schema/build-ID validation, fragment merge,
@@ -100,7 +100,7 @@ Component discovery follows the virtual file map convention: HTML files with a h
 Use the combined bundle when you want parser and handler exports from one module.
 
 ```js
-import init, { build_protocol, Protocol } from './wasm/all/webui_wasm_all.js';
+import init, { build_protocol, Protocol } from './wasm/all/webhub_wasm_all.js';
 
 await init();
 

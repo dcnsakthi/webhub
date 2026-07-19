@@ -29,13 +29,13 @@ test.describe('HTML-only dormant host fixture', () => {
     await expect(page.locator('test-html-only .item')).toHaveText(['Ada', 'Grace']);
     await expect(page.locator('test-html-only .details')).toHaveCount(0);
     const data = await page.evaluate(() => ({
-      state: window.__webui?.state,
-      templates: window.__webui?.templates,
+      state: window.__webhub?.state,
+      templates: window.__webhub?.templates,
     }));
     expect(data.state).toEqual({});
     expect(Object.keys(data.templates ?? {})).toEqual(['test-html-only']);
     expect(await page.evaluate(
-      () => performance.getEntriesByName('webui:hydrate:total', 'measure').length,
+      () => performance.getEntriesByName('webhub:hydrate:total', 'measure').length,
     )).toBe(0);
   });
 
@@ -64,7 +64,7 @@ test.describe('HTML-only dormant host fixture', () => {
     await expect(page.locator('test-html-only .item')).toHaveText(['Linus', 'Margaret', 'Radia']);
     await expect(page.locator('test-html-only .details')).toHaveText('Loaded from state');
     expect(await page.evaluate(
-      () => performance.getEntriesByName('webui:hydrate:total', 'measure').length,
+      () => performance.getEntriesByName('webhub:hydrate:total', 'measure').length,
     )).toBe(1);
   });
 

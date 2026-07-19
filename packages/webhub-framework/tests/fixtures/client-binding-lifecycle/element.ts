@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
-export class TestLifecycleChild extends WebUIElement {
+export class TestLifecycleChild extends webhubElement {
   @observable value: string | null | undefined = undefined;
   @observable connectedValue = '';
   @observable fallbackApplied = 'no';
@@ -20,7 +20,7 @@ export class TestLifecycleChild extends WebUIElement {
   }
 }
 
-export class TestLifecycleParent extends WebUIElement {
+export class TestLifecycleParent extends webhubElement {
   @observable val: string | undefined = undefined;
 
   setParentValue(value: string): void {
@@ -28,7 +28,7 @@ export class TestLifecycleParent extends WebUIElement {
   }
 }
 
-export class TestLifecycleConditionalParent extends WebUIElement {
+export class TestLifecycleConditionalParent extends webhubElement {
   @observable show = false;
   @observable val: string | undefined = undefined;
 
@@ -37,7 +37,7 @@ export class TestLifecycleConditionalParent extends WebUIElement {
   }
 }
 
-export class TestLifecycleRepeatParent extends WebUIElement {
+export class TestLifecycleRepeatParent extends webhubElement {
   @observable items: Array<{ id: string; value?: string }> = [];
 
   setItems(items: Array<{ id: string; value?: string }>): void {
@@ -45,7 +45,7 @@ export class TestLifecycleRepeatParent extends WebUIElement {
   }
 }
 
-export class TestLifecycleConditionalRepeatParent extends WebUIElement {
+export class TestLifecycleConditionalRepeatParent extends webhubElement {
   @observable show = false;
   @observable items: Array<{ id: string; value?: string }> = [];
 
@@ -55,7 +55,7 @@ export class TestLifecycleConditionalRepeatParent extends WebUIElement {
   }
 }
 
-export class TestLifecycleNestedRepeatParent extends WebUIElement {
+export class TestLifecycleNestedRepeatParent extends webhubElement {
   @observable groups: Array<{ id: string; items: Array<{ id: string; value?: string }> }> = [];
 
   setGroups(groups: Array<{ id: string; items: Array<{ id: string; value?: string }> }>): void {
@@ -63,7 +63,7 @@ export class TestLifecycleNestedRepeatParent extends WebUIElement {
   }
 }
 
-export class TestLifecycleKeyedNestedRepeatParent extends WebUIElement {
+export class TestLifecycleKeyedNestedRepeatParent extends webhubElement {
   @observable groups: Array<{ id: string; items: Array<{ id: string; value?: string }> }> = [];
 
   setGroups(groups: Array<{ id: string; items: Array<{ id: string; value?: string }> }>): void {

@@ -36,7 +36,7 @@ export interface ResolvedImport {
   /**
    * Owning package when the adapter can prove it.
    *
-   * This lets aliases that resolve to `@microsoft/webui-framework` retain the
+   * This lets aliases that resolve to `@microsoft/webhub-framework` retain the
    * same semantic identity without coupling the compiler to node_modules path
    * layouts.
    */
@@ -64,7 +64,7 @@ export interface ModuleNode {
    * Raw UTF-8 source text.
    *
    * Required for file modules. Virtual modules may omit source when they carry
-   * no analyzable WebUI code.
+   * no analyzable webhub code.
    */
   readonly source: string | undefined;
 

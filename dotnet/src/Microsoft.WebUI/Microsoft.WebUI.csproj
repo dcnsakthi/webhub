@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
-    <PackageId>Microsoft.WebUI</PackageId>
-    <RootNamespace>Microsoft.WebUI</RootNamespace>
+    <PackageId>Microsoft.webhub</PackageId>
+    <RootNamespace>Microsoft.webhub</RootNamespace>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -10,11 +10,11 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Pack as dependencies so NuGet restores native assets for every supported runtime. -->
-    <ProjectReference Include="..\..\runtime\Microsoft.WebUI.Runtime.linux-arm64\Microsoft.WebUI.Runtime.linux-arm64.csproj" />
-    <ProjectReference Include="..\..\runtime\Microsoft.WebUI.Runtime.linux-x64\Microsoft.WebUI.Runtime.linux-x64.csproj" />
-    <ProjectReference Include="..\..\runtime\Microsoft.WebUI.Runtime.osx-arm64\Microsoft.WebUI.Runtime.osx-arm64.csproj" />
-    <ProjectReference Include="..\..\runtime\Microsoft.WebUI.Runtime.osx-x64\Microsoft.WebUI.Runtime.osx-x64.csproj" />
-    <ProjectReference Include="..\..\runtime\Microsoft.WebUI.Runtime.win-arm64\Microsoft.WebUI.Runtime.win-arm64.csproj" />
-    <ProjectReference Include="..\..\runtime\Microsoft.WebUI.Runtime.win-x64\Microsoft.WebUI.Runtime.win-x64.csproj" />
+    <ProjectReference Include="..\..\runtime\Microsoft.webhub.Runtime.linux-arm64\Microsoft.webhub.Runtime.linux-arm64.csproj" />
+    <ProjectReference Include="..\..\runtime\Microsoft.webhub.Runtime.linux-x64\Microsoft.webhub.Runtime.linux-x64.csproj" />
+    <ProjectReference Include="..\..\runtime\Microsoft.webhub.Runtime.osx-arm64\Microsoft.webhub.Runtime.osx-arm64.csproj" />
+    <ProjectReference Include="..\..\runtime\Microsoft.webhub.Runtime.osx-x64\Microsoft.webhub.Runtime.osx-x64.csproj" />
+    <ProjectReference Include="..\..\runtime\Microsoft.webhub.Runtime.win-arm64\Microsoft.webhub.Runtime.win-arm64.csproj" />
+    <ProjectReference Include="..\..\runtime\Microsoft.webhub.Runtime.win-x64\Microsoft.webhub.Runtime.win-x64.csproj" />
   </ItemGroup>
 </Project>

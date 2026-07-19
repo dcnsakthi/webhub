@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { buildFixtureEntries } from '@microsoft/webui-test-support/fixture-build';
-import { renderFixtures } from '@microsoft/webui-test-support/fixture-render';
-import { startFixtureServer } from '@microsoft/webui-test-support/fixture-server';
+import { buildFixtureEntries } from '@microsoft/webhub-test-support/fixture-build';
+import { renderFixtures } from '@microsoft/webhub-test-support/fixture-render';
+import { startFixtureServer } from '@microsoft/webhub-test-support/fixture-server';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,12 +39,12 @@ const rendered = renderFixtures({
 });
 
 startFixtureServer({
-  name: 'webui-framework',
+  name: 'webhub-framework',
   fixturesRoot,
   port,
   handleRequest({ url, send, serveStatic }) {
     if (url.pathname === '/') {
-      send(200, 'webui-framework fixture server');
+      send(200, 'webhub-framework fixture server');
       return true;
     }
 

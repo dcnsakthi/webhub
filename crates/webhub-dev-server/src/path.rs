@@ -4,8 +4,8 @@
 //! URL path utilities for dev servers.
 //!
 //! These helpers handle two concerns that every dev server needs:
-//!  1. Strip an application `basePath` (e.g. `/webui/`) from incoming URLs
-//!     on a segment boundary, so `/webui-evil/x` does NOT match `/webui/`.
+//!  1. Strip an application `basePath` (e.g. `/webhub/`) from incoming URLs
+//!     on a segment boundary, so `/webhub-evil/x` does NOT match `/webhub/`.
 //!  2. Resolve the remaining path to a file inside an output directory
 //!     while rejecting traversal, percent-encoded `..`, backslashes, NUL,
 //!     and absolute markers in any segment.
@@ -109,9 +109,9 @@ mod tests {
 
     #[test]
     fn normalize_base_path_adds_slashes() {
-        assert_eq!(normalize_base_path("webui"), "/webui/");
-        assert_eq!(normalize_base_path("/webui"), "/webui/");
-        assert_eq!(normalize_base_path("/webui/"), "/webui/");
+        assert_eq!(normalize_base_path("webhub"), "/webhub/");
+        assert_eq!(normalize_base_path("/webhub"), "/webhub/");
+        assert_eq!(normalize_base_path("/webhub/"), "/webhub/");
         assert_eq!(normalize_base_path("a/b"), "/a/b/");
     }
 
@@ -124,21 +124,21 @@ mod tests {
 
     #[test]
     fn strip_base_path_segment_boundary() {
-        assert_eq!(strip_base_path("/webui/", "/webui/"), Some(""));
-        assert_eq!(strip_base_path("/webui", "/webui/"), Some(""));
-        assert_eq!(strip_base_path("/webui/guide/", "/webui/"), Some("guide/"));
+        assert_eq!(strip_base_path("/webhub/", "/webhub/"), Some(""));
+        assert_eq!(strip_base_path("/webhub", "/webhub/"), Some(""));
+        assert_eq!(strip_base_path("/webhub/guide/", "/webhub/"), Some("guide/"));
         assert_eq!(
-            strip_base_path("/webui/foo.css", "/webui/"),
+            strip_base_path("/webhub/foo.css", "/webhub/"),
             Some("foo.css")
         );
     }
 
     #[test]
     fn strip_base_path_rejects_similar_prefix() {
-        assert_eq!(strip_base_path("/webui-evil/x", "/webui/"), None);
-        assert_eq!(strip_base_path("/webuixyz", "/webui/"), None);
-        assert_eq!(strip_base_path("/", "/webui/"), None);
-        assert_eq!(strip_base_path("/other/foo", "/webui/"), None);
+        assert_eq!(strip_base_path("/webhub-evil/x", "/webhub/"), None);
+        assert_eq!(strip_base_path("/webhubxyz", "/webhub/"), None);
+        assert_eq!(strip_base_path("/", "/webhub/"), None);
+        assert_eq!(strip_base_path("/other/foo", "/webhub/"), None);
     }
 
     #[test]

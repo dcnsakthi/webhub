@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '@microsoft/webui-framework';
+import { webhubElement, observable } from '@microsoft/webhub-framework';
 
 interface AppMeta {
   slug: string;
@@ -12,7 +12,7 @@ interface AppMeta {
   iframeUrl: string;
 }
 
-export class DemoShell extends WebUIElement {
+export class DemoShell extends webhubElement {
   @observable apps: AppMeta[] = [];
   @observable currentApp: AppMeta = {
     slug: '',
@@ -81,11 +81,11 @@ export class DemoShell extends WebUIElement {
     const url = new URL(window.location.href);
     url.searchParams.set('app', app.slug);
     history.replaceState(null, '', url.toString());
-    document.title = `${app.name} — WebUI Demo`;
+    document.title = `${app.name} — webhub Demo`;
   }
 
   // Replace the iframe with a fresh element. The hosted apps install a
-  // Navigation-API listener (webui-router) that intercepts every navigation
+  // Navigation-API listener (webhub-router) that intercepts every navigation
   // in their frame, including external `iframe.src` changes — leaving the
   // iframe stuck on the previous document. A fresh iframe has no router
   // installed yet, so the navigation completes normally.

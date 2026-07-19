@@ -1,8 +1,8 @@
 {
-  "name": "@microsoft/webui-framework",
+  "name": "@microsoft/webhub-framework",
   "version": "0.0.18",
   "type": "module",
-  "description": "WebUI Framework Next — Preact-inspired lightweight Web Component runtime with SSR hydration. 15KB minified, compiled-template path mapping, no hydration markers.",
+  "description": "webhub Framework Next — Preact-inspired lightweight Web Component runtime with SSR hydration. 15KB minified, compiled-template path mapping, no hydration markers.",
   "license": "MIT",
   "exports": {
     ".": {
@@ -32,7 +32,7 @@
     "test:e2e:update-snapshots": "pnpm typecheck:e2e && playwright test --update-snapshots"
   },
   "devDependencies": {
-    "@microsoft/webui-test-support": "workspace:*",
+    "@microsoft/webhub-test-support": "workspace:*",
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
     "typescript": "catalog:"

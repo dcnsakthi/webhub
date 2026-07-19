@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
 interface MultiRepeatItem {
   title: string;
@@ -9,7 +9,7 @@ interface MultiRepeatItem {
   active: string;
 }
 
-export class TestMultiRepeat extends WebUIElement {
+export class TestMultiRepeat extends webhubElement {
   @observable items: MultiRepeatItem[] = [
     { title: 'Alpha', href: '/alpha', active: 'true' },
     { title: 'Beta', href: '/beta', active: 'false' },

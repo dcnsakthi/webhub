@@ -13,7 +13,7 @@ use crate::error::{Error, Result};
 use crate::types::BundlerConfig;
 
 static BUNDLE_REBUILD_NONCE: AtomicU64 = AtomicU64::new(0);
-const WEBUI_TSCONFIG_RAW: &str =
+const webhub_TSCONFIG_RAW: &str =
     r#"{"compilerOptions":{"experimentalDecorators":true,"useDefineForClassFields":false}}"#;
 const ESBUILD_RUNNER: &str = r#"
 import { readFile } from "node:fs/promises";
@@ -23,7 +23,7 @@ import { pathToFileURL } from "node:url";
 
 const config = JSON.parse(await readFile(process.argv[2], "utf8"));
 const started = performance.now();
-const require = createRequire(pathToFileURL(path.join(config.resolveDir, "__webui_press__.cjs")));
+const require = createRequire(pathToFileURL(path.join(config.resolveDir, "__webhub_press__.cjs")));
 const esbuild = require(require.resolve("esbuild"));
 const projectionUrl = pathToFileURL(config.projectionEntry).href;
 const { esbuildProjection } = await import(projectionUrl);
@@ -31,8 +31,8 @@ await esbuild.build({
   ...config.build,
   plugins: [esbuildProjection({ manifest: config.manifest })],
 });
-if (process.env.WEBUI_PROJECTION_PROFILE === "1") {
-  console.error(`[webui-press] esbuild-total=${(performance.now() - started).toFixed(1)}ms`);
+if (process.env.webhub_PROJECTION_PROFILE === "1") {
+  console.error(`[webhub-press] esbuild-total=${(performance.now() - started).toFixed(1)}ms`);
 }
 "#;
 
@@ -45,11 +45,11 @@ struct EsbuildCommand {
 /// Resolve a configured component source for the per-page builds.
 ///
 /// Local paths are made absolute against `cwd` (the project root) because
-/// `webui-discovery` resolves relative paths against the synthesized per-page
+/// `webhub-discovery` resolves relative paths against the synthesized per-page
 /// app directory, not the project. npm package names and scopes (e.g.
 /// `@mai-ui`) are left bare so discovery resolves them from `node_modules`.
 pub(crate) fn resolve_config_component_source(source: &str, cwd: &Path) -> String {
-    if webui_discovery::is_local_source(source) {
+    if webhub_discovery::is_local_source(source) {
         cwd.join(source).to_string_lossy().to_string()
     } else {
         source.to_string()
@@ -377,7 +377,7 @@ pub(crate) struct BundleResult {
     /// forwards to shared chunks.
     pub(crate) script_map: HashMap<usize, Vec<String>>,
     /// Projection metadata validated once against the completed bundle.
-    pub(crate) projection: webui::PreparedProjectionManifests,
+    pub(crate) projection: webhub::PreparedProjectionManifests,
     /// Wall time spent producing and validating the client bundle.
     pub(crate) duration: std::time::Duration,
 }
@@ -1063,7 +1063,7 @@ pub(crate) fn resolve_node_modules(config_dir: &Path) -> Result<PathBuf> {
 }
 
 fn default_framework_alias(node_modules: &Path) -> Option<PathBuf> {
-    let pkg = node_modules.join("@microsoft").join("webui-framework");
+    let pkg = node_modules.join("@microsoft").join("webhub-framework");
     let dist = pkg.join("dist").join("index.js");
     if dist.exists() {
         return Some(dist);
@@ -1094,7 +1094,7 @@ fn build_aliases(opts: &BundleOptions<'_>) -> BTreeMap<String, String> {
     let mut aliases: BTreeMap<String, String> = BTreeMap::new();
     if let Some(node_modules) = opts.node_modules {
         if let Some(path) = default_framework_alias(node_modules) {
-            aliases.insert("@microsoft/webui-framework".to_string(), path_for_js(&path));
+            aliases.insert("@microsoft/webhub-framework".to_string(), path_for_js(&path));
         }
     }
 
@@ -1144,16 +1144,16 @@ fn esbuild_args(
     args.push("--chunk-names=assets/[name]-[hash]".to_string());
     args.push("--loader:.html=text".to_string());
     args.push("--loader:.css=text".to_string());
-    args.push(format!("--tsconfig-raw={WEBUI_TSCONFIG_RAW}"));
+    args.push(format!("--tsconfig-raw={webhub_TSCONFIG_RAW}"));
     args.push("--log-level=warning".to_string());
     if !opts.dev_mode {
         args.push("--minify".to_string());
-        // Fold the framework's `__WEBUI_DEV__` flag to `false` for production
+        // Fold the framework's `__webhub_DEV__` flag to `false` for production
         // builds so development-only diagnostics — e.g. the hydration-mismatch
-        // warning in `@microsoft/webui-framework` — and the modules they gate
+        // warning in `@microsoft/webhub-framework` — and the modules they gate
         // are dead-code eliminated from the bundle. Pushed before any user
         // `define` entries below so an explicit `bundler.define` can override it.
-        args.push("--define:__WEBUI_DEV__=false".to_string());
+        args.push("--define:__webhub_DEV__=false".to_string());
     }
     if let Some(cfg) = opts.bundler_config {
         push_external_args(&mut args, &cfg.external, &aliases);
@@ -1193,15 +1193,15 @@ fn esbuild_build_config(
         .unwrap_or_default();
     let mut define = BTreeMap::new();
     if !opts.dev_mode {
-        define.insert("__WEBUI_DEV__".to_string(), "false".to_string());
+        define.insert("__webhub_DEV__".to_string(), "false".to_string());
     }
     if let Some(cfg) = opts.bundler_config {
         for (key, value) in &cfg.define {
             define.insert(key.clone(), value.clone());
         }
     }
-    let tsconfig_raw: serde_json::Value = serde_json::from_str(WEBUI_TSCONFIG_RAW)
-        .map_err(|error| Error::Build(format!("Invalid WebUI tsconfig: {error}")))?;
+    let tsconfig_raw: serde_json::Value = serde_json::from_str(webhub_TSCONFIG_RAW)
+        .map_err(|error| Error::Build(format!("Invalid webhub tsconfig: {error}")))?;
     let projection_entry = projection_package_entry(node_modules)?;
     let loader = BTreeMap::from([
         (".css".to_string(), "text".to_string()),
@@ -1249,28 +1249,28 @@ fn absolute_path(path: &Path) -> Result<PathBuf> {
 }
 
 fn projection_package_entry(node_modules: &Path) -> Result<String> {
-    let package_dir = node_modules.join("@microsoft").join("webui");
+    let package_dir = node_modules.join("@microsoft").join("webhub");
     let package_json_path = package_dir.join("package.json");
     let package_json = fs::read_to_string(&package_json_path).map_err(|error| {
         Error::Build(format!(
-            "Cannot read {}. Install @microsoft/webui in the docs project: {error}",
+            "Cannot read {}. Install @microsoft/webhub in the docs project: {error}",
             package_json_path.display()
         ))
     })?;
     let value: serde_json::Value = serde_json::from_str(&package_json)
-        .map_err(|error| Error::Build(format!("Invalid @microsoft/webui package.json: {error}")))?;
+        .map_err(|error| Error::Build(format!("Invalid @microsoft/webhub package.json: {error}")))?;
     let export = value
         .pointer("/exports/.~1projection.js/import/default")
         .and_then(serde_json::Value::as_str)
         .ok_or_else(|| {
             Error::Build(
-                "@microsoft/webui does not export ./projection.js for ESM imports".to_string(),
+                "@microsoft/webhub does not export ./projection.js for ESM imports".to_string(),
             )
         })?;
     let entry = package_dir.join(export);
     if !entry.exists() {
         return Err(Error::Build(format!(
-            "@microsoft/webui projection entry is missing: {}. Build the package first.",
+            "@microsoft/webhub projection entry is missing: {}. Build the package first.",
             entry.display()
         )));
     }
@@ -1284,8 +1284,8 @@ fn run_esbuild_with_projection(
     bundle_tmp: &Path,
     manifest_path: &Path,
 ) -> Result<()> {
-    let runner_path = bundle_tmp.join("webui-press-esbuild.mjs");
-    let config_path = bundle_tmp.join("webui-press-esbuild.json");
+    let runner_path = bundle_tmp.join("webhub-press-esbuild.mjs");
+    let config_path = bundle_tmp.join("webhub-press-esbuild.json");
     fs::write(&runner_path, ESBUILD_RUNNER)
         .map_err(|error| Error::Build(format!("Cannot write esbuild runner: {error}")))?;
     let config = esbuild_build_config(opts, node_modules, entry_files, bundle_tmp, manifest_path)?;
@@ -1311,7 +1311,7 @@ fn run_esbuild_with_projection(
             String::from_utf8_lossy(&output.stderr)
         )));
     }
-    if std::env::var_os("WEBUI_PROJECTION_PROFILE").is_some() && !output.stderr.is_empty() {
+    if std::env::var_os("webhub_PROJECTION_PROFILE").is_some() && !output.stderr.is_empty() {
         eprint!("{}", String::from_utf8_lossy(&output.stderr));
     }
     Ok(())
@@ -1329,7 +1329,7 @@ fn run_esbuild_with_projection(
 pub(crate) fn bundle_assets(opts: &BundleOptions<'_>) -> Result<BundleResult> {
     let started = Instant::now();
     if opts.root_bundle.is_none() && opts.page_bundles.is_empty() {
-        let projection = webui::prepare_projection_manifests(&[])
+        let projection = webhub::prepare_projection_manifests(&[])
             .map_err(|error| Error::Build(error.chain_message()))?;
         return Ok(BundleResult {
             root_script: None,
@@ -1351,7 +1351,7 @@ pub(crate) fn bundle_assets(opts: &BundleOptions<'_>) -> Result<BundleResult> {
     // Create a temp directory for the bundler entry files.
     let nonce = next_rebuild_nonce_hex();
     let bundle_tmp =
-        std::env::temp_dir().join(format!("webui-press-bundle-{}-{nonce}", std::process::id(),));
+        std::env::temp_dir().join(format!("webhub-press-bundle-{}-{nonce}", std::process::id(),));
     if bundle_tmp.exists() {
         fs::remove_dir_all(&bundle_tmp).ok();
     }
@@ -1451,7 +1451,7 @@ pub(crate) fn bundle_assets(opts: &BundleOptions<'_>) -> Result<BundleResult> {
         entry_files.push((entry_name, entry_path));
     }
 
-    let manifest_path = opts.site_dir.join("webui-projection.json");
+    let manifest_path = opts.site_dir.join("webhub-projection.json");
     run_esbuild_with_projection(
         opts,
         node_modules,
@@ -1464,15 +1464,15 @@ pub(crate) fn bundle_assets(opts: &BundleOptions<'_>) -> Result<BundleResult> {
             .bundler_config
             .map_or(0, |cfg| cfg.projection_manifests.len()),
     );
-    projection_sources.push(webui::ProjectionManifestSource::Path(manifest_path.clone()));
+    projection_sources.push(webhub::ProjectionManifestSource::Path(manifest_path.clone()));
     if let Some(cfg) = opts.bundler_config {
         projection_sources.extend(
             cfg.projection_manifests.iter().map(|manifest| {
-                webui::ProjectionManifestSource::Path(opts.config_dir.join(manifest))
+                webhub::ProjectionManifestSource::Path(opts.config_dir.join(manifest))
             }),
         );
     }
-    let projection_result = webui::prepare_projection_manifests(&projection_sources)
+    let projection_result = webhub::prepare_projection_manifests(&projection_sources)
         .map_err(|error| Error::Build(error.chain_message()));
     fs::remove_file(&manifest_path).ok();
     let projection = projection_result?;
@@ -1820,8 +1820,8 @@ mod tests {
         // cannot resolve, so component scripts never load. These are pure
         // string transforms and assert identically on every platform.
         assert_eq!(
-            path_for_js(Path::new(r"\\?\C:\tmp\webui-press\template\index.ts")),
-            "C:/tmp/webui-press/template/index.ts"
+            path_for_js(Path::new(r"\\?\C:\tmp\webhub-press\template\index.ts")),
+            "C:/tmp/webhub-press/template/index.ts"
         );
         assert_eq!(
             path_for_js(Path::new(r"\\?\UNC\server\share\index.ts")),
@@ -1834,7 +1834,7 @@ mod tests {
 
     #[test]
     fn esbuild_command_resolves_from_node_modules() {
-        let tmp = std::env::temp_dir().join("webui-press-esbuild-test");
+        let tmp = std::env::temp_dir().join("webhub-press-esbuild-test");
         let bin_path = if cfg!(windows) {
             tmp.join("node_modules/esbuild/bin/esbuild")
         } else {
@@ -1857,11 +1857,11 @@ mod tests {
     #[test]
     fn projection_package_entry_reads_export_target() -> TestResult {
         let root = std::env::temp_dir().join(format!(
-            "webui-press-projection-package-test-{}",
+            "webhub-press-projection-package-test-{}",
             std::process::id()
         ));
         fs::remove_dir_all(&root).ok();
-        let package = root.join("node_modules/@microsoft/webui");
+        let package = root.join("node_modules/@microsoft/webhub");
         let entry = package.join("dist/projection/index.js");
         fs::create_dir_all(entry.parent().ok_or("entry parent missing")?)?;
         fs::write(&entry, "export {};")?;
@@ -1880,13 +1880,13 @@ mod tests {
     #[test]
     fn push_external_args_filters_aliased_packages() {
         let external = vec![
-            "@microsoft/webui-framework".to_string(),
+            "@microsoft/webhub-framework".to_string(),
             "cdn-only-package".to_string(),
         ];
         let mut aliases = BTreeMap::new();
         aliases.insert(
-            "@microsoft/webui-framework".to_string(),
-            "/repo/packages/webui-framework/dist/index.js".to_string(),
+            "@microsoft/webhub-framework".to_string(),
+            "/repo/packages/webhub-framework/dist/index.js".to_string(),
         );
         let mut args = Vec::new();
 
@@ -1894,14 +1894,14 @@ mod tests {
 
         assert!(!args
             .iter()
-            .any(|arg| arg.contains("@microsoft/webui-framework")));
+            .any(|arg| arg.contains("@microsoft/webhub-framework")));
         assert!(args.contains(&"--external:cdn-only-package".to_string()));
     }
 
     #[test]
-    fn esbuild_args_force_webui_decorator_semantics() {
+    fn esbuild_args_force_webhub_decorator_semantics() {
         let site_dir = Path::new("/site");
-        let config_dir = Path::new("/site/.webui-press");
+        let config_dir = Path::new("/site/.webhub-press");
         let opts = BundleOptions {
             site_dir,
             node_modules: None,
@@ -1912,13 +1912,13 @@ mod tests {
             config_dir,
             content_dir: Path::new("/site"),
         };
-        let args = esbuild_args(&opts, &[], Path::new("/tmp/webui-press-bundle"));
+        let args = esbuild_args(&opts, &[], Path::new("/tmp/webhub-press-bundle"));
 
-        assert!(args.contains(&format!("--tsconfig-raw={WEBUI_TSCONFIG_RAW}")));
+        assert!(args.contains(&format!("--tsconfig-raw={webhub_TSCONFIG_RAW}")));
     }
 
     #[test]
-    fn esbuild_args_folds_webui_dev_flag_for_production_only() {
+    fn esbuild_args_folds_webhub_dev_flag_for_production_only() {
         fn opts<'a>(
             site_dir: &'a Path,
             config_dir: &'a Path,
@@ -1937,30 +1937,30 @@ mod tests {
             }
         }
         let site_dir = Path::new("/site");
-        let config_dir = Path::new("/site/.webui-press");
+        let config_dir = Path::new("/site/.webhub-press");
         let tmp = Path::new("/tmp/b");
-        let define = "--define:__WEBUI_DEV__=false".to_string();
+        let define = "--define:__webhub_DEV__=false".to_string();
 
         // Production build: the flag is folded to `false` so the framework's
         // dev-only diagnostics (and the module gating them) tree-shake out.
         let prod = esbuild_args(&opts(site_dir, config_dir, false, None), &[], tmp);
         assert!(prod.contains(&define));
 
-        // Development build (`webui-press serve`): the flag is left undefined so
+        // Development build (`webhub-press serve`): the flag is left undefined so
         // the `typeof` guard defaults it to on and diagnostics run.
         let dev = esbuild_args(&opts(site_dir, config_dir, true, None), &[], tmp);
-        assert!(!dev.iter().any(|arg| arg.contains("__WEBUI_DEV__")));
+        assert!(!dev.iter().any(|arg| arg.contains("__webhub_DEV__")));
 
         // A user-supplied define wins: esbuild honors the last `--define` for a
         // key, so our production default must be emitted before user defines.
         let mut cfg = BundlerConfig::default();
         cfg.define
-            .insert("__WEBUI_DEV__".to_string(), "true".to_string());
+            .insert("__webhub_DEV__".to_string(), "true".to_string());
         let overridden = esbuild_args(&opts(site_dir, config_dir, false, Some(&cfg)), &[], tmp);
         let ours = overridden.iter().position(|arg| arg == &define);
         let theirs = overridden
             .iter()
-            .position(|arg| arg == "--define:__WEBUI_DEV__=true");
+            .position(|arg| arg == "--define:__webhub_DEV__=true");
         assert!(ours.is_some(), "framework default define should be present");
         assert!(theirs.is_some(), "user override define should be present");
         assert!(
@@ -1997,7 +1997,7 @@ mod tests {
     #[test]
     fn discover_component_scripts_pairs_html_and_ts() -> TestResult {
         let root = std::env::temp_dir().join(format!(
-            "webui-press-component-script-test-{}-{:x}",
+            "webhub-press-component-script-test-{}-{:x}",
             std::process::id(),
             test_hash("component-script")
         ));
@@ -2026,7 +2026,7 @@ mod tests {
     #[test]
     fn collect_component_scripts_for_html_follows_nested_local_components() -> TestResult {
         let root = std::env::temp_dir().join(format!(
-            "webui-press-component-nesting-test-{}-{:x}",
+            "webhub-press-component-nesting-test-{}-{:x}",
             std::process::id(),
             test_hash("component-nesting")
         ));
@@ -2057,7 +2057,7 @@ mod tests {
 
     #[test]
     fn page_bundle_signature_matches_identical_import_sets() {
-        let config_dir = Path::new("/repo/.webui-press");
+        let config_dir = Path::new("/repo/.webhub-press");
         let components = vec![
             PathBuf::from("/repo/components/live-preview/live-preview.ts"),
             PathBuf::from("/repo/components/inner-card/inner-card.ts"),
@@ -2088,7 +2088,7 @@ mod tests {
     #[test]
     fn bundle_assets_skips_node_modules_when_no_scripts() -> TestResult {
         let root = std::env::temp_dir().join(format!(
-            "webui-press-no-script-bundle-test-{}-{:x}",
+            "webhub-press-no-script-bundle-test-{}-{:x}",
             std::process::id(),
             test_hash("no-script-bundle")
         ));
@@ -2117,7 +2117,7 @@ mod tests {
     #[test]
     fn temp_dir_guard_removes_directory_on_drop() -> TestResult {
         let root = std::env::temp_dir().join(format!(
-            "webui-press-temp-guard-test-{}-{:x}",
+            "webhub-press-temp-guard-test-{}-{:x}",
             std::process::id(),
             test_hash("temp-guard")
         ));
@@ -2138,7 +2138,7 @@ mod tests {
     #[test]
     fn resolve_bundle_script_file_rejects_outside_project() -> TestResult {
         let root = std::env::temp_dir().join(format!(
-            "webui-press-script-sandbox-test-{}-{:x}",
+            "webhub-press-script-sandbox-test-{}-{:x}",
             std::process::id(),
             test_hash("script-sandbox")
         ));
@@ -2146,7 +2146,7 @@ mod tests {
             fs::remove_dir_all(&root)?;
         }
         let project = root.join("project");
-        let config_dir = project.join(".webui-press");
+        let config_dir = project.join(".webhub-press");
         let outside = root.join("outside");
         fs::create_dir_all(&config_dir)?;
         fs::create_dir_all(&outside)?;
@@ -2165,20 +2165,20 @@ mod tests {
     #[test]
     fn validate_inline_script_imports_rejects_absolute_import_after_code() -> TestResult {
         let root = std::env::temp_dir().join(format!(
-            "webui-press-inline-sandbox-test-{}-{:x}",
+            "webhub-press-inline-sandbox-test-{}-{:x}",
             std::process::id(),
             test_hash("inline-sandbox")
         ));
         if root.exists() {
             fs::remove_dir_all(&root)?;
         }
-        fs::create_dir_all(root.join(".webui-press"))?;
-        let allowed_roots = allowed_script_roots(&root.join(".webui-press"), &root)?;
+        fs::create_dir_all(root.join(".webhub-press"))?;
+        let allowed_roots = allowed_script_roots(&root.join(".webhub-press"), &root)?;
         let absolute_import = root.join("secret.js").to_string_lossy().replace('\\', "/");
         let code = format!("console.log('before'); import \"{absolute_import}\";");
 
         let Err(err) =
-            validate_inline_script_imports(&code, &root.join(".webui-press"), &allowed_roots, None)
+            validate_inline_script_imports(&code, &root.join(".webhub-press"), &allowed_roots, None)
         else {
             panic!("absolute import should be rejected");
         };
@@ -2222,7 +2222,7 @@ mod tests {
     #[test]
     fn page_script_paths_flattens_import_only_wrapper() -> TestResult {
         let root = std::env::temp_dir().join(format!(
-            "webui-press-wrapper-flatten-test-{}-{:x}",
+            "webhub-press-wrapper-flatten-test-{}-{:x}",
             std::process::id(),
             test_hash("wrapper-flatten")
         ));
@@ -2354,10 +2354,10 @@ mod tests {
 
     #[test]
     fn module_script_tag_prefixes_base_path() {
-        let tag = module_script_tag("/webui/", "assets/page-0.js?v=abc");
+        let tag = module_script_tag("/webhub/", "assets/page-0.js?v=abc");
         assert_eq!(
             tag,
-            "\n<script type=\"module\" src=\"/webui/assets/page-0.js?v=abc\"></script>"
+            "\n<script type=\"module\" src=\"/webhub/assets/page-0.js?v=abc\"></script>"
         );
     }
 

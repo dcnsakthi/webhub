@@ -36,7 +36,7 @@ async function importCompiler(): Promise<CompilerModule> {
     if (isMissingTypeScriptPeer(error)) {
       throw new ProjectionError([
         createDiagnostic("PROJ-P001", {
-          help: "Install a compatible application-owned TypeScript peer (^6.0.3) before using @microsoft/webui/projection.js.",
+          help: "Install a compatible application-owned TypeScript peer (^6.0.3) before using @microsoft/webhub/projection.js.",
         }),
       ]);
     }

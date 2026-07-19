@@ -4,7 +4,7 @@
 /**
  * Hydration marker utilities for zero-DOM-mutation in-place hydration.
  *
- * The WebUI handler plugin emits lightweight HTML comment markers around
+ * The webhub handler plugin emits lightweight HTML comment markers around
  * structural boundaries (for-loops and if-conditions). These utilities
  * walk markers and locate elements so the hydration path can wire
  * bindings in-place without reparenting DOM nodes.

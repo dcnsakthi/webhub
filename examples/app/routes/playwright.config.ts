@@ -17,5 +17,5 @@ export default defineConfig({
   ],
   // Servers must be started separately before running tests:
   //   pnpm start:api   (Express on 3018)
-  //   pnpm start:server (WebUI on 3008)
+  //   pnpm start:server (webhub on 3008)
 });

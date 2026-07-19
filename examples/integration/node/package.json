@@ -1,5 +1,5 @@
 {
-  "name": "webui-node-example",
+  "name": "webhub-node-example",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,6 +7,6 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@microsoft/webui": "workspace:*"
+    "@microsoft/webhub": "workspace:*"
   }
 }

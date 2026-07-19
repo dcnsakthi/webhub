@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '@microsoft/webui-framework';
+import { webhubElement, attr } from '@microsoft/webhub-framework';
 
-export class CbNavItem extends WebUIElement {
+export class CbNavItem extends webhubElement {
   @attr icon = '';
   @attr label = '';
   @attr count = '';

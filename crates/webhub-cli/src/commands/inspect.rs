@@ -17,7 +17,7 @@ pub fn execute(args: &InspectArgs) -> Result<()> {
         .with_context(|| format!("Failed to expand input path: {}", args.file.display()))?
         .into_owned();
 
-    let json = webui::inspect(&input_file)
+    let json = webhub::inspect(&input_file)
         .with_context(|| format!("Failed to inspect {}", args.file.display()))?;
 
     println!("{json}");
@@ -30,7 +30,7 @@ mod tests {
     use std::collections::HashMap;
     use std::fs;
     use tempfile::TempDir;
-    use webui_protocol::{FragmentList, WebUIFragment, WebUIProtocol};
+    use webhub_protocol::{FragmentList, webhubFragment, webhubProtocol};
 
     #[test]
     fn test_inspect_outputs_valid_json() {
@@ -39,18 +39,18 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Hello"),
-                    WebUIFragment::signal("name", false),
+                    webhubFragment::raw("Hello"),
+                    webhubFragment::signal("name", false),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
 
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("protocol.bin");
         protocol.to_protobuf_file(&path).unwrap();
 
-        let loaded = WebUIProtocol::from_protobuf_file(&path).unwrap();
+        let loaded = webhubProtocol::from_protobuf_file(&path).unwrap();
         let json = loaded.to_json_pretty().unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert!(parsed.get("fragments").is_some());

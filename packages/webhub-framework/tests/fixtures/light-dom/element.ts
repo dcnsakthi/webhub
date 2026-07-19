@@ -9,8 +9,8 @@
  * hydration code path tested.
  */
 
-import { WebUIElement, observable } from '../../../src/index.js';
-import { registerCompiledTemplate } from '@microsoft/webui-test-support';
+import { webhubElement, observable } from '../../../src/index.js';
+import { registerCompiledTemplate } from '@microsoft/webhub-test-support';
 
 registerCompiledTemplate('test-light-dom', {
   h: '<span class="greeting"></span> <span class="name"></span>!',
@@ -20,7 +20,7 @@ registerCompiledTemplate('test-light-dom', {
   ],
 });
 
-export class TestLightDom extends WebUIElement {
+export class TestLightDom extends webhubElement {
   @observable greeting = 'Hello';
   @observable name = 'World';
 }

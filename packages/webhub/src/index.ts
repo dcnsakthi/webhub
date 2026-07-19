@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 
 // ── Types ────────────────────────────────────────────────────────────
 
-/** Options for building a WebUI application. */
+/** Options for building a webhub application. */
 export interface BuildOptions {
   /** Path to the application folder containing templates. */
   appDir: string;
@@ -23,7 +23,7 @@ export interface BuildOptions {
   plugin?: string;
   /** Additional component sources (npm packages or local paths). */
   components?: string[];
-  /** Root component tags emitted as static `.webui.js` ESM assets. */
+  /** Root component tags emitted as static `.webhub.js` ESM assets. */
   componentAssetRoots?: string[];
   /** Emitted asset filename template for Link-mode CSS and component assets. Tokens: [name], [hash], [ext]. */
   cssFileNameTemplate?: string;
@@ -183,7 +183,7 @@ function warnFallback(): void {
   if (fallbackWarned) return;
   fallbackWarned = true;
   console.warn(
-    `[webui] Native addon not available for ${platformKey()}. ` +
+    `[webhub] Native addon not available for ${platformKey()}. ` +
       `Using WASM fallback — performance may be degraded.\n` +
       `Install the platform-specific package for optimal performance.`,
   );
@@ -191,7 +191,7 @@ function warnFallback(): void {
 
 // ── Build API ────────────────────────────────────────────────────────
 
-/** Build a WebUI application from an app directory. */
+/** Build a webhub application from an app directory. */
 export function build(options: BuildOptions): BuildResult {
   const native = loadAddon();
   if (native?.build) {
@@ -211,7 +211,7 @@ export function build(options: BuildOptions): BuildResult {
   const binPath = resolve("bin");
   if (!binPath) {
     throw new Error(
-      "[webui] Cannot build: no native addon or CLI binary available.",
+      "[webhub] Cannot build: no native addon or CLI binary available.",
     );
   }
 
@@ -234,7 +234,7 @@ export function build(options: BuildOptions): BuildResult {
     options.projectionManifestObjects.length > 0
   ) {
     throw new Error(
-      "[webui] Inline projection manifest objects require the native addon; write the manifest and pass projectionManifests when using the CLI fallback."
+      "[webhub] Inline projection manifest objects require the native addon; write the manifest and pass projectionManifests when using the CLI fallback."
     );
   }
   if (options.componentAssetRoots && options.componentAssetRoots.length > 0) {
@@ -281,7 +281,7 @@ function readComponentAssetFiles(outDir: string): string[] {
     const name = entry.name;
     const path = nodePath.join(outDir, name);
     const content = fs.readFileSync(path, "utf8");
-    if (!content.startsWith("const asset=") || !content.includes("webui-component-asset")) continue;
+    if (!content.startsWith("const asset=") || !content.includes("webhub-component-asset")) continue;
     files.push(name, content);
   }
   return files;
@@ -304,7 +304,7 @@ export class Protocol {
     if (!NativeProtocol) {
       warnFallback();
       throw new Error(
-        "[webui] Native addon is incompatible: Protocol is required.",
+        "[webhub] Native addon is incompatible: Protocol is required.",
       );
     }
     this.#native = new NativeProtocol(protocolData, options?.plugin);
@@ -366,7 +366,7 @@ export function inspect(protocolData: Buffer): string {
   if (native?.inspect) {
     return native.inspect(protocolData);
   }
-  throw new Error("[webui] inspect() requires the native addon.");
+  throw new Error("[webhub] inspect() requires the native addon.");
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────

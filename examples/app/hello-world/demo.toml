@@ -2,13 +2,13 @@
 # See examples/demo/README.md for the full schema.
 
 name = "Hello World"
-description = "A minimal WebUI starter app with server-side state"
+description = "A minimal webhub starter app with server-side state"
 backend = "rust"
 
 [server]
-type = "webui-cli"
-plugin = "webui"
+type = "webhub-cli"
+plugin = "webhub"
 source = "src"
 servedir = "dist"
 state = "data/state.json"
-theme = "@microsoft/webui-examples-theme"
+theme = "@microsoft/webhub-examples-theme"

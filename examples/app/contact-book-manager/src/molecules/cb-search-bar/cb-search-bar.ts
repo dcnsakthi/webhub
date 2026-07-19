@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '@microsoft/webui-framework';
+import { webhubElement, attr } from '@microsoft/webhub-framework';
 
-export class CbSearchBar extends WebUIElement {
+export class CbSearchBar extends webhubElement {
   @attr placeholder = 'Search contacts...';
   @attr value = '';
 

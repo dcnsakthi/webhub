@@ -4,15 +4,15 @@
 /**
  * Template registration bridge shared by framework and router.
  *
- * `@microsoft/webui-router` stays framework-independent and dispatches this DOM
+ * `@microsoft/webhub-router` stays framework-independent and dispatches this DOM
  * event after registering compiled template data. The framework listens for the
  * event and defines compiler-owned dormant hosts.
  */
 
 import type { TemplateMeta } from './template.js';
 
-/** DOM event emitted when WebUI template data becomes available at runtime. */
-export const TEMPLATES_REGISTERED_EVENT = 'webui:templates-registered';
+/** DOM event emitted when webhub template data becomes available at runtime. */
+export const TEMPLATES_REGISTERED_EVENT = 'webhub:templates-registered';
 
 /** Notify optional runtimes that templates have been registered. */
 export function dispatchTemplatesRegistered(

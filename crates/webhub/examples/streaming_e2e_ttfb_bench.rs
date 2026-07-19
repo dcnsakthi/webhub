@@ -10,7 +10,7 @@
 //!               Mirrors what `pnpm start:server` did before streaming.
 //! * `/stream` — renders into the streaming pipeline (`StreamingWriter`
 //!               + bounded mpsc + `ReceiverStream`), exactly as the
-//!               production `webui-cli` and commerce server do.
+//!               production `webhub-cli` and commerce server do.
 //!
 //! Both endpoints accept a `delay_us` query parameter that injects a
 //! per-`write()` artificial delay on the producer side. This simulates
@@ -29,7 +29,7 @@
 //! Run with:
 //!
 //! ```sh
-//! cargo run --release --example streaming_e2e_ttfb_bench -p microsoft-webui
+//! cargo run --release --example streaming_e2e_ttfb_bench -p microsoft-webhub
 //! ```
 //!
 //! ## Why TTFB ≠ FCP / LCP / TTI
@@ -62,9 +62,9 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
-use webui::streaming::StreamingWriter;
-use webui::{build, BuildOptions, CssStrategy, Protocol, ResponseWriter, WebUIHandler};
-use webui_handler::RenderOptions;
+use webhub::streaming::StreamingWriter;
+use webhub::{build, BuildOptions, CssStrategy, Protocol, ResponseWriter, webhubHandler};
+use webhub_handler::RenderOptions;
 
 // ── Shared protocol & state ────────────────────────────────────────────
 
@@ -176,14 +176,14 @@ impl DelayingStringWriter {
     }
 }
 impl ResponseWriter for DelayingStringWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         if !self.delay.is_zero() {
             std::thread::sleep(self.delay);
         }
         self.buf.push_str(content);
         Ok(())
     }
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -196,7 +196,7 @@ async fn handle_buf(
     let st = state.clone();
     // Run the render on a blocking worker so we don't park the runtime.
     let html = actix_web::rt::task::spawn_blocking(move || {
-        let h = WebUIHandler::new();
+        let h = webhubHandler::new();
         let mut w = DelayingStringWriter::new(64 * 1024, delay);
         h.render(
             &st.protocol,
@@ -224,13 +224,13 @@ struct DelayingStreamingWriter {
     delay: Duration,
 }
 impl ResponseWriter for DelayingStreamingWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         if !self.delay.is_zero() {
             std::thread::sleep(self.delay);
         }
         self.inner.write(content)
     }
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         self.inner.end()
     }
 }
@@ -245,7 +245,7 @@ async fn handle_stream(
     actix_web::rt::task::spawn_blocking(move || {
         let inner = StreamingWriter::new(tx);
         let mut writer = DelayingStreamingWriter { inner, delay };
-        let h = WebUIHandler::new();
+        let h = webhubHandler::new();
         // RenderOptions inject — handler emits at the structural
         // head_end/body_end signal boundaries; zero scan cost.
         let opts = RenderOptions::new("index.html", "/")
@@ -524,7 +524,7 @@ fn parse_args() -> Mode {
 
 fn main() {
     let mode = parse_args();
-    println!("WebUI streaming end-to-end TTFB benchmark");
+    println!("webhub streaming end-to-end TTFB benchmark");
     println!("=========================================");
     println!(
         "Build: {}",

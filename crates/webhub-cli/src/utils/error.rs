@@ -114,13 +114,13 @@ pub fn exit_code(err: &anyhow::Error) -> i32 {
     }
     if let Some(web) = err
         .chain()
-        .find_map(|c| c.downcast_ref::<webui::WebUIError>())
+        .find_map(|c| c.downcast_ref::<webhub::webhubError>())
     {
         return match web {
-            webui::WebUIError::Parse { .. }
-            | webui::WebUIError::Serialization(_)
-            | webui::WebUIError::InvalidBuildOptions(_) => 65,
-            webui::WebUIError::Io { .. } => 74,
+            webhub::webhubError::Parse { .. }
+            | webhub::webhubError::Serialization(_)
+            | webhub::webhubError::InvalidBuildOptions(_) => 65,
+            webhub::webhubError::Io { .. } => 74,
             _ => 1,
         };
     }
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn exit_code_for_parse_error_is_dataerr() {
-        let err: anyhow::Error = webui::WebUIError::InvalidBuildOptions("bad".into()).into();
+        let err: anyhow::Error = webhub::webhubError::InvalidBuildOptions("bad".into()).into();
         assert_eq!(exit_code(&err), 65);
     }
 

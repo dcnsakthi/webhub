@@ -4,17 +4,17 @@
 // FFI crate requires unsafe for C-compatible ABI boundary.
 #![allow(unsafe_code)]
 
-//! WebUI FFI (Foreign Function Interface) for interoperability with other languages.
+//! webhub FFI (Foreign Function Interface) for interoperability with other languages.
 //!
-//! This crate provides C-compatible APIs for the WebUI handler to be used from languages
+//! This crate provides C-compatible APIs for the webhub handler to be used from languages
 //! like Go, C#, Python, etc.
 //!
-//! Load a compiled protocol once with [`webui_protocol_create`], then reuse the
-//! handle with [`webui_handler_render`] and the other protocol operations.
+//! Load a compiled protocol once with [`webhub_protocol_create`], then reuse the
+//! handle with [`webhub_handler_render`] and the other protocol operations.
 //!
 //! ## Error Handling
 //!
-//! All functions that can fail return `NULL` on error. Call [`webui_last_error`] to
+//! All functions that can fail return `NULL` on error. Call [`webhub_last_error`] to
 //! retrieve a human-readable error message. The error string is valid until the next
 //! FFI call on the same thread (follows the POSIX `dlerror()` pattern).
 
@@ -22,14 +22,14 @@ use serde_json::Value;
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_void};
-use webui_handler::plugin::fast_v2::FastV2HydrationPlugin;
-use webui_handler::plugin::fast_v3::FastV3HydrationPlugin;
-use webui_handler::plugin::webui::WebUIHydrationPlugin;
-use webui_handler::{Protocol, RenderOptions, ResponseWriter, WebUIHandler};
+use webhub_handler::plugin::fast_v2::FastV2HydrationPlugin;
+use webhub_handler::plugin::fast_v3::FastV3HydrationPlugin;
+use webhub_handler::plugin::webhub::webhubHydrationPlugin;
+use webhub_handler::{Protocol, RenderOptions, ResponseWriter, webhubHandler};
 
-/// Opaque C handle for a loaded WebUI protocol.
+/// Opaque C handle for a loaded webhub protocol.
 #[allow(non_camel_case_types)]
-pub type webui_protocol_t = c_void;
+pub type webhub_protocol_t = c_void;
 
 // ---------------------------------------------------------------------------
 // Thread-local error storage (POSIX dlerror() pattern)
@@ -40,7 +40,7 @@ thread_local! {
     static LAST_ERROR: RefCell<Option<CString>> = const { RefCell::new(None) };
 }
 
-/// Record an error message so that `webui_last_error()` can return it.
+/// Record an error message so that `webhub_last_error()` can return it.
 fn set_last_error(msg: impl Into<String>) {
     let mut bytes = msg.into().into_bytes();
     if let Some(nul_pos) = bytes.iter().position(|byte| *byte == 0) {
@@ -65,10 +65,10 @@ fn clear_last_error() {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-/// Opaque context wrapping a `WebUIHandler`.
+/// Opaque context wrapping a `webhubHandler`.
 struct HandlerContext {
-    handler: WebUIHandler,
-    /// CSP nonce for inline `<script>` tags (set via `webui_handler_set_nonce`).
+    handler: webhubHandler,
+    /// CSP nonce for inline `<script>` tags (set via `webhub_handler_set_nonce`).
     nonce: Option<String>,
 }
 
@@ -91,12 +91,12 @@ impl StringResponseWriter {
 }
 
 impl ResponseWriter for StringResponseWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.content.push_str(content);
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -114,7 +114,7 @@ impl ResponseWriter for StringResponseWriter {
 ///
 /// Each thread has its own independent error state.
 #[no_mangle]
-pub extern "C" fn webui_last_error() -> *const c_char {
+pub extern "C" fn webhub_last_error() -> *const c_char {
     LAST_ERROR.with(|cell| {
         let borrow = cell.borrow();
         match borrow.as_ref() {
@@ -128,13 +128,13 @@ pub extern "C" fn webui_last_error() -> *const c_char {
 // FFI: handler lifecycle
 // ---------------------------------------------------------------------------
 
-/// Create a new WebUI handler instance.
+/// Create a new webhub handler instance.
 ///
-/// Returns an opaque pointer that must be passed to other `webui_handler_*`
-/// functions and eventually freed with [`webui_handler_destroy`].
+/// Returns an opaque pointer that must be passed to other `webhub_handler_*`
+/// functions and eventually freed with [`webhub_handler_destroy`].
 #[no_mangle]
-pub extern "C" fn webui_handler_create() -> *mut c_void {
-    let handler = WebUIHandler::new();
+pub extern "C" fn webhub_handler_create() -> *mut c_void {
+    let handler = webhubHandler::new();
     let context = Box::new(HandlerContext {
         handler,
         nonce: None,
@@ -142,7 +142,7 @@ pub extern "C" fn webui_handler_create() -> *mut c_void {
     Box::into_raw(context) as *mut c_void
 }
 
-/// Create a new WebUI handler instance with a named plugin.
+/// Create a new webhub handler instance with a named plugin.
 ///
 /// # Arguments
 ///
@@ -152,28 +152,28 @@ pub extern "C" fn webui_handler_create() -> *mut c_void {
 ///
 /// # Returns
 ///
-/// An opaque pointer that must be freed with [`webui_handler_destroy`],
-/// or `NULL` on error (call [`webui_last_error`] for details).
+/// An opaque pointer that must be freed with [`webhub_handler_destroy`],
+/// or `NULL` on error (call [`webhub_last_error`] for details).
 ///
 /// # Safety
 ///
 /// `plugin_id` must be a valid null-terminated UTF-8 string, or `NULL`.
 #[no_mangle]
-pub unsafe extern "C" fn webui_handler_create_with_plugin(plugin_id: *const c_char) -> *mut c_void {
+pub unsafe extern "C" fn webhub_handler_create_with_plugin(plugin_id: *const c_char) -> *mut c_void {
     clear_last_error();
 
     let handler = if plugin_id.is_null() {
-        WebUIHandler::new()
+        webhubHandler::new()
     } else {
         match CStr::from_ptr(plugin_id).to_str() {
             Ok("fast" | "fast-v2") => {
-                WebUIHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()))
+                webhubHandler::with_plugin(|| Box::new(FastV2HydrationPlugin::new()))
             }
-            Ok("fast-v3") => WebUIHandler::with_plugin(|| Box::new(FastV3HydrationPlugin::new())),
-            Ok("webui") => WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new())),
+            Ok("fast-v3") => webhubHandler::with_plugin(|| Box::new(FastV3HydrationPlugin::new())),
+            Ok("webhub") => webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new())),
             Ok(unknown) => {
                 set_last_error(format!(
-                    "unknown plugin: {unknown}. Use \"webui\", \"fast-v3\", \"fast-v2\", or \"fast\"."
+                    "unknown plugin: {unknown}. Use \"webhub\", \"fast-v3\", \"fast-v2\", or \"fast\"."
                 ));
                 return std::ptr::null_mut();
             }
@@ -191,32 +191,32 @@ pub unsafe extern "C" fn webui_handler_create_with_plugin(plugin_id: *const c_ch
     Box::into_raw(context) as *mut c_void
 }
 
-/// Destroy a WebUI handler instance.
+/// Destroy a webhub handler instance.
 ///
 /// # Safety
 ///
-/// `handler_ptr` must be a valid pointer returned by [`webui_handler_create`],
+/// `handler_ptr` must be a valid pointer returned by [`webhub_handler_create`],
 /// or `NULL` (in which case this function is a no-op).
 #[no_mangle]
-pub unsafe extern "C" fn webui_handler_destroy(handler_ptr: *mut c_void) {
+pub unsafe extern "C" fn webhub_handler_destroy(handler_ptr: *mut c_void) {
     if !handler_ptr.is_null() {
         let _ = Box::from_raw(handler_ptr as *mut HandlerContext);
     }
 }
 
-/// Decode and index a WebUI protocol for repeated rendering.
+/// Decode and index a webhub protocol for repeated rendering.
 ///
 /// The returned handle is thread-safe and must be released with
-/// [`webui_protocol_destroy`].
+/// [`webhub_protocol_destroy`].
 ///
 /// # Safety
 ///
 /// `protocol_data` must point to `protocol_len` readable bytes.
 #[no_mangle]
-pub unsafe extern "C" fn webui_protocol_create(
+pub unsafe extern "C" fn webhub_protocol_create(
     protocol_data: *const u8,
     protocol_len: usize,
-) -> *mut webui_protocol_t {
+) -> *mut webhub_protocol_t {
     clear_last_error();
     if protocol_data.is_null() {
         set_last_error("protocol_data is null");
@@ -228,7 +228,7 @@ pub unsafe extern "C" fn webui_protocol_create(
         let bytes = unsafe { std::slice::from_raw_parts(protocol_data, protocol_len) };
         match Protocol::from_protobuf(bytes) {
             Ok(protocol) => {
-                Box::into_raw(Box::new(ProtocolContext { protocol })) as *mut webui_protocol_t
+                Box::into_raw(Box::new(ProtocolContext { protocol })) as *mut webhub_protocol_t
             }
             Err(error) => {
                 set_last_error(format!("failed to parse protobuf protocol: {error}"));
@@ -238,32 +238,32 @@ pub unsafe extern "C" fn webui_protocol_create(
     }) {
         Ok(ptr) => ptr,
         Err(_) => {
-            set_last_error("panic in webui_protocol_create");
+            set_last_error("panic in webhub_protocol_create");
             std::ptr::null_mut()
         }
     }
 }
 
-/// Destroy a loaded WebUI protocol handle.
+/// Destroy a loaded webhub protocol handle.
 ///
 /// # Safety
 ///
-/// `protocol_ptr` must be a pointer returned by [`webui_protocol_create`], or
+/// `protocol_ptr` must be a pointer returned by [`webhub_protocol_create`], or
 /// `NULL` for a no-op.
 #[no_mangle]
-pub unsafe extern "C" fn webui_protocol_destroy(protocol_ptr: *mut webui_protocol_t) {
+pub unsafe extern "C" fn webhub_protocol_destroy(protocol_ptr: *mut webhub_protocol_t) {
     if !protocol_ptr.is_null() {
         // SAFETY: The caller guarantees this pointer came from
-        // `webui_protocol_create` and has not already been destroyed.
+        // `webhub_protocol_create` and has not already been destroyed.
         let _ = unsafe { Box::from_raw(protocol_ptr as *mut ProtocolContext) };
     }
 }
 
 /// Set the CSP nonce for inline `<script>` tags on a handler instance.
 ///
-/// When set, all subsequent renders via [`webui_handler_render`] will include
+/// When set, all subsequent renders via [`webhub_handler_render`] will include
 /// `nonce="VALUE"` on inline script tags and emit a
-/// `<meta name="webui-nonce" content="VALUE">` tag in the `<head>`.
+/// `<meta name="webhub-nonce" content="VALUE">` tag in the `<head>`.
 ///
 /// Pass `NULL` to clear a previously set nonce.
 ///
@@ -275,11 +275,11 @@ pub unsafe extern "C" fn webui_protocol_destroy(protocol_ptr: *mut webui_protoco
 ///
 /// # Safety
 ///
-/// * `handler_ptr` must be a valid pointer returned by [`webui_handler_create`].
+/// * `handler_ptr` must be a valid pointer returned by [`webhub_handler_create`].
 /// * `nonce` must be a valid null-terminated UTF-8 string, or `NULL`.
 /// * Caller must ensure exclusive access to `handler_ptr` (no concurrent calls).
 #[no_mangle]
-pub unsafe extern "C" fn webui_handler_set_nonce(handler_ptr: *mut c_void, nonce: *const c_char) {
+pub unsafe extern "C" fn webhub_handler_set_nonce(handler_ptr: *mut c_void, nonce: *const c_char) {
     clear_last_error();
 
     if handler_ptr.is_null() {
@@ -305,7 +305,7 @@ pub unsafe extern "C" fn webui_handler_set_nonce(handler_ptr: *mut c_void, nonce
     })) {
         Ok(()) => {}
         Err(_) => {
-            set_last_error("panic in webui_handler_set_nonce");
+            set_last_error("panic in webhub_handler_set_nonce");
         }
     }
 }
@@ -314,7 +314,7 @@ pub unsafe extern "C" fn webui_handler_set_nonce(handler_ptr: *mut c_void, nonce
 // FFI: protocol rendering
 // ---------------------------------------------------------------------------
 
-/// Render using a protocol previously returned by [`webui_protocol_create`].
+/// Render using a protocol previously returned by [`webhub_protocol_create`].
 ///
 /// # Safety
 ///
@@ -322,9 +322,9 @@ pub unsafe extern "C" fn webui_handler_set_nonce(handler_ptr: *mut c_void, nonce
 /// * `protocol_ptr` must be a valid loaded protocol pointer.
 /// * String arguments must be valid null-terminated UTF-8.
 #[no_mangle]
-pub unsafe extern "C" fn webui_handler_render(
+pub unsafe extern "C" fn webhub_handler_render(
     handler_ptr: *mut c_void,
-    protocol_ptr: *const webui_protocol_t,
+    protocol_ptr: *const webhub_protocol_t,
     data_json: *const c_char,
     entry_id: *const c_char,
     request_path: *const c_char,
@@ -358,7 +358,7 @@ pub unsafe extern "C" fn webui_handler_render(
     }) {
         Ok(ptr) => ptr,
         Err(_) => {
-            set_last_error("panic in webui_handler_render");
+            set_last_error("panic in webhub_handler_render");
             std::ptr::null_mut()
         }
     }
@@ -437,11 +437,11 @@ unsafe fn render_decoded_protocol(
 ///
 /// # Safety
 ///
-/// * `protocol_ptr` must be a valid pointer returned by [`webui_protocol_create`].
+/// * `protocol_ptr` must be a valid pointer returned by [`webhub_protocol_create`].
 /// * All string pointers must be valid, non-null, null-terminated UTF-8.
 #[no_mangle]
-pub unsafe extern "C" fn webui_protocol_render_partial(
-    protocol_ptr: *const webui_protocol_t,
+pub unsafe extern "C" fn webhub_protocol_render_partial(
+    protocol_ptr: *const webhub_protocol_t,
     state_json: *const c_char,
     entry_id: *const c_char,
     request_path: *const c_char,
@@ -514,7 +514,7 @@ pub unsafe extern "C" fn webui_protocol_render_partial(
     }) {
         Ok(ptr) => ptr,
         Err(_) => {
-            set_last_error("panic in webui_protocol_render_partial");
+            set_last_error("panic in webhub_protocol_render_partial");
             std::ptr::null_mut()
         }
     }
@@ -524,11 +524,11 @@ pub unsafe extern "C" fn webui_protocol_render_partial(
 ///
 /// # Safety
 ///
-/// * `protocol_ptr` must be a valid pointer returned by [`webui_protocol_create`].
+/// * `protocol_ptr` must be a valid pointer returned by [`webhub_protocol_create`].
 /// * String arguments must be valid, non-null, null-terminated UTF-8.
 #[no_mangle]
-pub unsafe extern "C" fn webui_protocol_render_component_templates(
-    protocol_ptr: *const webui_protocol_t,
+pub unsafe extern "C" fn webhub_protocol_render_component_templates(
+    protocol_ptr: *const webhub_protocol_t,
     component_tags_json: *const c_char,
     inventory_hex: *const c_char,
 ) -> *mut c_char {
@@ -586,21 +586,21 @@ pub unsafe extern "C" fn webui_protocol_render_component_templates(
     }) {
         Ok(ptr) => ptr,
         Err(_) => {
-            set_last_error("panic in webui_protocol_render_component_templates");
+            set_last_error("panic in webhub_protocol_render_component_templates");
             std::ptr::null_mut()
         }
     }
 }
 
-/// Free a string returned by a WebUI FFI function.
+/// Free a string returned by a webhub FFI function.
 ///
 /// # Safety
 ///
-/// `string_ptr` must be a pointer returned by a WebUI FFI function such as
-/// [`webui_handler_render`], or `NULL`
+/// `string_ptr` must be a pointer returned by a webhub FFI function such as
+/// [`webhub_handler_render`], or `NULL`
 /// (in which case this function is a no-op).
 #[no_mangle]
-pub unsafe extern "C" fn webui_free(string_ptr: *mut c_char) {
+pub unsafe extern "C" fn webhub_free(string_ptr: *mut c_char) {
     if !string_ptr.is_null() {
         let _ = CString::from_raw(string_ptr);
     }
@@ -612,11 +612,11 @@ pub unsafe extern "C" fn webui_free(string_ptr: *mut c_char) {
 ///
 /// # Safety
 ///
-/// * `protocol_ptr` must be a valid pointer returned by [`webui_protocol_create`].
-/// * The returned pointer must be freed with [`webui_free`].
+/// * `protocol_ptr` must be a valid pointer returned by [`webhub_protocol_create`].
+/// * The returned pointer must be freed with [`webhub_free`].
 #[no_mangle]
-pub unsafe extern "C" fn webui_protocol_tokens(
-    protocol_ptr: *const webui_protocol_t,
+pub unsafe extern "C" fn webhub_protocol_tokens(
+    protocol_ptr: *const webhub_protocol_t,
 ) -> *mut c_char {
     clear_last_error();
 
@@ -640,7 +640,7 @@ pub unsafe extern "C" fn webui_protocol_tokens(
     }) {
         Ok(ptr) => ptr,
         Err(_) => {
-            set_last_error("panic in webui_protocol_tokens");
+            set_last_error("panic in webhub_protocol_tokens");
             std::ptr::null_mut()
         }
     }

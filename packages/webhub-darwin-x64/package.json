@@ -2,13 +2,13 @@
   "cpu": [
     "x64"
   ],
-  "description": "WebUI platform-specific binary for macOS x64",
+  "description": "webhub platform-specific binary for macOS x64",
   "files": [
-    "bin/webui",
-    "webui.node"
+    "bin/webhub",
+    "webhub.node"
   ],
   "license": "MIT",
-  "name": "@microsoft/webui-darwin-x64",
+  "name": "@microsoft/webhub-darwin-x64",
   "os": [
     "darwin"
   ],

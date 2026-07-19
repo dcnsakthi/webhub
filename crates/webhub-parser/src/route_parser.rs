@@ -4,11 +4,11 @@
 //! Route element parsing for `<route>` directives.
 //!
 //! Parses `<route path="..." component="..." ...>` elements into
-//! `WebUIFragmentRoute` protocol fragments.
+//! `webhubFragmentRoute` protocol fragments.
 
 use std::collections::HashSet;
 
-use webui_protocol::WebUiFragmentRoute;
+use webhub_protocol::webhubFragmentRoute;
 
 use crate::error::{ParserError, Result};
 
@@ -201,13 +201,13 @@ pub(crate) fn validate_tag_placeholders(
     Ok(())
 }
 
-/// Build a `WebUiFragmentRoute` from parsed attributes.
+/// Build a `webhubFragmentRoute` from parsed attributes.
 pub(crate) fn build_route_fragment(
     attrs: &RouteAttributes,
     fragment_id: String,
-    children: Vec<WebUiFragmentRoute>,
-) -> WebUiFragmentRoute {
-    WebUiFragmentRoute {
+    children: Vec<webhubFragmentRoute>,
+) -> webhubFragmentRoute {
+    webhubFragmentRoute {
         path: attrs.path.clone(),
         fragment_id,
         exact: attrs.exact,

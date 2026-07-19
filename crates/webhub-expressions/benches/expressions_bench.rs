@@ -3,8 +3,8 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use serde_json::json;
 use std::hint::black_box;
-use webui_expressions::evaluate;
-use webui_protocol::{ComparisonOperator, ConditionExpr, LogicalOperator};
+use webhub_expressions::evaluate;
+use webhub_protocol::{ComparisonOperator, ConditionExpr, LogicalOperator};
 
 fn expr_identifier_bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("expr_identifier");

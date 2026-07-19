@@ -23,10 +23,10 @@
   position: relative;
 }
 
-::slotted(webui-press-tab-panel) {
+::slotted(webhub-press-tab-panel) {
   display: none;
 }
 
-::slotted(webui-press-tab-panel[active]) {
+::slotted(webhub-press-tab-panel[active]) {
   display: block;
 }

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Shared dev-server primitives for WebUI tooling.
+//! Shared dev-server primitives for webhub tooling.
 //!
 //! See the crate README for the high-level overview. The crate exposes:
 //!

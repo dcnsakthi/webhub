@@ -53,14 +53,14 @@ import type {
   TemplateMeta,
 } from './template-types.js';
 
-const WEBUI_DATA_ID = 'webui-data';
+const webhub_DATA_ID = 'webhub-data';
 const normalizedTemplates = new WeakSet<TemplateMeta>();
-let webuiDataLoaded = false;
+let webhubDataLoaded = false;
 
 declare global {
   interface Window {
-    /** Consolidated SSR metadata loaded from `#webui-data` or partial responses. */
-    __webui?: {
+    /** Consolidated SSR metadata loaded from `#webhub-data` or partial responses. */
+    __webhub?: {
       state?: Record<string, unknown>;
       templates?: Record<string, TemplateMeta>;
       templateFns?: Record<string, CompiledConditionFn[]>;
@@ -77,10 +77,10 @@ declare global {
  * without every app eagerly parsing route/template metadata at startup.
  */
 export function getTemplate(name: string): TemplateMeta | undefined {
-  let meta = window.__webui?.templates?.[name];
+  let meta = window.__webhub?.templates?.[name];
   if (!meta) {
-    loadWebUIDataBlock();
-    meta = window.__webui?.templates?.[name];
+    loadwebhubDataBlock();
+    meta = window.__webhub?.templates?.[name];
   }
   if (meta) normalizeTemplate(name, meta);
   return meta;
@@ -88,8 +88,8 @@ export function getTemplate(name: string): TemplateMeta | undefined {
 
 /** Return the complete template registry, loading SSR data if needed. */
 export function getTemplateRegistry(): Record<string, TemplateMeta> | undefined {
-  loadWebUIDataBlock();
-  return window.__webui?.templates;
+  loadwebhubDataBlock();
+  return window.__webhub?.templates;
 }
 
 /**
@@ -103,14 +103,14 @@ export function registerTemplateData(
   templateFns?: Record<string, CompiledConditionFn[]>,
 ): void {
   const w = window as Window;
-  if (!w.__webui) w.__webui = {};
-  if (!w.__webui.templates) w.__webui.templates = {};
+  if (!w.__webhub) w.__webhub = {};
+  if (!w.__webhub.templates) w.__webhub.templates = {};
   if (templateFns) {
-    if (!w.__webui.templateFns) w.__webui.templateFns = {};
+    if (!w.__webhub.templateFns) w.__webhub.templateFns = {};
     const fnNames = Object.keys(templateFns);
     for (let i = 0; i < fnNames.length; i++) {
       const tag = fnNames[i];
-      w.__webui.templateFns[tag] = templateFns[tag];
+      w.__webhub.templateFns[tag] = templateFns[tag];
     }
   }
   const names = Object.keys(templates);
@@ -118,35 +118,35 @@ export function registerTemplateData(
   for (let i = 0; i < names.length; i++) {
     const tag = names[i];
     const meta = templates[tag];
-    w.__webui.templates[tag] = meta;
+    w.__webhub.templates[tag] = meta;
     normalizeTemplate(tag, meta);
     hasTemplates = true;
   }
   if (hasTemplates) dispatchTemplatesRegistered(templates);
 }
 
-function loadWebUIDataBlock(): void {
-  if (webuiDataLoaded || window.__webui?.state !== undefined || typeof document === 'undefined') return;
-  const el = document.getElementById(WEBUI_DATA_ID);
+function loadwebhubDataBlock(): void {
+  if (webhubDataLoaded || window.__webhub?.state !== undefined || typeof document === 'undefined') return;
+  const el = document.getElementById(webhub_DATA_ID);
   if (!el) {
-    webuiDataLoaded = true;
+    webhubDataLoaded = true;
     return;
   }
 
   const text = el.textContent;
   if (text) {
-    const templateFns = window.__webui?.templateFns;
-    const parsed = JSON.parse(text) as NonNullable<Window['__webui']>;
+    const templateFns = window.__webhub?.templateFns;
+    const parsed = JSON.parse(text) as NonNullable<Window['__webhub']>;
     if (templateFns) parsed.templateFns = templateFns;
-    window.__webui = parsed;
+    window.__webhub = parsed;
   }
   el.remove();
-  webuiDataLoaded = true;
+  webhubDataLoaded = true;
 }
 
 function normalizeTemplate(name: string, meta: TemplateMeta): void {
   if (normalizedTemplates.has(meta)) return;
-  const fns = window.__webui?.templateFns?.[name] ?? [];
+  const fns = window.__webhub?.templateFns?.[name] ?? [];
   const stack: TemplateBlockMeta[] = [meta];
   while (stack.length > 0) {
     const block = stack.pop();
@@ -179,7 +179,7 @@ function normalizeCondition(
   if (typeof first === 'function') return;
   const fn = fns[first];
   if (typeof fn !== 'function') {
-    throw new Error(`[WebUI] Missing condition closure ${first} for <${tagName}>.`);
+    throw new Error(`[webhub] Missing condition closure ${first} for <${tagName}>.`);
   }
   (condition as SerializedCompiledCondition as unknown as [CompiledConditionFn, string[]])[0] = fn;
 }

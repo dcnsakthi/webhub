@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr, observable } from '@microsoft/webui-framework';
+import { webhubElement, attr, observable } from '@microsoft/webhub-framework';
 
 interface TodoItemData {
   id: string;
@@ -9,7 +9,7 @@ interface TodoItemData {
   state: string;
 }
 
-export class TodoApp extends WebUIElement {
+export class TodoApp extends webhubElement {
   @attr title = '';
   @observable items: TodoItemData[] = [];
   @observable remainingCount = '0';

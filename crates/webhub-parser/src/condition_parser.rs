@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Parser for WebUI condition expressions.
+//! Parser for webhub condition expressions.
 //!
 //! This module handles parsing condition expressions used in if directives.
 //! It uses a non-recursive approach for parsing expressions.
 
 use crate::{ParserError, Result};
-use webui_protocol::{ComparisonOperator, ConditionExpr, LogicalOperator};
+use webhub_protocol::{ComparisonOperator, ConditionExpr, LogicalOperator};
 
-/// Parser for WebUI condition expressions.
+/// Parser for webhub condition expressions.
 pub struct ConditionParser;
 
 impl ConditionParser {
@@ -244,7 +244,7 @@ impl Default for ConditionParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use webui_protocol::condition_expr::Expr;
+    use webhub_protocol::condition_expr::Expr;
 
     #[test]
     fn test_parse_identifier() {

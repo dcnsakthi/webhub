@@ -16,7 +16,7 @@
 
 :host(:not([variant])) .price,
 :host([variant='pill']) .price {
-  background: var(--webui-accent);
+  background: var(--webhub-accent);
   color: #fff;
   border-radius: 9999px;
   font-weight: 400;
@@ -36,7 +36,7 @@
 }
 
 :host([variant='plain']) .price {
-  color: var(--webui-text);
+  color: var(--webhub-text);
   font-weight: 500;
 }
 

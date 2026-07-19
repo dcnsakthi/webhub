@@ -16,7 +16,7 @@ import {
   runConformanceSuite,
   ALL_CASES,
   compileProjection,
-} from "@microsoft/webui/projection.js";
+} from "@microsoft/webhub/projection.js";
 
 describe("projection compiler conformance suite", () => {
   test("all fixtures pass", async () => {

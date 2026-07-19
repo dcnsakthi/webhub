@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '@microsoft/webui-framework';
-import { Router } from '@microsoft/webui-router';
+import { webhubElement, attr } from '@microsoft/webhub-framework';
+import { Router } from '@microsoft/webhub-router';
 
-export class MpSearchBar extends WebUIElement {
+export class MpSearchBar extends webhubElement {
   @attr action = './search';
   @attr query = '';
   @attr placeholder = 'Search for products...';

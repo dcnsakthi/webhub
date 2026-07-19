@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement } from "@microsoft/webui-framework";
+import { webhubElement } from "@microsoft/webhub-framework";
 
-export class WebUIPressTabPanel extends WebUIElement {}
+export class webhubPressTabPanel extends webhubElement {}
 
-WebUIPressTabPanel.define("webui-press-tab-panel");
+webhubPressTabPanel.define("webhub-press-tab-panel");

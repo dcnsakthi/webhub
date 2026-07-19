@@ -29,7 +29,7 @@ test.describe('basics: SSR hydration', () => {
 
   test('fires the hydration completion event', async ({ page }) => {
     const fired = await page.evaluate(() =>
-      performance.getEntriesByName('webui:hydrate:total', 'measure').length > 0,
+      performance.getEntriesByName('webhub:hydrate:total', 'measure').length > 0,
     );
     expect(fired).toBe(true);
   });
@@ -53,9 +53,9 @@ test.describe('basics: reactive updates', () => {
 
   test('updates @observable text reactively', async ({ page }) => {
     await page.evaluate(() => {
-      (document.querySelector('test-basics') as any).name = 'WebUI';
+      (document.querySelector('test-basics') as any).name = 'webhub';
     });
-    await expect(page.locator('test-basics .name')).toHaveText('WebUI');
+    await expect(page.locator('test-basics .name')).toHaveText('webhub');
   });
 
   test('updates derived @observable on click', async ({ page }) => {

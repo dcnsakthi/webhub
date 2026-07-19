@@ -1,28 +1,28 @@
 [package]
-name = "microsoft-webui-press"
+name = "microsoft-webhub-press"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-description = "High-performance Static Site Generator powered by WebUI Framework"
-default-run = "webui-press"
+description = "High-performance Static Site Generator powered by webhub Framework"
+default-run = "webhub-press"
 readme = "README.md"
 
 [lib]
-name = "webui_docs"
+name = "webhub_docs"
 path = "src/lib.rs"
 
 [[bin]]
-name = "webui-press"
+name = "webhub-press"
 path = "src/main.rs"
 
 [dependencies]
-microsoft-webui = { path = "../webui", version = "0.0.18", features = ["cli"] }
-microsoft-webui-discovery = { path = "../webui-discovery", version = "0.0.18" }
-microsoft-webui-handler = { path = "../webui-handler", version = "0.0.18" }
-microsoft-webui-tokens = { path = "../webui-tokens", version = "0.0.18" }
+microsoft-webhub = { path = "../webhub", version = "0.0.18", features = ["cli"] }
+microsoft-webhub-discovery = { path = "../webhub-discovery", version = "0.0.18" }
+microsoft-webhub-handler = { path = "../webhub-handler", version = "0.0.18" }
+microsoft-webhub-tokens = { path = "../webhub-tokens", version = "0.0.18" }
 
 # Markdown + syntax highlighting
 comrak = { workspace = true }
@@ -45,8 +45,8 @@ rayon = { workspace = true }
 thiserror = { workspace = true }
 html-escape = { workspace = true }
 
-# Dev server (`webui-press serve`)
-microsoft-webui-dev-server = { path = "../webui-dev-server", version = "0.0.18" }
+# Dev server (`webhub-press serve`)
+microsoft-webhub-dev-server = { path = "../webhub-dev-server", version = "0.0.18" }
 actix-web = { workspace = true }
 tokio = { workspace = true }
 include_dir = { workspace = true }

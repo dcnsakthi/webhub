@@ -1,6 +1,6 @@
 [package]
-name = "microsoft-webui-ffi"
-description = "Core FFI bindings for WebUI framework"
+name = "microsoft-webhub-ffi"
+description = "Core FFI bindings for webhub framework"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -8,21 +8,21 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 readme = "README.md"
-keywords = ["webui", "ffi", "c-api", "bindings", "ssr"]
+keywords = ["webhub", "ffi", "c-api", "bindings", "ssr"]
 categories = ["api-bindings", "web-programming"]
 exclude = ["build.rs"]
 
 [lib]
-name = "webui_ffi"
+name = "webhub_ffi"
 crate-type = ["cdylib", "staticlib", "lib"]
 
 [features]
-# Enable to regenerate include/webui_ffi.h via cbindgen during build.
+# Enable to regenerate include/webhub_ffi.h via cbindgen during build.
 # Off by default so crates.io consumers don't pull in cbindgen.
 regenerate-header = ["dep:cbindgen"]
 
 [dependencies]
-microsoft-webui-handler = { path = "../webui-handler", version = "0.0.18" }
+microsoft-webhub-handler = { path = "../webhub-handler", version = "0.0.18" }
 serde_json = { workspace = true }
 
 [build-dependencies]
@@ -30,7 +30,7 @@ cbindgen = { workspace = true, optional = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
-microsoft-webui-protocol = { path = "../webui-protocol", version = "0.0.18" }
+microsoft-webhub-protocol = { path = "../webhub-protocol", version = "0.0.18" }
 
 [[bench]]
 name = "protocol_bench"

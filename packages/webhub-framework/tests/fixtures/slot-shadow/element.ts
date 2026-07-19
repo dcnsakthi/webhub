@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '../../../src/index.js';
+import { webhubElement, attr } from '../../../src/index.js';
 
-export class TestSlotBtn extends WebUIElement {
+export class TestSlotBtn extends webhubElement {
   @attr appearance = '';
 }
 
-export class TestSlotParent extends WebUIElement {
+export class TestSlotParent extends webhubElement {
   spawnSlotChild(): void {
     const root = this.shadowRoot ?? this;
     const container = root.querySelector('.container');

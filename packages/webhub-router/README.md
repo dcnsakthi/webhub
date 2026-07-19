@@ -1,27 +1,27 @@
-# @microsoft/webui-router
+# @microsoft/webhub-router
 
-Build-time compiled router for [WebUI](https://github.com/microsoft/webui) apps. Routes, cache tags, invalidation graphs, pending states, and error boundaries are declared as HTML attributes, validated by the Rust compiler, and baked into the binary protocol — zero runtime JavaScript for routing policy.
+Build-time compiled router for [webhub](https://github.com/microsoft/webhub) apps. Routes, cache tags, invalidation graphs, pending states, and error boundaries are declared as HTML attributes, validated by the Rust compiler, and baked into the binary protocol — zero runtime JavaScript for routing policy.
 
 Uses the [Navigation API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API) for client-side transitions. The server provides the matched route chain; the client does not perform route matching.
 
-> 📖 **Full documentation at [microsoft.github.io/webui](https://microsoft.github.io/webui)** — see the [Routing Guide](https://microsoft.github.io/webui/guide/concepts/routing) for setup and usage.
+> 📖 **Full documentation at [microsoft.github.io/webhub](https://microsoft.github.io/webhub)** — see the [Routing Guide](https://microsoft.github.io/webhub/guide/concepts/routing) for setup and usage.
 
 ## How It Works
 
 1. **Server renders the full page** - the matched route chain is SSR'd with declarative shadow roots. The page is interactive before JavaScript loads.
-2. **Hydration completes** - WebUI Framework hydrates shell components.
+2. **Hydration completes** - webhub Framework hydrates shell components.
 3. **Router starts** - reads the SSR route bootstrap data and intercepts link clicks via the Navigation API. The router never imports framework code.
 4. **Client-side navigation** - fetches a JSON partial from the server, which includes the matched route chain. The client diffs old vs new chain and mounts only the changed component. Parent components stay mounted.
 
 Authored route components use their registered classes. Scriptless route
 components also navigate without a full page reload when the application loads
-`@microsoft/webui-framework`, which mounts the templates published by the
+`@microsoft/webhub-framework`, which mounts the templates published by the
 router.
 
 ## Installation
 
 ```bash
-npm install @microsoft/webui-router
+npm install @microsoft/webhub-router
 ```
 
 ## Quick Start
@@ -35,7 +35,7 @@ npm install @microsoft/webui-router
 </head>
 ```
 
-All WebUI apps with routes **must** include `<base href="/">`. Without it, relative asset paths (CSS, JS) break on nested routes — the browser resolves `app.css` against `/contacts/123/` → `/contacts/app.css` instead of `/app.css`.
+All webhub apps with routes **must** include `<base href="/">`. Without it, relative asset paths (CSS, JS) break on nested routes — the browser resolves `app.css` against `/contacts/123/` → `/contacts/app.css` instead of `/app.css`.
 
 For sub-path deployments, set the base to the sub-path: `<base href="/my-app/">`.
 
@@ -71,12 +71,12 @@ Child routes use **relative paths** (no leading `/`). The nesting is the route t
 **3. Start the router after hydration:**
 
 ```typescript
-import '@microsoft/webui-framework';
-import { Router } from '@microsoft/webui-router';
+import '@microsoft/webhub-framework';
+import { Router } from '@microsoft/webhub-router';
 
 import './app-shell.js';
 
-window.addEventListener('webui:hydration-complete', () => {
+window.addEventListener('webhub:hydration-complete', () => {
   Router.start({
     loaders: {
       'home-page': () => import('./pages/home-page.js'),
@@ -135,7 +135,7 @@ When the user navigates away from a `keep-alive` route and returns, the existing
 To refresh data on reactivation, define a [route loader](#route-loaders):
 
 ```typescript
-export class MailView extends WebUIElement {
+export class MailView extends webhubElement {
   @observable messages = [];
 
   static async loader({ signal }: RouteLoaderContext) {
@@ -150,9 +150,9 @@ export class MailView extends WebUIElement {
 Define a static `loader()` on a component to fetch data from a custom source instead of using server-provided state:
 
 ```typescript
-import type { RouteLoaderContext } from '@microsoft/webui-router';
+import type { RouteLoaderContext } from '@microsoft/webhub-router';
 
-export class LiveDashboard extends WebUIElement {
+export class LiveDashboard extends webhubElement {
   @observable source = '';
   @observable metrics = {};
 
@@ -178,7 +178,7 @@ export class LiveDashboard extends WebUIElement {
 
 ### Base Path (Sub-Path Deployment)
 
-Every WebUI app with routes needs `<base href="/">` in its `<head>` (see Quick Start above). This ensures relative asset paths resolve correctly on nested routes.
+Every webhub app with routes needs `<base href="/">` in its `<head>` (see Quick Start above). This ensures relative asset paths resolve correctly on nested routes.
 
 For sub-path deployments (e.g., `https://example.com/commerce/`), change it to the sub-path:
 
@@ -190,7 +190,7 @@ For sub-path deployments (e.g., `https://example.com/commerce/`), change it to t
 
 The `<base>` tag is a core web platform feature. It makes the browser resolve all relative URLs (`<a href>`, `<link href>`, `fetch()`) against the base path. The router detects it at startup and uses it to strip/prepend the prefix on navigation URLs.
 
-When using `webui serve --base-path /commerce/`, the `<base>` tag is emitted automatically.
+When using `webhub serve --base-path /commerce/`, the `<base>` tag is emitted automatically.
 
 ### Preload on Hover
 
@@ -250,9 +250,9 @@ Router.invalidate();                             // evict everything
 The write counterpart to `static loader()`. Enable `Router.start({ actions: true })` to make the router intercept `<form method="post">` and auto-invalidate the cache:
 
 ```typescript
-import type { RouteActionContext, RouteActionResult } from '@microsoft/webui-router';
+import type { RouteActionContext, RouteActionResult } from '@microsoft/webhub-router';
 
-export class ComposePage extends WebUIElement {
+export class ComposePage extends webhubElement {
   static async action({ formData, params, signal }: RouteActionContext): Promise<RouteActionResult> {
     await fetch('/api/send', { method: 'POST', body: formData, signal });
     return {
@@ -308,7 +308,7 @@ Start the router. Call after hydration completes.
 | Option | Type | Description |
 |--------|------|-------------|
 | `loaders` | `Record<string, () => Promise<unknown>>` | Lazy-loading map: component tag -> dynamic import |
-| `templateEndpoint` | `string` | URL for `ensureLoaded()` requests (default: `"/_webui/templates"`) |
+| `templateEndpoint` | `string` | URL for `ensureLoaded()` requests (default: `"/_webhub/templates"`) |
 | `dev` | `boolean` | Enable development mode warnings |
 | `preload` | `boolean` | Preload routes on link hover for instant navigation |
 | `actions` | `boolean` | Intercept same-origin POST forms and call component `static action()` handlers |
@@ -338,7 +338,7 @@ as routes so the build compiles them, but they don't need to be navigated to:
 ```
 
 ```typescript
-// Load on demand — fetches from /_webui/templates
+// Load on demand — fetches from /_webhub/templates
 await Router.ensureLoaded('settings-dialog');
 
 // Batch multiple in one request
@@ -440,7 +440,7 @@ matching templates.
 Dispatched on `window` after each navigation:
 
 ```typescript
-window.addEventListener('webui:route:navigated', (e) => {
+window.addEventListener('webhub:route:navigated', (e) => {
   const { component, params, query, path } = (e as CustomEvent).detail;
 });
 ```
@@ -448,7 +448,7 @@ window.addEventListener('webui:route:navigated', (e) => {
 Dispatched after a mutation action completes:
 
 ```typescript
-window.addEventListener('webui:route:action-complete', (e) => {
+window.addEventListener('webhub:route:action-complete', (e) => {
   const { component, invalidatedTags, path } = (e as CustomEvent).detail;
 });
 ```
@@ -496,7 +496,7 @@ dropped — **deny-by-default**.
 Declare `@attr` properties matching the allowed query param names:
 
 ```typescript
-export class PageCompose extends WebUIElement {
+export class PageCompose extends webhubElement {
   @attr action = '';
   @attr to = '';
   @attr subject = '';
@@ -510,7 +510,7 @@ On client-side navigation, the router sends:
 ```
 GET /users/42
 Accept: application/x-ndjson, application/json
-X-WebUI-Inventory: <hex bitmask>
+X-webhub-Inventory: <hex bitmask>
 ```
 
 The server should return:
@@ -524,7 +524,7 @@ The `chain` field contains the matched route chain with `component`, `path`,
 `invalidates`. The `cacheTags` array contains resolved cache tags from the full
 chain. The optional `cacheControl` object can override `staleTime` per-response.
 
-See the [Routing guide](https://github.com/microsoft/webui/blob/main/docs/guide/concepts/routing.md) for complete server implementation examples.
+See the [Routing guide](https://github.com/microsoft/webhub/blob/main/docs/guide/concepts/routing.md) for complete server implementation examples.
 
 ## Architecture
 
@@ -535,7 +535,7 @@ The router is organized into 13 internal modules, each handling a single concern
 | `router` | Core router lifecycle, Navigation API integration |
 | `chain` | SSR route bootstrap and active route binding |
 | `navigation-path` | Path matching and parameter extraction |
-| `route-element` | `<webui-route>` custom element and query param handling |
+| `route-element` | `<webhub-route>` custom element and query param handling |
 | `loaders` | Static `loader()` resolution with `ssrFresh` support |
 | `actions` | Optional form submission interception and `static action()` dispatch |
 | `cache` | Tagged LRU navigation cache |
@@ -548,11 +548,11 @@ The router is organized into 13 internal modules, each handling a single concern
 
 ## SSR bootstrap data
 
-On first load, the server emits inert route bootstrap data in `#webui-data`. The
+On first load, the server emits inert route bootstrap data in `#webhub-data`. The
 router reads it during startup:
 
 ```html
-<script type="application/json" id="webui-data">
+<script type="application/json" id="webhub-data">
 {
   "chain": [],
   "inventory": "04000400...",
@@ -573,8 +573,8 @@ The package exports the following:
 | Export | Kind | Description |
 |--------|------|-------------|
 | `Router` | class | Main router singleton |
-| `WebUIRouter` | class | Same as `Router` (named export) |
-| `WebUIRouteElement` | class | `<webui-route>` custom element |
+| `webhubRouter` | class | Same as `Router` (named export) |
+| `webhubRouteElement` | class | `<webhub-route>` custom element |
 | `parseQuery` | function | Parse URL query string into a record |
 | `filterQuery` | function | Filter query params by an allowlist |
 | `isStateful` | function | Type guard - checks if an element accepts route state |
@@ -584,8 +584,8 @@ The package exports the following:
 | `RouteActionContext` | type | Context passed to `static action()` methods |
 | `RouteActionResult` | type | Return type of `static action()` |
 | `CacheConfig` | type | Cache configuration options |
-| `NavigationEvent` | type | Detail type for `webui:route:navigated` events |
-| `ActionCompleteEvent` | type | Detail type for `webui:route:action-complete` events |
+| `NavigationEvent` | type | Detail type for `webhub:route:navigated` events |
+| `ActionCompleteEvent` | type | Detail type for `webhub:route:action-complete` events |
 
 ## License
 

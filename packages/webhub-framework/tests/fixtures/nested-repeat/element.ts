@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
 interface NestedRepeatValue {
   value: string;
@@ -13,7 +13,7 @@ interface NestedRepeatGroup {
   values: NestedRepeatValue[];
 }
 
-export class TestNestedRepeat extends WebUIElement {
+export class TestNestedRepeat extends webhubElement {
   @observable groups: NestedRepeatGroup[] = [];
 
   loadGroups(): void {

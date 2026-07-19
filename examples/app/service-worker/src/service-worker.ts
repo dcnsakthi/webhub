@@ -4,7 +4,7 @@
 /// <reference lib="webworker" />
 
 import { API_CHUNKS, sanitizePayload, type ApiChunk, type ApiPayload } from './payload.js';
-import initWasm, { Protocol } from './wasm/handler/webui_wasm_handler.js';
+import initWasm, { Protocol } from './wasm/handler/webhub_wasm_handler.js';
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -88,7 +88,7 @@ async function loadProtocol(): Promise<Protocol> {
         throw new Error(`Failed to load ${protocolUrl.pathname}: ${response.status}`);
       }
       const bytes = new Uint8Array(await response.arrayBuffer());
-      return new Protocol(bytes, 'webui');
+      return new Protocol(bytes, 'webhub');
     })().catch((error) => {
       protocolReady = undefined;
       throw error;
@@ -171,12 +171,12 @@ function documentStart(themeCss: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebUI Service Worker Streaming</title>
+  <title>webhub Service Worker Streaming</title>
   <style>${themeCss}</style>
 </head>
 <body>
   <main class="page">
-    <div class="stream-note">Streaming from service worker + WebUI WASM handler</div>
+    <div class="stream-note">Streaming from service worker + webhub WASM handler</div>
 `;
 }
 

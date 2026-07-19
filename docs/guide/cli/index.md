@@ -1,19 +1,19 @@
 # CLI Reference
 
-The `webui` command-line tool is the primary way to build WebUI applications. It takes your app folder containing HTML templates and web components, and produces the WebUI protocol output ready for server-side rendering.
+The `webhub` command-line tool is the primary way to build webhub applications. It takes your app folder containing HTML templates and web components, and produces the webhub protocol output ready for server-side rendering.
 
 ## Installation
 
 Install via npm:
 
 ```bash
-npm install @microsoft/webui
+npm install @microsoft/webhub
 ```
 
 Or install via Cargo for standalone CLI use:
 
 ```bash
-cargo install microsoft-webui-cli
+cargo install microsoft-webhub-cli
 ```
 
 ## Commands
@@ -28,12 +28,12 @@ These flags work with any command:
 
 Use `--format json` in editors, CI, or AI/agent tooling that needs to parse build errors programmatically instead of scraping colorized terminal text. See [Error output and exit codes](#error-output-and-exit-codes).
 
-### `webui build`
+### `webhub build`
 
-Build a WebUI application from an app folder.
+Build a webhub application from an app folder.
 
 ```bash
-webui build [APP] --out <OUT> [--entry <FILE>] [--css <MODE>] [--plugin <NAME>] [--components <SOURCE>]... [--projection-manifest <PATH>]... [--emit-component-assets <TAGS>] [--theme <VALUE>] [--asset-file-name-template <TEMPLATE>] [--css-public-base <BASE>] [--legal-comments <MODE>]
+webhub build [APP] --out <OUT> [--entry <FILE>] [--css <MODE>] [--plugin <NAME>] [--components <SOURCE>]... [--projection-manifest <PATH>]... [--emit-component-assets <TAGS>] [--theme <VALUE>] [--asset-file-name-template <TEMPLATE>] [--css-public-base <BASE>] [--legal-comments <MODE>]
 ```
 
 **Arguments:**
@@ -47,8 +47,8 @@ webui build [APP] --out <OUT> [--entry <FILE>] [--css <MODE>] [--plugin <NAME>] 
 | `--plugin <NAME>` | Load a parser plugin | *(none)* |
 | `--dom <STRATEGY>` | DOM strategy: `shadow` or `light` | `shadow` |
 | `--components <SOURCE>` | Additional component sources (npm packages or local paths). Repeatable. | *(none)* |
-| `--projection-manifest <PATH>` | Bundler projection manifest fragment. Repeatable and valid only with `--plugin=webui`. | *(none; full state)* |
-| `--emit-component-assets <TAGS>` | Comma-separated root component tags to emit as static WebUI component assets in `--out` | *(none)* |
+| `--projection-manifest <PATH>` | Bundler projection manifest fragment. Repeatable and valid only with `--plugin=webhub`. | *(none; full state)* |
+| `--emit-component-assets <TAGS>` | Comma-separated root component tags to emit as static webhub component assets in `--out` | *(none)* |
 | `--theme <VALUE>` | Design token theme to validate against: a JSON file path or npm package name. Missing required tokens fail the build. | *(none)* |
 | `--asset-file-name-template <TEMPLATE>` | Emitted asset filename template for Link-mode CSS files and static component assets. Tokens: `[name]`, `[hash]`, `[ext]` | `[name].[ext]` |
 | `--css-public-base <BASE>` | Optional public URL/path prefix for Link-mode CSS hrefs | *(none)* |
@@ -64,7 +64,7 @@ Path inputs for `APP`, `--state`, `--servedir`, and
 |------|----------|
 | `link` | Emits `<link>` tags referencing external `.css` files. CSS files are copied to the output folder. |
 | `style` | Embeds CSS content directly in `<style>` tags inside shadow DOM templates. No separate CSS files are written. |
-| `module` | Emits `<script type="importmap">{"imports":{"component":"data:text/css,..."}}</script>` tags that register each component's CSS under a data URI, and adds `shadowrootadoptedstylesheets` to `<template>` tags. The browser shares a single `CSSStyleSheet` across all shadow roots that adopt it. No separate CSS files are written. Based on the [Import Maps](https://html.spec.whatwg.org/multipage/webappapis.html#import-maps) and [CSS Module Scripts](https://github.com/whatwg/html/issues/9572) proposals. If a component supplies its own `<template>` wrapper (e.g. to attach `@event` handlers), WebUI preserves the wrapper attributes and appends `shadowrootadoptedstylesheets="component-name"` when it is missing. |
+| `module` | Emits `<script type="importmap">{"imports":{"component":"data:text/css,..."}}</script>` tags that register each component's CSS under a data URI, and adds `shadowrootadoptedstylesheets` to `<template>` tags. The browser shares a single `CSSStyleSheet` across all shadow roots that adopt it. No separate CSS files are written. Based on the [Import Maps](https://html.spec.whatwg.org/multipage/webappapis.html#import-maps) and [CSS Module Scripts](https://github.com/whatwg/html/issues/9572) proposals. If a component supplies its own `<template>` wrapper (e.g. to attach `@event` handlers), webhub preserves the wrapper attributes and appends `shadowrootadoptedstylesheets="component-name"` when it is missing. |
 
 For long-lived CDN/browser caching, include `[hash]` in
 `--asset-file-name-template`. `[hash]` is the emitted file's SHA-256 content hash
@@ -74,12 +74,12 @@ emitted in `<link>` tags.
 
 **Component assets:**
 
-Use `--emit-component-assets` with the WebUI plugin to prebuild CDN-loadable
+Use `--emit-component-assets` with the webhub plugin to prebuild CDN-loadable
 template assets for components that are not included in initial SSR, such as
-route branches or dialogs loaded without `@microsoft/webui-router`:
+route branches or dialogs loaded without `@microsoft/webhub-router`:
 
 ```bash
-webui build ./my-app --out ./dist --plugin=webui \
+webhub build ./my-app --out ./dist --plugin=webhub \
   --emit-component-assets mail-thread,compose-page
 ```
 
@@ -87,11 +87,11 @@ The flag is a strict comma-separated allowlist. Every tag must be a discovered
 lowercase kebab-case component. Requested roots are compiled through synthetic
 non-entry fragments, so they do not become part of initial SSR unless your entry
 template also references them. Assets are emitted to the same output folder as
-standard ESM modules, for example `mail-thread.webui.js`. Each module
+standard ESM modules, for example `mail-thread.webhub.js`. Each module
 default-exports plugin-specific template/style metadata and includes compiled
-WebUI condition closures in the same request. FAST plugin builds can emit the
+webhub condition closures in the same request. FAST plugin builds can emit the
 same module shape with `<f-template>` payloads, but need a FAST-owned runtime
-loader rather than the WebUI Framework loader. Asset emission is parallelized
+loader rather than the webhub Framework loader. Asset emission is parallelized
 across requested root tags. The module intentionally omits inventory state
 because a static CDN asset cannot know the page's current loaded template bitset.
 Use `--asset-file-name-template "[name]-[hash].[ext]"` for long-lived CDN
@@ -111,11 +111,11 @@ panelSlot.replaceChildren(await mailAssets.create('mail-thread'));
 
 ```typescript
 // lazy-assets.ts
-import { defineComponentAssets } from '@microsoft/webui-framework/component-asset.js';
+import { defineComponentAssets } from '@microsoft/webhub-framework/component-asset.js';
 
 export const mailAssets = defineComponentAssets({
   'mail-thread': {
-    asset: '/mail-thread.webui.js',
+    asset: '/mail-thread.webhub.js',
     module: () => import('./mail-thread/mail-thread.js'),
     data: async () => await (await fetch('/mail-thread-data.json')).json(),
   },
@@ -128,7 +128,7 @@ create the custom element with `mailAssets.create(...)`.
 
 **Comment handling:**
 
-WebUI strips HTML comments and CSS comments at build time. Bindings or
+webhub strips HTML comments and CSS comments at build time. Bindings or
 directives inside HTML comments are ignored and never produce fragments or
 hydration metadata. Inside `<style>` tags, dynamic CSS fragments are valid only
 when wrapped as exact CSS block comments, such as `/*{{{tokens.light}}}*/`.
@@ -149,60 +149,60 @@ See [Performance - Light DOM vs Shadow DOM](/guide/concepts/performance#light-do
 
 ```bash
 # Build from current directory
-webui build --out ./dist
+webhub build --out ./dist
 
 # Build a specific app folder
-webui build ./my-app --out ./dist
+webhub build ./my-app --out ./dist
 
 # Use a custom entry file
-webui build ./my-app --out ./dist --entry home.html
+webhub build ./my-app --out ./dist --entry home.html
 
 # Build with style CSS (no external CSS files)
-webui build ./my-app --out ./dist --css style
+webhub build ./my-app --out ./dist --css style
 
 # Build link-mode CSS with content-hashed filenames
-webui build ./my-app --out ./dist --asset-file-name-template "[name]-[hash].[ext]"
+webhub build ./my-app --out ./dist --asset-file-name-template "[name]-[hash].[ext]"
 
 # Point generated stylesheet hrefs at a CDN/public asset root
-webui build ./my-app --out ./dist \
+webhub build ./my-app --out ./dist \
   --asset-file-name-template "[name]-[hash].[ext]" \
   --css-public-base "https://cdn.example.com/assets"
 
-# Build with the WebUI Framework plugin (hydration support)
-webui build ./my-app --out ./dist --plugin=webui
+# Build with the webhub Framework plugin (hydration support)
+webhub build ./my-app --out ./dist --plugin=webhub
 
 # Build browser code first, then embed exact state projection metadata
 node ./my-app/build-client.mjs
-webui build ./my-app --out ./dist --plugin=webui \
-  --projection-manifest ./my-app/dist/webui-projection.json
+webhub build ./my-app --out ./dist --plugin=webhub \
+  --projection-manifest ./my-app/dist/webhub-projection.json
 
 # Build with external component packages
-webui build ./my-app --out ./dist --components @reactive-ui
+webhub build ./my-app --out ./dist --components @reactive-ui
 
 # Validate CSS design tokens against a theme
-webui build ./my-app --out ./dist --theme ./themes/brand.json
+webhub build ./my-app --out ./dist --theme ./themes/brand.json
 
 # Build with components from a local shared library
-webui build ./my-app --out ./dist --components ./shared/components
+webhub build ./my-app --out ./dist --components ./shared/components
 
 # Customize the protocol filename (useful when building multiple apps to one folder)
-webui build ./src/apps/app1 --out ./dist/app1.bin
-webui build ./src/apps/app2 --out ./dist/app2.bin
+webhub build ./src/apps/app1 --out ./dist/app1.bin
+webhub build ./src/apps/app2 --out ./dist/app2.bin
 ```
 
-`--projection-manifest` is opt-in and strict. Without it, WebUI performs no
+`--projection-manifest` is opt-in and strict. Without it, webhub performs no
 JavaScript analysis and preserves full state. With one or more fragments, every
 scripted component compiled from the app or `--components` sources must have
 exactly one manifest entry. Build external component bundles separately and
 repeat the flag for each fragment. See
 [Build-Time State Projection](/guide/concepts/hydration#build-time-state-projection).
 
-### `webui inspect`
+### `webhub inspect`
 
 Inspect a `protocol.bin` file by converting it to JSON and printing to stdout. Useful for debugging and piping to tools like `jq`.
 
 ```bash
-webui inspect <FILE>
+webhub inspect <FILE>
 ```
 
 **Arguments:**
@@ -215,21 +215,21 @@ webui inspect <FILE>
 
 ```bash
 # Inspect a protocol file
-webui inspect dist/protocol.bin
+webhub inspect dist/protocol.bin
 
 # Pretty-print a specific fragment with jq
-webui inspect dist/protocol.bin | jq '.fragments["index.html"]'
+webhub inspect dist/protocol.bin | jq '.fragments["index.html"]'
 
 # Count total fragments
-webui inspect dist/protocol.bin | jq '.fragments | keys | length'
+webhub inspect dist/protocol.bin | jq '.fragments | keys | length'
 ```
 
-### `webui serve`
+### `webhub serve`
 
-Start a development server that builds, renders, and serves a WebUI application. Enable live reload with `--watch`.
+Start a development server that builds, renders, and serves a webhub application. Enable live reload with `--watch`.
 
 ```bash
-webui serve [APP] --state <FILE> [--servedir <DIR>] [--watch] [--port <PORT>] [--entry <FILE>] [--css <MODE>] [--dom <MODE>] [--plugin <NAME>] [--components <SOURCE>]... [--projection-manifest <PATH>]... [--api-port <PORT>] [--emit-component-assets <TAGS>] [--theme <VALUE>] [--asset-file-name-template <TEMPLATE>] [--css-public-base <BASE>] [--legal-comments <MODE>]
+webhub serve [APP] --state <FILE> [--servedir <DIR>] [--watch] [--port <PORT>] [--entry <FILE>] [--css <MODE>] [--dom <MODE>] [--plugin <NAME>] [--components <SOURCE>]... [--projection-manifest <PATH>]... [--api-port <PORT>] [--emit-component-assets <TAGS>] [--theme <VALUE>] [--asset-file-name-template <TEMPLATE>] [--css-public-base <BASE>] [--legal-comments <MODE>]
 ```
 
 **Arguments:**
@@ -243,12 +243,12 @@ webui serve [APP] --state <FILE> [--servedir <DIR>] [--watch] [--port <PORT>] [-
 | `--port <PORT>` | Port to bind the development server | `3000` |
 | `--entry <FILE>` | Entry HTML file name | `index.html` |
 | `--css <MODE>` | CSS delivery strategy: `link`, `style`, or `module` | `link` |
-| `--plugin <NAME>` | Load parser + handler plugins (e.g., `webui`) | *(none)* |
+| `--plugin <NAME>` | Load parser + handler plugins (e.g., `webhub`) | *(none)* |
 | `--dom <STRATEGY>` | DOM strategy: `shadow` or `light` | `shadow` |
 | `--components <SOURCE>` | Additional component sources (npm packages or local paths). Repeatable. | *(none)* |
-| `--projection-manifest <PATH>` | Bundler projection manifest fragment. Repeatable and valid only with `--plugin=webui`. | *(none; full state)* |
+| `--projection-manifest <PATH>` | Bundler projection manifest fragment. Repeatable and valid only with `--plugin=webhub`. | *(none; full state)* |
 | `--api-port <PORT>` | Proxy route requests to your API server on this port. The dev server forwards navigation requests so your backend can provide real state data. | *(none)* |
-| `--emit-component-assets <TAGS>` | Comma-separated root component tags to compile as static WebUI component assets, matching `webui build`. Their templates and CSS are parsed and validated on every build, and the compiled `<tag>.webui.js` modules are served from memory. | *(none)* |
+| `--emit-component-assets <TAGS>` | Comma-separated root component tags to compile as static webhub component assets, matching `webhub build`. Their templates and CSS are parsed and validated on every build, and the compiled `<tag>.webhub.js` modules are served from memory. | *(none)* |
 | `--theme <VALUE>` | Design token theme: a path to a JSON file or an npm package name. Missing required tokens fail the build; resolved tokens are injected into the render state. | *(none)* |
 | `--asset-file-name-template <TEMPLATE>` | Emitted asset filename template for Link-mode CSS files. Tokens: `[name]`, `[hash]`, `[ext]` | `[name].[ext]` |
 | `--css-public-base <BASE>` | Optional public URL/path prefix for Link-mode CSS hrefs | *(none)* |
@@ -258,7 +258,7 @@ The `APP` directory should contain your entry HTML and component files.
 
 **What it does:**
 
-1. Builds the protocol from your `APP` directory (no separate `webui build` step needed)
+1. Builds the protocol from your `APP` directory (no separate `webhub build` step needed)
 2. Renders the entry template with state data
 3. Serves the rendered HTML with an injected live-reload script
 4. If `--watch` is enabled, watches app, state, asset, and explicit projection manifest files for changes
@@ -269,35 +269,35 @@ The `APP` directory should contain your entry HTML and component files.
 
 ```bash
 # Start serving the current directory
-webui serve . --state ./state.json --servedir ./assets
+webhub serve . --state ./state.json --servedir ./assets
 
 # Start serving a specific templates directory
-webui serve ./examples/app/hello-world/templates --state ./examples/app/hello-world/data/state.json --servedir ./examples/app/hello-world/assets --watch
+webhub serve ./examples/app/hello-world/templates --state ./examples/app/hello-world/data/state.json --servedir ./examples/app/hello-world/assets --watch
 
 # Use a custom port
-webui serve ./my-app --state ./state.json --servedir ./assets --port 9090 --watch
+webhub serve ./my-app --state ./state.json --servedir ./assets --port 9090 --watch
 
 # Use style CSS mode
-webui serve ./my-app --state ./state.json --servedir ./assets --css style --watch
+webhub serve ./my-app --state ./state.json --servedir ./assets --css style --watch
 
-# Use the WebUI Framework plugin for hydration
-webui serve ./my-app --state ./state.json --plugin=webui --port 3001
+# Use the webhub Framework plugin for hydration
+webhub serve ./my-app --state ./state.json --plugin=webhub --port 3001
 
 # Rebuild when the client bundler atomically replaces its manifest
-webui serve ./my-app --state ./state.json --plugin=webui \
-  --projection-manifest ./dist/webui-projection.json --watch
+webhub serve ./my-app --state ./state.json --plugin=webhub \
+  --projection-manifest ./dist/webhub-projection.json --watch
 
 # Dev server with external components (--watch watches local paths)
-webui serve ./my-app --state ./state.json --components @reactive-ui --watch
+webhub serve ./my-app --state ./state.json --components @reactive-ui --watch
 
 # Proxy route requests to your API server (e.g. Express on port 4000)
-webui serve ./my-app --state ./state.json --api-port 4000 --watch
+webhub serve ./my-app --state ./state.json --api-port 4000 --watch
 
 # Apply a design token theme from an npm package
-webui serve ./my-app --state ./state.json --theme @my-org/brand-tokens --watch
+webhub serve ./my-app --state ./state.json --theme @my-org/brand-tokens --watch
 
 # Apply a design token theme from a local JSON file
-webui serve ./my-app --state ./state.json --theme ./themes/dark.json --watch
+webhub serve ./my-app --state ./state.json --theme ./themes/dark.json --watch
 ```
 
 When `--theme` is present on `build` or `serve`, every required token must
@@ -314,9 +314,9 @@ a `did you mean …?` suggestion) since it is usually a typo.
 root is parsed and validated on every build — its template and CSS are checked
 for HTML and theme-token errors even though the component is not part of the
 initial SSR tree — so authoring mistakes in lazily loaded components fail the dev
-build instead of being silently skipped. The compiled `<tag>.webui.js` modules
+build instead of being silently skipped. The compiled `<tag>.webhub.js` modules
 are served from memory (and rebuilt on change under `--watch`), so no separate
-`webui build` step or `--out` directory is needed during development.
+`webhub build` step or `--out` directory is needed during development.
 
 In `serve --watch`, rebuild failures are sticky: the terminal and live-reload
 SSE report the error, and refreshing the page returns the latest rebuild error
@@ -328,7 +328,7 @@ successful rebuild clears the error and reloads connected browsers.
 | Path | Description |
 |------|-------------|
 | `/` or `/index.html` | Rendered HTML with live-reload script |
-| `/<tag>.webui.js` | In-memory static component assets emitted by `--emit-component-assets` (served as JS modules) |
+| `/<tag>.webhub.js` | In-memory static component assets emitted by `--emit-component-assets` (served as JS modules) |
 | `/*` | Static files from `--servedir` (when provided) |
 | `/hmr` | HMR version endpoint (polling backend, only when `--watch`) |
 
@@ -350,7 +350,7 @@ Where the mistake is likely a typo, the `help:` line suggests the intended name 
 With `--format json`, each error is emitted as a single JSON object on **stdout** (the colorized terminal output is suppressed), so editors, CI, and AI assistants can consume it directly:
 
 ```bash
-webui build ./my-app --out ./dist --format json
+webhub build ./my-app --out ./dist --format json
 ```
 
 ```json
@@ -409,7 +409,7 @@ The CLI automatically discovers web components in your app folder:
 
 ### Entry Template
 
-Your entry HTML file is a standard HTML document using WebUI directives:
+Your entry HTML file is a standard HTML document using webhub directives:
 
 ```html
 <!DOCTYPE html>
@@ -438,7 +438,7 @@ The `--out` folder will contain:
 
 ```
 dist/
-├── protocol.bin        # The WebUI protocol (protobuf binary)
+├── protocol.bin        # The webhub protocol (protobuf binary)
 ├── my-card.css         # Component CSS (--css link only)
 └── nav-bar.css         # Component CSS (--css link only)
 ```
@@ -447,12 +447,12 @@ With `--css style`, only `protocol.bin` is written - CSS is embedded directly in
 
 ### protocol.bin
 
-The protocol file contains a serialized `WebUIProtocol` structure (protobuf binary) with all parsed fragments. This file is consumed by a [platform handler](/guide/integrations/) at runtime to render HTML with your application state.
+The protocol file contains a serialized `webhubProtocol` structure (protobuf binary) with all parsed fragments. This file is consumed by a [platform handler](/guide/integrations/) at runtime to render HTML with your application state.
 
 The binary format is not human-readable. The equivalent proto schema structure looks like:
 
 ```protobuf
-// WebUIProtocol
+// webhubProtocol
 fragments {
   key: "index.html"
   value: FragmentList {
@@ -497,8 +497,8 @@ The `--plugin` flag loads framework-specific extensions that customize both pars
 
 ```bash
 # Load a plugin by name
-webui build ./my-app --out ./dist --plugin=<name>
-webui serve ./my-app --state ./state.json --plugin=<name>
+webhub build ./my-app --out ./dist --plugin=<name>
+webhub serve ./my-app --state ./state.json --plugin=<name>
 ```
 
 See [Plugins](/guide/concepts/plugins/) for detailed documentation.
@@ -513,13 +513,13 @@ Pass an npm package name. The package must already be installed in `node_modules
 
 ```bash
 # Single package
-webui build ./my-app --out ./dist --components my-widget
+webhub build ./my-app --out ./dist --components my-widget
 
 # Scoped package (discovers all sub-packages)
-webui build ./my-app --out ./dist --components @reactive-ui
+webhub build ./my-app --out ./dist --components @reactive-ui
 
 # Specific scoped sub-package
-webui build ./my-app --out ./dist --components @reactive-ui/button
+webhub build ./my-app --out ./dist --components @reactive-ui/button
 ```
 
 **npm package requirements:**
@@ -528,14 +528,14 @@ The package's `package.json` must have:
 
 | Field | Purpose |
 |-------|---------|
-| `exports["./template-webui.html"]` | Path to the component's HTML template |
+| `exports["./template-webhub.html"]` | Path to the component's HTML template |
 | `exports["./styles.css"]` | Path to the component's CSS (optional) |
 | `customElements` | Path to a [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest) JSON file |
 
 The Custom Elements Manifest provides the component tag name via `modules[].declarations[].tagName`.
 
 If the package also exposes a root JavaScript entry (`exports["."]`, `main`,
-`module`, or `browser`), WebUI treats those components as authored custom
+`module`, or `browser`), webhub treats those components as authored custom
 elements. Packages with only template/style exports are HTML-only component
 libraries. Their templates render on the server and the framework can activate
 them later when needed.
@@ -550,10 +550,10 @@ authored/interactive. Otherwise the component remains HTML-only.
 
 ```bash
 # Relative path
-webui build ./my-app --out ./dist --components ./shared/components
+webhub build ./my-app --out ./dist --components ./shared/components
 
 # Absolute path
-webui build ./my-app --out ./dist --components /libs/ui-kit
+webhub build ./my-app --out ./dist --components /libs/ui-kit
 ```
 
 ### Multiple Sources
@@ -561,7 +561,7 @@ webui build ./my-app --out ./dist --components /libs/ui-kit
 Combine multiple `--components` flags:
 
 ```bash
-webui build ./my-app --out ./dist \
+webhub build ./my-app --out ./dist \
   --components @reactive-ui \
   --components ./shared/components \
   --components my-widget
@@ -569,11 +569,11 @@ webui build ./my-app --out ./dist \
 
 ### Caching
 
-Discovered npm package components are cached at `~/.webui/cache/components/` to avoid re-traversing on every build. The cache is automatically invalidated when a package's `package.json` changes. Local path sources are always re-scanned.
+Discovered npm package components are cached at `~/.webhub/cache/components/` to avoid re-traversing on every build. The cache is automatically invalidated when a package's `package.json` changes. Local path sources are always re-scanned.
 
 ## Next Steps
 
-- [Hello World Tutorial](/tutorials/hello-world) - Build your first WebUI app
+- [Hello World Tutorial](/tutorials/hello-world) - Build your first webhub app
 - [Components](/guide/concepts/components/) - Learn about web components
 - [Template Directives](/guide/concepts/directives/) - `<for>`, `<if>`, and `{{}}`
 - [Platform Handlers](/guide/integrations/) - Render protocols with state at runtime

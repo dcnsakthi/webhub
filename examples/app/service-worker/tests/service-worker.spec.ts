@@ -3,7 +3,7 @@
 
 import { expect, test } from '@playwright/test';
 
-test('streams WebUI-rendered chunks from a service worker', async ({ page }) => {
+test('streams webhub-rendered chunks from a service worker', async ({ page }) => {
   const consoleErrors: string[] = [];
   const requestedUrls: string[] = [];
   page.on('console', (message) => {
@@ -20,14 +20,14 @@ test('streams WebUI-rendered chunks from a service worker', async ({ page }) => 
   });
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
 
-  await expect(page.getByRole('heading', { name: 'WebUI rendered in a service worker' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'webhub rendered in a service worker' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Serverless HTML without an app server' })).toBeVisible();
   await expect(page.getByText('Chunks render as async state resolves')).toBeVisible();
   await expect(page.getByText('Streaming timeline')).toBeVisible();
   await expect(page.locator('.error-card')).toHaveCount(0);
 
   const headings = await page.locator('.card h1, .card h2').allTextContents();
-  const shell = headings.indexOf('WebUI rendered in a service worker');
+  const shell = headings.indexOf('webhub rendered in a service worker');
   const metrics = headings.indexOf('Chunks render as async state resolves');
   const hero = headings.indexOf('Serverless HTML without an app server');
   const activity = headings.indexOf('Streaming timeline');

@@ -45,7 +45,7 @@ test('search results do not retain stale title segments while typing', async (t)
   t.after(() => browser.close());
 
   const page = await browser.newPage();
-  await page.goto(`${server.origin}/webui/guide/integrations/wasm/`, {
+  await page.goto(`${server.origin}/webhub/guide/integrations/wasm/`, {
     waitUntil: 'networkidle',
   });
   await waitForDocsSearch(page);
@@ -69,8 +69,8 @@ test('search results do not retain stale title segments while typing', async (t)
     };
   });
 
-  assert.equal(first.href, '/webui/guide/integrations/wasm');
-  assert.equal(first.normalizedTitle, 'WebUIWebAssembly');
+  assert.equal(first.href, '/webhub/guide/integrations/wasm');
+  assert.equal(first.normalizedTitle, 'webhubWebAssembly');
   assert.deepEqual(first.marks, ['Asse']);
 });
 
@@ -82,7 +82,7 @@ test('heading search results use CSS spacing for breadcrumb separators', async (
   t.after(() => browser.close());
 
   const page = await browser.newPage();
-  await page.goto(`${server.origin}/webui/guide/integrations/wasm/`, {
+  await page.goto(`${server.origin}/webhub/guide/integrations/wasm/`, {
     waitUntil: 'networkidle',
   });
   await waitForDocsSearch(page);
@@ -115,7 +115,7 @@ test('heading search results use CSS spacing for breadcrumb separators', async (
   assert.equal(separator.text, '>');
   assert.equal(
     separator.normalizedTitle,
-    'WebUIFramework-AIReference>WebAssembly',
+    'webhubFramework-AIReference>WebAssembly',
   );
   assert.ok(separator.marginLeft > 0, `marginLeft=${separator.marginLeft}`);
   assert.ok(separator.marginRight > 0, `marginRight=${separator.marginRight}`);
@@ -129,7 +129,7 @@ test('documentation pages scroll inside main content, not the window', async (t)
   t.after(() => browser.close());
 
   const page = await browser.newPage();
-  await page.goto(`${server.origin}/webui/guide/concepts/components/`, {
+  await page.goto(`${server.origin}/webhub/guide/concepts/components/`, {
     waitUntil: 'networkidle',
   });
 
@@ -161,7 +161,7 @@ test('documentation pages support keyboard and history scrolling', async (t) => 
   t.after(() => browser.close());
 
   const page = await browser.newPage();
-  await page.goto(`${server.origin}/webui/guide/concepts/components/`, {
+  await page.goto(`${server.origin}/webhub/guide/concepts/components/`, {
     waitUntil: 'networkidle',
   });
 
@@ -175,7 +175,7 @@ test('documentation pages support keyboard and history scrolling', async (t) => 
   assert.equal(afterPageDown.windowY, 0);
   assert.ok(afterPageDown.mainY > 0, `mainY=${afterPageDown.mainY}`);
 
-  await page.goto(`${server.origin}/webui/guide/concepts/interactivity/`, {
+  await page.goto(`${server.origin}/webhub/guide/concepts/interactivity/`, {
     waitUntil: 'networkidle',
   });
   await page.goBack({ waitUntil: 'networkidle' });
@@ -196,7 +196,7 @@ test('scrollbars and search highlights use theme-specific colors', async (t) => 
   t.after(() => browser.close());
 
   const page = await browser.newPage();
-  await page.goto(`${server.origin}/webui/guide/integrations/wasm/`, {
+  await page.goto(`${server.origin}/webhub/guide/integrations/wasm/`, {
     waitUntil: 'networkidle',
   });
   await waitForDocsSearch(page);
@@ -259,10 +259,10 @@ async function startDocsServer(): Promise<{
   const server = http.createServer((req, res) => {
     const requestUrl = new URL(req.url, 'http://local.test');
     let urlPath = decodeURIComponent(requestUrl.pathname);
-    if (urlPath === '/webui') {
+    if (urlPath === '/webhub') {
       urlPath = '/';
-    } else if (urlPath.startsWith('/webui/')) {
-      urlPath = urlPath.slice('/webui'.length);
+    } else if (urlPath.startsWith('/webhub/')) {
+      urlPath = urlPath.slice('/webhub'.length);
     }
 
     let filePath = path.join(DIST, urlPath);

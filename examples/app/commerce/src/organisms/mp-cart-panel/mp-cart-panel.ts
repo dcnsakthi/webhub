@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '@microsoft/webui-framework';
+import { webhubElement, attr } from '@microsoft/webhub-framework';
 
-export class MpCartPanel extends WebUIElement {
+export class MpCartPanel extends webhubElement {
   @attr subtotal!: string;
   @attr taxes!: string;
   @attr({ attribute: 'cart-open' }) cartOpen!: string;

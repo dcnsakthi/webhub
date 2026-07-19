@@ -1,17 +1,17 @@
-# WebUI service worker integration
+# webhub service worker integration
 
 This example shows a static/CDN-style deployment where a service worker uses the
-handler-only WebUI WASM bundle to render HTML in the browser.
+handler-only webhub WASM bundle to render HTML in the browser.
 
 The browser loads only static assets:
 
 - `protocol.bin` generated at build time
-- `webui_wasm_handler.js` plus its `.wasm` payload
+- `webhub_wasm_handler.js` plus its `.wasm` payload
 - public JSON files under `/api/`
 - a service worker that streams the navigation response
 
 No application server is required. The service worker fetches public API state,
-constructs one `webui_wasm_handler.Protocol`, renders matching fragments with
+constructs one `webhub_wasm_handler.Protocol`, renders matching fragments with
 `Protocol.renderStream()`, and enqueues each section into a `ReadableStream` as
 soon as that API response resolves.
 
@@ -39,15 +39,15 @@ The build step:
    `public/`.
 7. Renders every sample API payload once through the WASM handler.
 
-The streamed UI uses normal WebUI component files: every `src/*.html` fragment
+The streamed UI uses normal webhub component files: every `src/*.html` fragment
 has a paired `src/*.css` file. The app is built with `--css style --dom light`,
 so component CSS is embedded in the rendered fragments and no standalone
 `public/styles.css` file is needed.
 
 For design consistency, the service worker uses
-`@microsoft/webui-examples-theme`, the same shared token package used by
-`webui serve --theme=@microsoft/webui-examples-theme`. Because this app renders
-in a static service worker instead of `webui serve`, `scripts/inject-theme.ts`
+`@microsoft/webhub-examples-theme`, the same shared token package used by
+`webhub serve --theme=@microsoft/webhub-examples-theme`. Because this app renders
+in a static service worker instead of `webhub serve`, `scripts/inject-theme.ts`
 reads `public/protocol.bin`, asks the WASM handler for the protocol token list,
 and writes trusted token declarations into `public/index.html` and
 `public/theme.css` at build time.
@@ -77,7 +77,7 @@ pnpm --filter service-worker-example test
 ```
 
 The Playwright smoke test verifies that the page is controlled by the service
-worker, renders all WebUI chunks, and receives the chunks in async completion
+worker, renders all webhub chunks, and receives the chunks in async completion
 order rather than source order. Each chunk is wrapped with a `data-chunk`
 marker so the stream order is visible and easy to assert.
 
@@ -89,14 +89,14 @@ from public APIs. The serverless edge path can be:
 1. CDN serves static files.
 2. Browser service worker loads `protocol.bin`.
 3. Public APIs return JSON state.
-4. WebUI WASM handler renders HTML chunks locally.
+4. webhub WASM handler renders HTML chunks locally.
 5. The service worker streams the response to the page.
 
 ## Source layout
 
 | Path | Purpose |
 |------|---------|
-| `src/*.html` | WebUI fragments compiled into `public/protocol.bin` |
+| `src/*.html` | webhub fragments compiled into `public/protocol.bin` |
 | `src/*.css` | Component styles embedded into rendered light-DOM fragments |
 | `src/bootstrap.html` | Static first-load page stamped into `public/index.html` with build-time theme declarations |
 | `src/*.ts` | TypeScript browser runtime, service worker, and payload validation |

@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '@microsoft/webui-framework';
+import { webhubElement, attr } from '@microsoft/webhub-framework';
 
-export class MpProductCard extends WebUIElement {
+export class MpProductCard extends webhubElement {
   @attr handle = '';
   @attr title = '';
   @attr price = '';

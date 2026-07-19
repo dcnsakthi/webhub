@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! WebUI Framework parser plugin.
+//! webhub Framework parser plugin.
 //!
 //! # Overview
 //!
@@ -70,7 +70,7 @@ use crate::html_parser::{find_tag_close, style_element_bounds};
 use crate::{ConditionParser, DomStrategy, ParserOptions, Result};
 use std::cell::Cell;
 use std::fmt::Write;
-use webui_protocol::{condition_expr, ConditionExpr, WebUIElementData};
+use webhub_protocol::{condition_expr, ConditionExpr, webhubElementData};
 
 /// A component whose plugin-facing template HTML has been captured for compilation.
 /// Repeated tracking for the same tag updates the stored template so the plugin
@@ -88,7 +88,7 @@ struct TrackedComponent {
 /// *whether* a component has a client module — a sibling script or an
 /// externally client-owned package without scannable source — not its
 /// content. Exact reactive keys for an authored component come solely from a
-/// validated bundler projection manifest, consumed later by `webui::build`.
+/// validated bundler projection manifest, consumed later by `webhub::build`.
 enum ClientModule {
     None,
     Authored,
@@ -108,7 +108,7 @@ impl ClientModule {
     }
 }
 
-/// WebUI Framework parser plugin.
+/// webhub Framework parser plugin.
 ///
 /// Intercepts `@event` attributes and component registrations during parsing,
 /// then compiles each component's HTML template into JSON metadata and JS closures.
@@ -120,7 +120,7 @@ impl ClientModule {
 /// while `next_event_idx` is a monotonically increasing global counter.
 /// This preserves event order in the emitted metadata while letting SSR HTML
 /// mark one element with a single `data-ev="COUNT"` attribute.
-pub struct WebUIParserPlugin {
+pub struct webhubParserPlugin {
     components: Vec<TrackedComponent>,
     /// Per-element event count, reset on each `finish_element` call.
     element_events: Cell<u32>,
@@ -130,7 +130,7 @@ pub struct WebUIParserPlugin {
     dom_strategy: DomStrategy,
 }
 
-impl WebUIParserPlugin {
+impl webhubParserPlugin {
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -145,7 +145,7 @@ impl WebUIParserPlugin {
     ///
     /// Authored (scripted) components default to an unknown (`All`) hydration
     /// and navigation surface, since this plugin never analyzes JavaScript or
-    /// TypeScript. `webui::build` narrows a scripted component to an exact
+    /// TypeScript. `webhub::build` narrows a scripted component to an exact
     /// `Keys` surface only after validating a bundler projection manifest for
     /// its tag. Scriptless components keep an empty hydration surface, but
     /// retain template roots for client-created soft-navigation rendering
@@ -174,7 +174,7 @@ impl WebUIParserPlugin {
             // Scripted components default to `All` (unknown surface, full
             // state preserved) for both hydration and partial navigation.
             // Only a validated bundler projection manifest — consumed later by
-            // `webui::build` — can narrow a scripted component down to an
+            // `webhub::build` — can narrow a scripted component down to an
             // exact `Keys` surface. Scriptless components have no script to
             // analyze at all: their template roots already prove the complete
             // safe surface, so they always get an exact (possibly empty) key
@@ -186,7 +186,7 @@ impl WebUIParserPlugin {
             };
             let navigation = navigation_surface(&payload.hydration_roots, &hydration);
             out.push(
-                ComponentTemplateArtifact::webui(
+                ComponentTemplateArtifact::webhub(
                     c.tag_name.clone(),
                     payload.template_json,
                     payload.template_functions,
@@ -224,13 +224,13 @@ impl WebUIParserPlugin {
     }
 }
 
-impl Default for WebUIParserPlugin {
+impl Default for webhubParserPlugin {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ParserPlugin for WebUIParserPlugin {
+impl ParserPlugin for webhubParserPlugin {
     fn start_fragment(&mut self, _fragment_id: &str) {
         self.element_events.set(0);
         self.next_event_idx.set(0);
@@ -277,7 +277,7 @@ impl ParserPlugin for WebUIParserPlugin {
         }
 
         Some(
-            WebUIElementData {
+            webhubElementData {
                 binding_count: binding_attribute_count,
                 event_start: ev_start,
                 event_count: ev_count,
@@ -614,7 +614,7 @@ fn emit_compiled_template_payload(
             if i > 0 {
                 out.push(',');
             }
-            let attr = webui_protocol::attrs::camel_to_kebab(root);
+            let attr = webhub_protocol::attrs::camel_to_kebab(root);
             emit_js_string(&attr, &mut out);
         }
         out.push(']');
@@ -2433,7 +2433,7 @@ fn scriptless_component_events(component: &str) -> Diagnostic {
         .code(codes::SCRIPTLESS_EVENT_HANDLER)
         .component(component)
         .help(
-            "add a .ts or .js file that defines a WebUIElement for this tag, or remove the @event binding",
+            "add a .ts or .js file that defines a webhubElement for this tag, or remove the @event binding",
         )
 }
 
@@ -2663,7 +2663,7 @@ fn parse_regular_tag(
             if let Some(raw_value) = value.and_then(extract_single_handlebars) {
                 // Strip the ':' prefix and convert to camelCase for the JS property name.
                 // The runtime uses el[name] = value directly — no conversion needed.
-                let prop_name = webui_protocol::attrs::attribute_to_camel(
+                let prop_name = webhub_protocol::attrs::attribute_to_camel(
                     name.strip_prefix(':').unwrap_or(name),
                 );
                 meta.attr_bindings.push(CompiledAttrBinding::Complex {
@@ -3091,7 +3091,7 @@ mod tests {
 
     #[test]
     fn test_skip_event_attributes() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         assert_eq!(plugin.classify_attribute("@click"), AttributeAction::Skip);
         assert_eq!(plugin.classify_attribute("@keydown"), AttributeAction::Skip);
         assert_eq!(plugin.classify_attribute("w-ref"), AttributeAction::Keep);
@@ -3499,9 +3499,9 @@ mod tests {
         // authored (scripted) component's exact surface is unknown here — it
         // defaults to `All` (full-state safety) regardless of script content.
         // Only a validated bundler projection manifest, consumed later by
-        // `webui::build`, can narrow this to exact keys. Template roots are
+        // `webhub::build`, can narrow this to exact keys. Template roots are
         // still recorded so the manifest consumer can union them in later.
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         let comp = test_component("test-el", "<p>{{serverTitle}}</p>", None, true);
         plugin
             .register_component_template("test-el", &comp, &comp.html_content)
@@ -3515,7 +3515,7 @@ mod tests {
 
     #[test]
     fn test_opaque_authored_component_defaults_to_unknown_surface() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         let comp = test_component("test-el", "<p>{{serverTitle}}</p>", None, true);
 
         plugin
@@ -3534,7 +3534,7 @@ mod tests {
 
     #[test]
     fn test_deduplicates_components() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         let comp = test_component("test-el", "<p>hi</p>", None, true);
         plugin
             .register_component_template("test-el", &comp, &comp.html_content)
@@ -3547,7 +3547,7 @@ mod tests {
 
     #[test]
     fn test_scriptless_component_emits_dormant_navigation_template() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         let comp = test_component("test-el", "<p>{{name}}</p>", None, false);
 
         plugin
@@ -3565,7 +3565,7 @@ mod tests {
 
     #[test]
     fn test_fully_static_scriptless_component_still_emits_host_metadata() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         let comp = test_component("test-el", "<p>Static</p>", None, false);
 
         plugin
@@ -3580,7 +3580,7 @@ mod tests {
 
     #[test]
     fn test_scripted_component_emits_client_template_without_static_host_marker() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         let comp = test_component("test-el", "<p>{{name}}</p>", None, true);
 
         plugin
@@ -3596,7 +3596,7 @@ mod tests {
 
     #[test]
     fn test_scriptless_event_component_template_fails() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         let comp = test_component(
             "test-el",
             r#"<button @click="{onClick()}">{{name}}</button>"#,
@@ -3649,7 +3649,7 @@ mod tests {
 
     #[test]
     fn test_plugin_uses_processed_link_template_html() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
 
         let comp = test_component("test-el", "<p>hi</p>", Some(".root { color: red; }"), true);
 
@@ -3671,7 +3671,7 @@ mod tests {
 
     #[test]
     fn test_plugin_preserves_root_events_from_raw_template_source() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
 
         let comp = test_component(
             "test-el",
@@ -3696,7 +3696,7 @@ mod tests {
 
     #[test]
     fn test_plugin_uses_processed_module_template_html() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
 
         let comp = test_component("test-el", "<p>hi</p>", Some(".root { color: red; }"), true);
 
@@ -4055,7 +4055,7 @@ mod tests {
 
     #[test]
     fn test_on_element_parsed_encodes_12_bytes() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         // Simulate 2 event attributes skipped
         let _ = plugin.classify_attribute("@click");
         let _ = plugin.classify_attribute("@keydown");
@@ -4074,7 +4074,7 @@ mod tests {
 
     #[test]
     fn test_on_element_parsed_no_data_when_empty() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         let data = plugin.finish_element(0);
         assert!(
             data.is_none(),
@@ -4084,7 +4084,7 @@ mod tests {
 
     #[test]
     fn test_on_element_parsed_events_only() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         let _ = plugin.classify_attribute("@click");
         let data = plugin.finish_element(0);
         assert!(
@@ -4100,7 +4100,7 @@ mod tests {
 
     #[test]
     fn test_event_index_increments_across_elements() {
-        let mut plugin = WebUIParserPlugin::new();
+        let mut plugin = webhubParserPlugin::new();
         // First element: 2 events
         let _ = plugin.classify_attribute("@click");
         let _ = plugin.classify_attribute("@focus");
@@ -4271,7 +4271,7 @@ mod tests {
 
     #[test]
     fn test_attribute_to_camel_aria() {
-        use webui_protocol::attrs::attribute_to_camel;
+        use webhub_protocol::attrs::attribute_to_camel;
         assert_eq!(attribute_to_camel("aria-describedby"), "ariaDescribedBy");
         assert_eq!(attribute_to_camel("aria-labelledby"), "ariaLabelledBy");
         assert_eq!(
@@ -4284,7 +4284,7 @@ mod tests {
 
     #[test]
     fn test_attribute_to_camel_html_global() {
-        use webui_protocol::attrs::attribute_to_camel;
+        use webhub_protocol::attrs::attribute_to_camel;
         assert_eq!(attribute_to_camel("readonly"), "readOnly");
         assert_eq!(attribute_to_camel("tabindex"), "tabIndex");
         assert_eq!(attribute_to_camel("accesskey"), "accessKey");

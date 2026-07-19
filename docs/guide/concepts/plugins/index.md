@@ -1,6 +1,6 @@
 # Plugins
 
-WebUI provides a framework-agnostic plugin system that extends both the parser (build time) and the handler (render time). Plugins let framework authors customize WebUI's behavior - component discovery, attribute filtering, hydration marker injection - without modifying WebUI internals.
+webhub provides a framework-agnostic plugin system that extends both the parser (build time) and the handler (render time). Plugins let framework authors customize webhub's behavior - component discovery, attribute filtering, hydration marker injection - without modifying webhub internals.
 
 ## How Plugins Work
 
@@ -16,18 +16,18 @@ Build time (Parser Plugin)         Runtime (Handler Plugin)
 └──────────────────────────┘       └──────────────────────────┘
 ```
 
-Parser plugins emit opaque binary data into `Plugin` protocol fragments. Handler plugins receive that data at render time via `on_element_data`. WebUI never interprets this data - each plugin pair defines its own contract.
+Parser plugins emit opaque binary data into `Plugin` protocol fragments. Handler plugins receive that data at render time via `on_element_data`. webhub never interprets this data - each plugin pair defines its own contract.
 
 ## Using Plugins via the CLI
 
-Pass `--plugin <NAME>` to `webui build` or `webui serve`:
+Pass `--plugin <NAME>` to `webhub build` or `webhub serve`:
 
 ```bash
 # Build with a named plugin
-webui build ./my-app --out ./dist --plugin=<name>
+webhub build ./my-app --out ./dist --plugin=<name>
 
 # Dev server with a named plugin
-webui serve ./my-app --state ./data/state.json --plugin=<name>
+webhub serve ./my-app --state ./data/state.json --plugin=<name>
 ```
 
 When a plugin is selected, both its parser-side and (for `serve`) handler-side
@@ -35,62 +35,62 @@ implementations are loaded.
 
 ## Using Plugins with Handlers
 
-<webui-press-tabs>
-<webui-press-tab slot="tab" active>Rust</webui-press-tab>
-<webui-press-tab slot="tab">Node.js</webui-press-tab>
-<webui-press-tab slot="tab">FFI (C API)</webui-press-tab>
-<webui-press-tab-panel active>
+<webhub-press-tabs>
+<webhub-press-tab slot="tab" active>Rust</webhub-press-tab>
+<webhub-press-tab slot="tab">Node.js</webhub-press-tab>
+<webhub-press-tab slot="tab">FFI (C API)</webhub-press-tab>
+<webhub-press-tab-panel active>
 
 ```rust
-use webui::WebUIHandler;
+use webhub::webhubHandler;
 
-let handler = WebUIHandler::with_plugin(|| Box::new(MyHydrationPlugin::new()));
+let handler = webhubHandler::with_plugin(|| Box::new(MyHydrationPlugin::new()));
 handler.render(&protocol, &state, &options, &mut writer)?;
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```js
-import { Protocol } from '@microsoft/webui';
+import { Protocol } from '@microsoft/webhub';
 
 const protocol = new Protocol(protocolData, { plugin: '<name>' });
 protocol.renderStream(state, (chunk) => res.write(chunk));
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```c
-void *handler = webui_handler_create_with_plugin("<name>");
-webui_protocol_t *protocol = webui_protocol_create(protocol_data, protocol_len);
-char *html = webui_handler_render(handler, protocol, state_json, "index.html", "/");
+void *handler = webhub_handler_create_with_plugin("<name>");
+webhub_protocol_t *protocol = webhub_protocol_create(protocol_data, protocol_len);
+char *html = webhub_handler_render(handler, protocol, state_json, "index.html", "/");
 ```
 
-</webui-press-tab-panel>
-</webui-press-tabs>
+</webhub-press-tab-panel>
+</webhub-press-tabs>
 
-### Using the WebUI Plugin
+### Using the webhub Plugin
 
 ```bash
-# Build with WebUI Framework hydration
-webui build ./src --out ./dist --plugin=webui \
-  --projection-manifest ./dist/webui-projection.json
+# Build with webhub Framework hydration
+webhub build ./src --out ./dist --plugin=webhub \
+  --projection-manifest ./dist/webhub-projection.json
 
-# Dev server with WebUI Framework
-webui serve ./src --state ./data/state.json --plugin=webui \
-  --projection-manifest ./dist/webui-projection.json --watch
+# Dev server with webhub Framework
+webhub serve ./src --state ./data/state.json --plugin=webhub \
+  --projection-manifest ./dist/webhub-projection.json --watch
 ```
 
-Projection is optional. Without a manifest, the WebUI plugin preserves full
+Projection is optional. Without a manifest, the webhub plugin preserves full
 state. When a manifest is supplied, coverage is strict and the manifest must be
 produced by the completed browser bundle. See
 [Build-Time State Projection](/guide/concepts/hydration#build-time-state-projection).
 
 ```rust
 // Rust handler
-use webui_handler::plugin::webui::WebUIHydrationPlugin;
-let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+use webhub_handler::plugin::webhub::webhubHydrationPlugin;
+let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
 ```
 
 ## Writing Custom Plugins
@@ -169,4 +169,4 @@ pub trait HandlerPlugin {
 
 - [CLI Reference](/guide/cli/) - `--plugin` flag details
 - [Rust Handler](/guide/integrations/rust) - Using plugins with the Rust handler
-- [Hello World Tutorial](/tutorials/hello-world) - Basic WebUI app
+- [Hello World Tutorial](/tutorials/hello-world) - Basic webhub app

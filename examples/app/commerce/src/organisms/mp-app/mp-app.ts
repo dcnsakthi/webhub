@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '@microsoft/webui-framework';
+import { webhubElement, observable } from '@microsoft/webhub-framework';
 
 import '#organisms/mp-navbar/mp-navbar.js';
 import '#organisms/mp-mobile-menu/mp-mobile-menu.js';
@@ -21,7 +21,7 @@ interface CartStateDetail {
   currentPath?: string;
 }
 
-export class MpApp extends WebUIElement {
+export class MpApp extends webhubElement {
   @observable currentPath!: string;
   @observable cartOpen!: string;
   @observable cartHref!: string;

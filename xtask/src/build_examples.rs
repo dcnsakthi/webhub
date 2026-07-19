@@ -181,8 +181,8 @@ pub fn run_example_builds() -> Result<(), String> {
 /// check is a no-op and adds no cost.
 fn ensure_example_wasm() -> Result<(), String> {
     let handler_dir = Path::new(crate::build_wasm::WASM_OUTPUT_DIR).join("handler");
-    let js = handler_dir.join("webui_wasm_handler.js");
-    let wasm = handler_dir.join("webui_wasm_handler_bg.wasm");
+    let js = handler_dir.join("webhub_wasm_handler.js");
+    let wasm = handler_dir.join("webhub_wasm_handler_bg.wasm");
     if js.is_file() && wasm.is_file() {
         return Ok(());
     }

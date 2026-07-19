@@ -13,9 +13,9 @@ const CARGO_XWIN_VERSION: &str = "0.23.0";
 const PROFILE: &str = "release";
 const XWIN_CACHE_DIR: &str = "target/xwin-cache";
 const NATIVE_PACKAGES: &[&str] = &[
-    "microsoft-webui-cli",
-    "microsoft-webui-ffi",
-    "microsoft-webui-node",
+    "microsoft-webhub-cli",
+    "microsoft-webhub-ffi",
+    "microsoft-webhub-node",
 ];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -31,16 +31,16 @@ const WINDOWS_TARGETS: &[WindowsTarget] = &[
     WindowsTarget {
         selector: "x64",
         triple: "x86_64-pc-windows-msvc",
-        npm_package: "webui-win32-x64",
+        npm_package: "webhub-win32-x64",
         nuget_rid: "win-x64",
-        native_binary: "webui-win32-x64.exe",
+        native_binary: "webhub-win32-x64.exe",
     },
     WindowsTarget {
         selector: "arm64",
         triple: "aarch64-pc-windows-msvc",
-        npm_package: "webui-win32-arm64",
+        npm_package: "webhub-win32-arm64",
         nuget_rid: "win-arm64",
-        native_binary: "webui-win32-arm64.exe",
+        native_binary: "webhub-win32-arm64.exe",
     },
 ];
 
@@ -355,15 +355,15 @@ fn expected_artifacts(root: &Path, target: &WindowsTarget) -> Vec<PathBuf> {
         root.join("packages")
             .join(target.npm_package)
             .join("bin")
-            .join("webui.exe"),
+            .join("webhub.exe"),
         root.join("packages")
             .join(target.npm_package)
-            .join("webui.node"),
+            .join("webhub.node"),
         root.join("dotnet")
             .join("runtimes")
             .join(target.nuget_rid)
             .join("native")
-            .join("webui_ffi.dll"),
+            .join("webhub_ffi.dll"),
     ])
 }
 
@@ -477,11 +477,11 @@ mod tests {
                 "--target",
                 "x86_64-pc-windows-msvc",
                 "-p",
-                "microsoft-webui-cli",
+                "microsoft-webhub-cli",
                 "-p",
-                "microsoft-webui-ffi",
+                "microsoft-webhub-ffi",
                 "-p",
-                "microsoft-webui-node",
+                "microsoft-webhub-node",
             ]
         );
     }
@@ -499,10 +499,10 @@ mod tests {
         assert_eq!(
             artifacts,
             Vec::from([
-                PathBuf::from("/repo/publish/native/webui-win32-arm64.exe"),
-                PathBuf::from("/repo/packages/webui-win32-arm64/bin/webui.exe"),
-                PathBuf::from("/repo/packages/webui-win32-arm64/webui.node"),
-                PathBuf::from("/repo/dotnet/runtimes/win-arm64/native/webui_ffi.dll"),
+                PathBuf::from("/repo/publish/native/webhub-win32-arm64.exe"),
+                PathBuf::from("/repo/packages/webhub-win32-arm64/bin/webhub.exe"),
+                PathBuf::from("/repo/packages/webhub-win32-arm64/webhub.node"),
+                PathBuf::from("/repo/dotnet/runtimes/win-arm64/native/webhub_ffi.dll"),
             ])
         );
     }

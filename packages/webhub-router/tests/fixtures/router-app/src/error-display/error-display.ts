@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '@microsoft/webui-framework';
+import { webhubElement, observable } from '@microsoft/webhub-framework';
 
-export class ErrorDisplay extends WebUIElement {
+export class ErrorDisplay extends webhubElement {
   @observable errorMessage = '';
   @observable errorPath = '';
 

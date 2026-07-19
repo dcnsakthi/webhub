@@ -5,16 +5,16 @@
   "private": true,
   "scripts": {
     "build": "pnpm run build:protocol && pnpm run build:client",
-    "build:protocol": "cargo run -p microsoft-webui-cli -- build ./src --out ./dist",
+    "build:protocol": "cargo run -p microsoft-webhub-cli -- build ./src --out ./dist",
     "build:client": "esbuild src/index.ts --bundle --outfile=dist/index.js --format=esm --sourcemap",
     "start:client": "esbuild src/index.ts --bundle --outfile=dist/index.js --format=esm --sourcemap --watch",
-    "start:server": "cargo run -p microsoft-webui-cli -- serve ./src --state ./data/state.json --theme=@microsoft/webui-examples-theme --servedir ./dist --port 3000 --watch",
+    "start:server": "cargo run -p microsoft-webhub-cli -- serve ./src --state ./data/state.json --theme=@microsoft/webhub-examples-theme --servedir ./dist --port 3000 --watch",
     "start": "cargo xtask dev hello-world",
     "test": "playwright test",
     "test:update-snapshots": "playwright test --update-snapshots"
   },
   "devDependencies": {
-    "@microsoft/webui-examples-theme": "workspace:*",
+    "@microsoft/webhub-examples-theme": "workspace:*",
     "@playwright/test": "catalog:",
     "esbuild": "catalog:",
     "typescript": "catalog:"

@@ -1,15 +1,15 @@
 # Components
 
-Components are the building blocks of WebUI applications. They leverage the native [Web Components](https://developer.mozilla.org/en-US/docs/Web/API/Web_components) standard to provide encapsulated, reusable UI elements with efficient server-side rendering.
+Components are the building blocks of webhub applications. They leverage the native [Web Components](https://developer.mozilla.org/en-US/docs/Web/API/Web_components) standard to provide encapsulated, reusable UI elements with efficient server-side rendering.
 
 ## Component Discovery
 
-WebUI uses a component discovery system that automatically scans and registers components at build time:
+webhub uses a component discovery system that automatically scans and registers components at build time:
 
 1. The framework scans specified directories for component files
 2. It identifies HTML files with hyphenated names as components
 3. It associates matching CSS and JS files with their components
-4. The discovered components are compiled into the WebUI protocol
+4. The discovered components are compiled into the webhub protocol
 
 ### Component File Structure
 
@@ -61,7 +61,7 @@ When you include the `<template>` tag, the framework uses yours instead of auto-
 
 ## How Components Work
 
-When WebUI discovers components:
+When webhub discovers components:
 
 1. **Build Time**:
    - The component's HTML is parsed and tokenized
@@ -136,12 +136,12 @@ example we have `profile-page.html`, `user-card.html`, and `admin-controls.html`
 ## Component TypeScript Classes
 
 Interactive components have a TypeScript class that defines their behavior.
-The class extends `WebUIElement` from `@microsoft/webui-framework`:
+The class extends `webhubElement` from `@microsoft/webhub-framework`:
 
 ```typescript
-import { WebUIElement, attr, observable } from '@microsoft/webui-framework';
+import { webhubElement, attr, observable } from '@microsoft/webhub-framework';
 
-export class UserCard extends WebUIElement {
+export class UserCard extends webhubElement {
   @attr name = '';
   @attr email = '';
   @observable isExpanded = false;
@@ -165,7 +165,7 @@ user-card/
 
 ### Separation of Concerns
 
-WebUI intentionally keeps HTML, CSS, and TypeScript in separate files:
+webhub intentionally keeps HTML, CSS, and TypeScript in separate files:
 
 - **HTML** defines structure and data bindings (`{{expr}}`, `<if>`, `<for>`)
 - **CSS** defines visual presentation (scoped via Shadow DOM)
@@ -179,7 +179,7 @@ For the full interactivity guide, see [Interactivity](/guide/concepts/interactiv
 
 ## External Component Sources
 
-In addition to discovering components in your app directory, WebUI can load components from **npm packages** and **local paths** using the `--components` CLI flag.
+In addition to discovering components in your app directory, webhub can load components from **npm packages** and **local paths** using the `--components` CLI flag.
 
 ### npm Packages
 
@@ -187,7 +187,7 @@ Components published as npm packages can be discovered automatically. The packag
 
 1. Be installed via npm, pnpm, or yarn (present in `node_modules/`)
 2. Include a `package.json` with:
-   - `exports["./template-webui.html"]` - the component's HTML template
+   - `exports["./template-webhub.html"]` - the component's HTML template
    - `exports["./styles.css"]` - the component's CSS (optional)
    - `customElements` - path to a [Custom Elements Manifest](https://github.com/webcomponents/custom-elements-manifest) JSON file
 
@@ -215,17 +215,17 @@ The Custom Elements Manifest provides the component's tag name:
   "version": "1.0.0",
   "customElements": "./custom-elements.json",
   "exports": {
-    "./template-webui.html": "./dist/template-webui.html",
+    "./template-webhub.html": "./dist/template-webhub.html",
     "./styles.css": "./dist/styles.css"
   }
 }
 ```
 
-**Scoped packages:** When you pass a bare scope like `@reactive-ui`, all sub-packages under `node_modules/@reactive-ui/` are discovered and each is checked for WebUI component exports.
+**Scoped packages:** When you pass a bare scope like `@reactive-ui`, all sub-packages under `node_modules/@reactive-ui/` are discovered and each is checked for webhub component exports.
 
 Packages that also expose a root JavaScript entry (`exports["."]`, `main`,
 `module`, or `browser`) are treated as authored custom-element packages. Packages
-with only WebUI template/style exports are treated as HTML-only component
+with only webhub template/style exports are treated as HTML-only component
 libraries; dynamic bindings render on the server and remain inactive until the
 framework needs them.
 
@@ -234,7 +234,7 @@ framework needs them.
 You can also point to directories outside your app folder:
 
 ```bash
-webui build ./my-app --out ./dist --components ./shared/components
+webhub build ./my-app --out ./dist --components ./shared/components
 ```
 
 Local path discovery works identically to app directory scanning - HTML files with
@@ -243,6 +243,6 @@ and a sibling `.ts` or `.js` file marks that component as authored/interactive.
 
 ### Caching
 
-npm package discovery results are cached at `~/.webui/cache/components/`. The cache invalidates automatically when a package's `package.json` content changes. Local path sources are always re-scanned.
+npm package discovery results are cached at `~/.webhub/cache/components/`. The cache invalidates automatically when a package's `package.json` content changes. Local path sources are always re-scanned.
 
 See the [CLI Reference](/guide/cli/) for full `--components` usage.

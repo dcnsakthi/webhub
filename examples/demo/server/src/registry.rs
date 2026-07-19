@@ -60,7 +60,7 @@ pub(crate) struct AppEntry {
 /// Pre-computed runtime configuration derived from the `demo.toml`.
 #[derive(Debug, Clone)]
 pub(crate) enum AppRunConfig {
-    WebuiCli {
+    webhubCli {
         plugin: String,
         source: String,
         servedir: String,
@@ -77,7 +77,7 @@ impl AppEntry {
     /// GitHub source URL for this app.
     pub fn source_url(&self) -> String {
         format!(
-            "https://github.com/microsoft/webui/tree/main/examples/app/{}",
+            "https://github.com/microsoft/webhub/tree/main/examples/app/{}",
             self.slug
         )
     }
@@ -122,8 +122,8 @@ pub(crate) fn discover(apps_dir: &Path, base_port: u16) -> anyhow::Result<Vec<Ap
         let api_port = config.api.as_ref().map(|a| port + a.port_offset);
 
         let run_config = match config.server.server_type.as_str() {
-            "webui-cli" => AppRunConfig::WebuiCli {
-                plugin: config.server.plugin.unwrap_or_else(|| "webui".to_string()),
+            "webhub-cli" => AppRunConfig::webhubCli {
+                plugin: config.server.plugin.unwrap_or_else(|| "webhub".to_string()),
                 source: config.server.source.unwrap_or_else(|| "src".to_string()),
                 servedir: config.server.servedir.unwrap_or_else(|| "dist".to_string()),
                 state: config.server.state,

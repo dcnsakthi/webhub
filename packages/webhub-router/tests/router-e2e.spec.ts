@@ -4,8 +4,8 @@
 /**
  * Router E2E tests — browser-level routing behaviors.
  *
- * These tests exercise the WebUI Router in a real browser against a
- * multi-route fixture app served by the WebUI CLI.  They focus on
+ * These tests exercise the webhub Router in a real browser against a
+ * multi-route fixture app served by the webhub CLI.  They focus on
  * behaviors that unit tests cannot cover:
  *
  * - Browser back/forward history navigation
@@ -215,7 +215,7 @@ test.describe('query parameter passing', () => {
     // Listen for the navigated event
     const queryPromise = page.evaluate(() => {
       return new Promise<Record<string, string>>((resolve) => {
-        window.addEventListener('webui:route:navigated', ((e: CustomEvent) => {
+        window.addEventListener('webhub:route:navigated', ((e: CustomEvent) => {
           resolve(e.detail.query);
         }) as EventListener, { once: true });
       });
@@ -275,7 +275,7 @@ test.describe('query parameter passing', () => {
 
     const queryPromise = page.evaluate(() => {
       return new Promise<Record<string, string>>((resolve) => {
-        window.addEventListener('webui:route:navigated', ((e: CustomEvent) => {
+        window.addEventListener('webhub:route:navigated', ((e: CustomEvent) => {
           resolve(e.detail.query);
         }) as EventListener, { once: true });
       });
@@ -301,7 +301,7 @@ test.describe('ensureLoaded — non-route components', () => {
 
     // test-dialog is NOT in the route tree and NOT eagerly imported
     const beforeLoad = await page.evaluate(() => {
-      return !!window.__webui?.templates?.['test-dialog'];
+      return !!window.__webhub?.templates?.['test-dialog'];
     });
     // Template may or may not be pre-registered from SSR build discovery,
     // but the component class should NOT be defined yet
@@ -310,11 +310,11 @@ test.describe('ensureLoaded — non-route components', () => {
     });
     expect(definedBefore).toBe(false);
 
-    // Call ensureLoaded — should fetch template from /_webui/templates
+    // Call ensureLoaded — should fetch template from /_webhub/templates
     const result = await page.evaluate(async () => {
       const router = (window as any).__testRouter;
       await router.ensureLoaded('test-dialog');
-      return !!window.__webui?.templates?.['test-dialog'];
+      return !!window.__webhub?.templates?.['test-dialog'];
     });
     expect(result).toBe(true);
   });
@@ -357,8 +357,8 @@ test.describe('ensureLoaded — non-route components', () => {
       const router = (window as any).__testRouter;
       await router.ensureLoaded('test-dialog', 'page-alpha');
       return {
-        dialog: !!window.__webui?.templates?.['test-dialog'],
-        alpha: !!window.__webui?.templates?.['page-alpha'],
+        dialog: !!window.__webhub?.templates?.['test-dialog'],
+        alpha: !!window.__webhub?.templates?.['page-alpha'],
       };
     });
     expect(result.dialog).toBe(true);

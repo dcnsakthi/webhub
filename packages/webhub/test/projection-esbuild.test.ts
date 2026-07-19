@@ -18,14 +18,14 @@ import {
   esbuildProjection,
   hashContent,
   validateManifestSchema,
-} from "@microsoft/webui/projection.js";
+} from "@microsoft/webhub/projection.js";
 import type {
   ProjectionManifest,
-} from "@microsoft/webui/projection.js";
+} from "@microsoft/webhub/projection.js";
 
 const FRAMEWORK_ENTRY = path.resolve(
   "..",
-  "webui-framework",
+  "webhub-framework",
   "src",
   "index.ts"
 );
@@ -48,7 +48,7 @@ async function readManifest(
 ): Promise<ProjectionManifest> {
   return JSON.parse(
     await readFile(
-      path.join(root, outputDirectory, "webui-projection.json"),
+      path.join(root, outputDirectory, "webhub-projection.json"),
       "utf8"
     )
   ) as ProjectionManifest;
@@ -75,8 +75,8 @@ async function writeCardFixture(root: string): Promise<void> {
   await writeFile(
     path.join(root, "src", "card.ts"),
     `
-import { WebUIElement, observable, attr } from '@microsoft/webui-framework';
-class Card extends WebUIElement {
+import { webhubElement, observable, attr } from '@microsoft/webhub-framework';
+class Card extends webhubElement {
   @observable value = '';
   @attr({ attribute: 'display-value' }) displayValue = '';
 }
@@ -100,7 +100,7 @@ describe("esbuildProjection", () => {
       format: "esm",
       write: true,
       alias: {
-        "@microsoft/webui-framework": FRAMEWORK_ENTRY,
+        "@microsoft/webhub-framework": FRAMEWORK_ENTRY,
       },
       plugins: [esbuildProjection()],
     });
@@ -151,7 +151,7 @@ describe("esbuildProjection", () => {
       format: "esm",
       write: false,
       alias: {
-        "@microsoft/webui-framework": FRAMEWORK_ENTRY,
+        "@microsoft/webhub-framework": FRAMEWORK_ENTRY,
       },
       plugins: [esbuildProjection()],
     });
@@ -178,15 +178,15 @@ describe("esbuildProjection", () => {
       path.join(root, "src", "fake-framework.ts"),
       `
 export function observable(): void {}
-export class WebUIElement {}
+export class webhubElement {}
 `
     );
     await writeFile(
       path.join(root, "src", "entry.ts"),
       `
-import { observable, WebUIElement } from '@microsoft/webui-framework';
-class NotWebUI extends WebUIElement { @observable value = ''; }
-NotWebUI.define('not-webui-card');
+import { observable, webhubElement } from '@microsoft/webhub-framework';
+class Notwebhub extends webhubElement { @observable value = ''; }
+Notwebhub.define('not-webhub-card');
 `
     );
 
@@ -197,7 +197,7 @@ NotWebUI.define('not-webui-card');
       bundle: true,
       write: true,
       alias: {
-        "@microsoft/webui-framework": path.join(
+        "@microsoft/webhub-framework": path.join(
           root,
           "src",
           "fake-framework.ts"
@@ -221,7 +221,7 @@ NotWebUI.define('not-webui-card');
       bundle: true,
       write: true,
       alias: {
-        "@microsoft/webui-framework": FRAMEWORK_ENTRY,
+        "@microsoft/webhub-framework": FRAMEWORK_ENTRY,
       },
       plugins: [esbuildProjection()],
     };
@@ -230,15 +230,15 @@ NotWebUI.define('not-webui-card');
     const manifestPath = path.join(
       root,
       "dist",
-      "webui-projection.json"
+      "webhub-projection.json"
     );
     const before = await readFile(manifestPath, "utf8");
     await writeFile(
       path.join(root, "src", "card.ts"),
       `
-import { WebUIElement } from '@microsoft/webui-framework';
+import { webhubElement } from '@microsoft/webhub-framework';
 const tag = 'probe-card';
-class Card extends WebUIElement {}
+class Card extends webhubElement {}
 Card.define(tag);
 `
     );
@@ -267,8 +267,8 @@ Card.define(tag);
     await writeFile(
       path.join(root, "src", "shared-card.ts"),
       `
-import { WebUIElement, observable } from '@microsoft/webui-framework';
-export class SharedCard extends WebUIElement { @observable value = ''; }
+import { webhubElement, observable } from '@microsoft/webhub-framework';
+export class SharedCard extends webhubElement { @observable value = ''; }
 SharedCard.define('shared-card');
 `
     );
@@ -292,11 +292,11 @@ SharedCard.define('shared-card');
       bundle: true,
       write: true,
       alias: {
-        "@microsoft/webui-framework": FRAMEWORK_ENTRY,
+        "@microsoft/webhub-framework": FRAMEWORK_ENTRY,
       },
       plugins: [
         esbuildProjection({
-          manifest: "shared-dist/webui-projection.json",
+          manifest: "shared-dist/webhub-projection.json",
         }),
       ],
     });

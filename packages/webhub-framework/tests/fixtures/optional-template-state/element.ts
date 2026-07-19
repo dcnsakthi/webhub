@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
 /**
  * Test component for optional template state.
@@ -10,7 +10,7 @@ import { WebUIElement, observable } from '../../../src/index.js';
  * Other template values in the fixture are intentionally omitted from the class
  * to prove `@observable` / `@attr` are not required for template-only bindings.
  */
-export class TestOptionalState extends WebUIElement {
+export class TestOptionalState extends webhubElement {
   @observable selected = 'off';
 
   toggle(): void {
@@ -27,7 +27,7 @@ TestOptionalState.define('test-optional-state');
  * direct assignment when the child template does not read the property itself,
  * otherwise authored non-observable APIs silently miss parent data.
  */
-export class TestNonobservableChild extends WebUIElement {
+export class TestNonobservableChild extends webhubElement {
   set payload(value: { label?: string }) {
     this.setAttribute('data-payload-label', value.label ?? '');
   }

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! WebAssembly bindings for the WebUI framework.
+//! WebAssembly bindings for the webhub framework.
 //!
 //! This crate can be built as three WASM variants:
 //! - **handler** - render pre-built protocol bytes with state.
@@ -11,7 +11,7 @@
 mod error;
 
 #[cfg(all(not(feature = "handler"), not(feature = "parser")))]
-compile_error!("microsoft-webui-wasm requires at least one of the `handler` or `parser` features");
+compile_error!("microsoft-webhub-wasm requires at least one of the `handler` or `parser` features");
 
 #[cfg(feature = "handler")]
 mod handler;
@@ -28,7 +28,7 @@ mod tests {
     use super::*;
     use crate::error::WasmError;
     use std::collections::HashMap;
-    use webui_protocol::WebUIProtocol;
+    use webhub_protocol::webhubProtocol;
 
     fn render_files_for_test(
         files: &HashMap<String, String>,
@@ -48,8 +48,8 @@ mod tests {
             "<h1>Hello, {{name}}!</h1>".to_string(),
         );
 
-        let result = render_files_for_test(&files, r#"{"name": "WebUI"}"#, "index.html", "/");
-        assert_eq!(result.unwrap(), "<h1>Hello, WebUI!</h1>");
+        let result = render_files_for_test(&files, r#"{"name": "webhub"}"#, "index.html", "/");
+        assert_eq!(result.unwrap(), "<h1>Hello, webhub!</h1>");
     }
 
     #[test]
@@ -233,9 +233,9 @@ mod tests {
 
     #[test]
     fn test_protocol_tokens_empty() {
-        let protocol = WebUIProtocol::new(HashMap::new());
+        let protocol = webhubProtocol::new(HashMap::new());
         let bytes = protocol.to_protobuf().unwrap();
-        let decoded = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let decoded = webhubProtocol::from_protobuf(&bytes).unwrap();
         assert!(decoded.tokens.is_empty());
     }
 
@@ -245,18 +245,18 @@ mod tests {
             "colorBrandBackground".to_string(),
             "fontSizeBase300".to_string(),
         ];
-        let protocol = WebUIProtocol::with_tokens(HashMap::new(), tokens.clone());
+        let protocol = webhubProtocol::with_tokens(HashMap::new(), tokens.clone());
         let bytes = protocol.to_protobuf().unwrap();
-        let decoded = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let decoded = webhubProtocol::from_protobuf(&bytes).unwrap();
         assert_eq!(decoded.tokens, tokens);
     }
 
     #[test]
     fn test_protocol_tokens_preserves_order() {
         let tokens = vec!["zeta".to_string(), "alpha".to_string(), "zeta".to_string()];
-        let protocol = WebUIProtocol::with_tokens(HashMap::new(), tokens.clone());
+        let protocol = webhubProtocol::with_tokens(HashMap::new(), tokens.clone());
         let bytes = protocol.to_protobuf().unwrap();
-        let decoded = WebUIProtocol::from_protobuf(&bytes).unwrap();
+        let decoded = webhubProtocol::from_protobuf(&bytes).unwrap();
         assert_eq!(decoded.tokens, tokens);
     }
 }

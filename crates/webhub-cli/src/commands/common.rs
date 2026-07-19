@@ -4,11 +4,11 @@
 use anyhow::{Context, Result};
 use clap::Args;
 use std::path::{Path, PathBuf};
-pub use webui::CssStrategy;
-pub use webui::DomStrategy;
-pub use webui::LegalComments;
-pub use webui::Plugin;
-pub use webui::DEFAULT_ASSET_FILE_NAME_TEMPLATE;
+pub use webhub::CssStrategy;
+pub use webhub::DomStrategy;
+pub use webhub::LegalComments;
+pub use webhub::Plugin;
+pub use webhub::DEFAULT_ASSET_FILE_NAME_TEMPLATE;
 
 /// Shared CLI arguments used by both `build` and `serve` commands.
 #[derive(Args, Clone)]
@@ -56,8 +56,8 @@ pub struct AppArgs {
 
 impl AppArgs {
     /// Convert CLI arguments into library `BuildOptions`.
-    pub fn to_build_options(&self, app_dir: &std::path::Path) -> webui::BuildOptions {
-        webui::BuildOptions {
+    pub fn to_build_options(&self, app_dir: &std::path::Path) -> webhub::BuildOptions {
+        webhub::BuildOptions {
             app_dir: app_dir.to_path_buf(),
             entry: self.entry.clone(),
             css: self.css,
@@ -80,10 +80,10 @@ impl AppArgs {
 }
 
 /// Load and resolve a theme file from a CLI `--theme` value.
-pub fn load_theme(theme: &str, search_root: &Path) -> Result<webui::TokenFile> {
-    let resolved = webui::resolve_theme_path(theme, search_root)
+pub fn load_theme(theme: &str, search_root: &Path) -> Result<webhub::TokenFile> {
+    let resolved = webhub::resolve_theme_path(theme, search_root)
         .with_context(|| format!("Failed to resolve theme: {theme}"))?;
-    webui::load_token_file(&resolved)
+    webhub::load_token_file(&resolved)
         .with_context(|| format!("Failed to load theme file: {}", resolved.display()))
 }
 
@@ -120,7 +120,7 @@ mod tests {
         assert_eq!(options.projection_manifests.len(), 2);
         assert!(matches!(
             &options.projection_manifests[0],
-            webui::ProjectionManifestSource::Path(path)
+            webhub::ProjectionManifestSource::Path(path)
                 if path == std::path::Path::new("app-projection.json")
         ));
     }

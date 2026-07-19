@@ -5,25 +5,25 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace Microsoft.WebUI;
+namespace Microsoft.webhub;
 
 /// <summary>
-/// Manages a WebUI handler instance for protocol-based rendering.
+/// Manages a webhub handler instance for protocol-based rendering.
 /// Use this for repeated renders with pre-compiled protocol data.
 /// <para>This type is thread-safe. The native handler creates per-render state
 /// internally, so concurrent renders do not contend.</para>
 /// </summary>
-public sealed class WebUIHandler : IDisposable
+public sealed class webhubHandler : IDisposable
 {
-    private readonly NativeBindings.WebUIHandlerSafeHandle _handle;
+    private readonly NativeBindings.webhubHandlerSafeHandle _handle;
     private volatile int _disposed;
 
     /// <summary>
-    /// Creates a new WebUI handler instance.
+    /// Creates a new webhub handler instance.
     /// </summary>
-    /// <param name="plugin">Optional plugin identifier. See the WebUI documentation for available plugin identifiers.</param>
-    /// <exception cref="WebUIException">Thrown when the native handler cannot be created.</exception>
-    public WebUIHandler(string? plugin = null)
+    /// <param name="plugin">Optional plugin identifier. See the webhub documentation for available plugin identifiers.</param>
+    /// <exception cref="webhubException">Thrown when the native handler cannot be created.</exception>
+    public webhubHandler(string? plugin = null)
     {
         string? normalizedPlugin = string.IsNullOrWhiteSpace(plugin) ? null : plugin.Trim();
 
@@ -31,16 +31,16 @@ public sealed class WebUIHandler : IDisposable
 
         if (_handle.IsInvalid)
         {
-            string error = NativeBindings.GetLastError() ?? "Failed to create WebUI handler.";
+            string error = NativeBindings.GetLastError() ?? "Failed to create webhub handler.";
             _handle.Dispose();
-            throw new WebUIException(error);
+            throw new webhubException(error);
         }
     }
 
     /// <summary>
     /// Renders a loaded protocol with the specified state, entry, and request path.
-    /// <para>When the handler was created with the <c>webui</c> plugin, the state seeded
-    /// into the emitted <c>#webui-data</c> bootstrap block is projected down to the
+    /// <para>When the handler was created with the <c>webhub</c> plugin, the state seeded
+    /// into the emitted <c>#webhub-data</c> bootstrap block is projected down to the
     /// hydration keys for components reachable on the active request route. Projection
     /// reduces response work and bytes; it is not a secrecy boundary.</para>
     /// </summary>
@@ -52,7 +52,7 @@ public sealed class WebUIHandler : IDisposable
     /// <exception cref="ObjectDisposedException">
     /// Thrown when the handler or protocol has been disposed.
     /// </exception>
-    /// <exception cref="WebUIException">Thrown when rendering fails.</exception>
+    /// <exception cref="webhubException">Thrown when rendering fails.</exception>
     public string Render(
         Protocol protocol,
         string stateJson,
@@ -65,7 +65,7 @@ public sealed class WebUIHandler : IDisposable
         ArgumentNullException.ThrowIfNull(entryId);
         ArgumentNullException.ThrowIfNull(requestPath);
 
-        IntPtr resultPtr = NativeBindings.webui_handler_render(
+        IntPtr resultPtr = NativeBindings.webhub_handler_render(
             _handle,
             protocol.Handle,
             stateJson,
@@ -75,7 +75,7 @@ public sealed class WebUIHandler : IDisposable
         if (resultPtr == IntPtr.Zero)
         {
             string error = NativeBindings.GetLastError() ?? "Render failed.";
-            throw new WebUIException(error);
+            throw new webhubException(error);
         }
 
         return NativeBindings.ReadAndFreeString(resultPtr)!;

@@ -1,6 +1,6 @@
-# WebUI Benchmark Suite
+# webhub Benchmark Suite
 
-WebUI ships a layered benchmark suite for measuring SSR rendering
+webhub ships a layered benchmark suite for measuring SSR rendering
 performance. Each layer answers a different question, so a thorough
 performance investigation runs **multiple** benches before & after a
 change and compares.
@@ -12,7 +12,7 @@ how to compare results.
 
 | Bench | Layer | Wall time | What it measures | Use when |
 |---|---|---|---|---|
-| `cargo xtask bench all` | criterion micro | ~5 min | per-fn wall-clock for parser, handler, protocol, expressions, state, webui (incl. streaming + contact-book) | full snapshot of every micro-bench |
+| `cargo xtask bench all` | criterion micro | ~5 min | per-fn wall-clock for parser, handler, protocol, expressions, state, webhub (incl. streaming + contact-book) | full snapshot of every micro-bench |
 | `cargo xtask bench streaming` | criterion micro | ~60 s | writer-path wall-clock + first-chunk TTFB | inner-loop iteration on the streaming module |
 | `cargo xtask bench contact-book` | criterion micro | ~90 s | end-to-end render at 10/100/1000 contacts | inner-loop iteration on handler/state/expressions |
 | `cargo xtask bench streaming-resource` | example | ~30 s | exact alloc count + bytes + getrusage CPU + RSS | proving zero-alloc claims; allocation regression hunting |
@@ -62,13 +62,13 @@ improvement; positive = regression.
 
 Standard criterion harnesses. Each crate has its own `benches/` dir:
 
-* `crates/webui-parser/benches/parser_bench.rs`
-* `crates/webui-protocol/benches/protocol_bench.rs`
-* `crates/webui-handler/benches/handler_bench.rs`
-* `crates/webui-expressions/benches/expressions_bench.rs`
-* `crates/webui-state/benches/state_bench.rs`
-* `crates/webui/benches/contact_book_bench.rs` — end-to-end render
-* `crates/webui/benches/streaming_bench.rs` — writer-path wall-clock + TTFB
+* `crates/webhub-parser/benches/parser_bench.rs`
+* `crates/webhub-protocol/benches/protocol_bench.rs`
+* `crates/webhub-handler/benches/handler_bench.rs`
+* `crates/webhub-expressions/benches/expressions_bench.rs`
+* `crates/webhub-state/benches/state_bench.rs`
+* `crates/webhub/benches/contact_book_bench.rs` — end-to-end render
+* `crates/webhub/benches/streaming_bench.rs` — writer-path wall-clock + TTFB
 
 These integrate with criterion's HTML reports
 (`target/criterion/report/index.html`) and native baseline support
@@ -78,7 +78,7 @@ bench` invocation details.
 
 ### `streaming-resource` (counting allocator + getrusage)
 
-`crates/webui/examples/streaming_resource_bench.rs` installs a custom
+`crates/webhub/examples/streaming_resource_bench.rs` installs a custom
 `GlobalAlloc` that exact-counts every `alloc`/`realloc` call. Why an
 example, not a criterion bench? Criterion's harness allocates during
 its sampling loop, which would pollute a counting allocator. Examples
@@ -98,7 +98,7 @@ claims and to detect allocation-pressure regressions.
 
 ### `streaming-e2e-ttfb` (HTTP-level)
 
-`crates/webui/examples/streaming_e2e_ttfb_bench.rs` spawns a real
+`crates/webhub/examples/streaming_e2e_ttfb_bench.rs` spawns a real
 actix-web server with `/buf` and `/stream` endpoints, then drives
 both with the `awc` HTTP client. Reports min/p50/p99 for both TTFB
 (time to first byte) and TTLB (time to last byte) at four
@@ -132,7 +132,7 @@ implementation.
 
 ## Recommended PR workflow
 
-For any change touching `crates/webui/src/streaming.rs` or its
+For any change touching `crates/webhub/src/streaming.rs` or its
 callers:
 
 ```bash

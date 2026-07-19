@@ -1,11 +1,11 @@
 ---
-name: webui-dev
-description: Build interactive WebUI apps with compiled-template hydration, template syntax, component patterns, and CLI usage.
+name: webhub-dev
+description: Build interactive webhub apps with compiled-template hydration, template syntax, component patterns, and CLI usage.
 ---
 
-# WebUI App Development
+# webhub App Development
 
-Use this skill when building or modifying WebUI applications.
+Use this skill when building or modifying webhub applications.
 
 ## Critical rules (memorize these)
 
@@ -21,9 +21,9 @@ Use this skill when building or modifying WebUI applications.
 ## Quick reference
 
 ```typescript
-import { WebUIElement, attr, observable } from '@microsoft/webui-framework';
+import { webhubElement, attr, observable } from '@microsoft/webhub-framework';
 
-export class MyComponent extends WebUIElement {
+export class MyComponent extends webhubElement {
   @attr label = '';
   @attr({ mode: 'boolean' }) disabled = false;
   @observable count = 0;
@@ -37,8 +37,8 @@ MyComponent.define('my-component');
 ```
 
 ```bash
-webui build ./src --out ./dist --plugin=webui
-webui serve ./src --state ./data/state.json --plugin=webui --watch
+webhub build ./src --out ./dist --plugin=webhub
+webhub serve ./src --state ./data/state.json --plugin=webhub --watch
 ```
 
 ## Full reference
@@ -47,4 +47,4 @@ The complete guide covering all template syntax, CLI flags, patterns, anti-patte
 
 📖 **[docs/guide/ai.md](/docs/guide/ai.md)**
 
-Read that file before generating any WebUI code.
+Read that file before generating any webhub code.

@@ -1,6 +1,6 @@
 [package]
-name = "microsoft-webui-parser"
-description = "Core parser for WebUI framework"
+name = "microsoft-webhub-parser"
+description = "Core parser for webhub framework"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -8,11 +8,11 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 readme = "README.md"
-keywords = ["webui", "parser", "html", "templates", "ssr"]
+keywords = ["webhub", "parser", "html", "templates", "ssr"]
 categories = ["parser-implementations", "template-engine", "web-programming"]
 
 [lib]
-name = "webui_parser"
+name = "webhub_parser"
 
 [features]
 default = ["fs"]
@@ -26,8 +26,8 @@ cli = ["clap"]
 ignored = ["clap"]
 
 [dependencies]
-microsoft-webui-protocol = { path = "../webui-protocol", version = "0.0.18" }
-microsoft-webui-tokens = { path = "../webui-tokens", version = "0.0.18" }
+microsoft-webhub-protocol = { path = "../webhub-protocol", version = "0.0.18" }
+microsoft-webhub-tokens = { path = "../webhub-tokens", version = "0.0.18" }
 thiserror = { workspace = true }
 html-escape = { workspace = true }
 walkdir = { workspace = true, optional = true }
@@ -35,7 +35,7 @@ clap = { workspace = true, optional = true }
 sha2 = { workspace = true }
 
 [dev-dependencies]
-microsoft-webui-test-utils = { path = "../webui-test-utils", version = "0.0.18" }
+microsoft-webhub-test-utils = { path = "../webhub-test-utils", version = "0.0.18" }
 criterion = { workspace = true }
 
 [[bench]]

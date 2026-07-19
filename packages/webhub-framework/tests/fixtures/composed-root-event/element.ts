@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable, attr } from '../../../src/index.js';
+import { webhubElement, observable, attr } from '../../../src/index.js';
 
 // Grandchild — emits a composed custom event.
-export class TestChild extends WebUIElement {
+export class TestChild extends webhubElement {
   @attr itemId = '';
 
   onSelect(): void {
@@ -14,11 +14,11 @@ export class TestChild extends WebUIElement {
 TestChild.define('test-child');
 
 // Intermediary — just wraps children, no event handling.
-export class TestParent extends WebUIElement {}
+export class TestParent extends webhubElement {}
 TestParent.define('test-parent');
 
 // Grandparent — listens for composed event via @item-selected on <template>.
-export class TestGrandparent extends WebUIElement {
+export class TestGrandparent extends webhubElement {
   @observable selectedItem = 'none';
 
   onItemSelected(e: CustomEvent<{ id: string }>): void {

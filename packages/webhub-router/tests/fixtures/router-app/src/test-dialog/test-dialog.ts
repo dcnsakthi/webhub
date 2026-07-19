@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '@microsoft/webui-framework';
+import { webhubElement, observable } from '@microsoft/webhub-framework';
 
-export class TestDialog extends WebUIElement {
+export class TestDialog extends webhubElement {
   @observable message = 'Hello from dialog';
 
   onClose(): void {

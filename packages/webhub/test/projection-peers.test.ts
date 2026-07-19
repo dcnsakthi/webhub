@@ -15,7 +15,7 @@ import { pathToFileURL } from "node:url";
 import { describe, test } from "node:test";
 import {
   esbuildProjection,
-} from "@microsoft/webui/projection.js";
+} from "@microsoft/webhub/projection.js";
 import type {
   OnStartResult,
   PluginBuild,
@@ -24,7 +24,7 @@ import type {
 describe("projection optional peers", () => {
   test("reports PROJ-P001 when TypeScript is absent", async () => {
     const root = await mkdtemp(
-      path.join(tmpdir(), "webui-projection-no-typescript-")
+      path.join(tmpdir(), "webhub-projection-no-typescript-")
     );
     try {
       await cp(

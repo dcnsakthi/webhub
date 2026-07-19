@@ -7,8 +7,8 @@ use bytes::Bytes;
 use serde_json::Value;
 use std::time::Duration;
 use tokio_stream::StreamExt;
-use webui::streaming::StreamingWriter;
-use webui_handler::ResponseWriter;
+use webhub::streaming::StreamingWriter;
+use webhub_handler::ResponseWriter;
 
 use crate::app::AppState;
 use crate::cart::{self, build_cart_state, clear_cookie, cookie_for_cart};
@@ -32,7 +32,7 @@ struct StreamingHtmlOptions {
     page_state: Value,
     nonce: String,
     head_inject: String,
-    chunk_pool: std::sync::Arc<webui::streaming::ChunkPool>,
+    chunk_pool: std::sync::Arc<webhub::streaming::ChunkPool>,
 }
 
 pub(crate) fn configure_app(cfg: &mut web::ServiceConfig) {
@@ -264,7 +264,7 @@ fn streaming_html_response(
             // attacker-controlled error message cannot break out of
             // the comment via `-->`.
             log::error!("render failed for {route_path_for_log}: {e}");
-            let _ = ResponseWriter::write(&mut writer, "<!-- webui: render error -->");
+            let _ = ResponseWriter::write(&mut writer, "<!-- webhub: render error -->");
         }
         // `end()` surfaces the typed error from the final flush;
         // log a truncated stream at debug so it's visible to ops
@@ -288,15 +288,15 @@ fn build_head_preload_tags(image_urls: &[String]) -> String {
     let capacity = 80 + image_urls.len() * 120;
     let mut buf = String::with_capacity(capacity);
 
-    buf.push_str(r#"<link rel="modulepreload" href="index.js" data-webui-ssr-preload="script">"#);
+    buf.push_str(r#"<link rel="modulepreload" href="index.js" data-webhub-ssr-preload="script">"#);
 
     for (i, url) in image_urls.iter().enumerate() {
         buf.push_str(r#"<link rel="preload" as="image" href=""#);
         buf.push_str(url);
         if i == 0 {
-            buf.push_str(r#"" fetchpriority="high" data-webui-ssr-preload="image">"#);
+            buf.push_str(r#"" fetchpriority="high" data-webhub-ssr-preload="image">"#);
         } else {
-            buf.push_str(r#"" data-webui-ssr-preload="image">"#);
+            buf.push_str(r#"" data-webhub-ssr-preload="image">"#);
         }
     }
 
@@ -384,12 +384,12 @@ mod tests {
         // CSS preloads are now emitted by the framework (via protocol strategy
         // not the custom server. Verify the framework-emitted preload is present.
         assert!(
-            html.contains(r#"data-webui-ssr-preload="style""#),
-            "Framework should emit CSS preload with data-webui-ssr-preload: {html}"
+            html.contains(r#"data-webhub-ssr-preload="style""#),
+            "Framework should emit CSS preload with data-webhub-ssr-preload: {html}"
         );
         assert!(html.contains(r#"href="_image/t-shirt-1?w=640&q=75""#));
         assert!(
-            !html.contains(r#"\"data-webui-ssr-preload\""#),
+            !html.contains(r#"\"data-webhub-ssr-preload\""#),
             "server-only preload tags should not leak into serialized client state"
         );
     }
@@ -456,7 +456,7 @@ mod tests {
     async fn category_partial_in_module_mode_emits_authored_and_dormant_styles() {
         let app = test::init_service(
             App::new()
-                .app_data(test_state_with_css(webui::CssStrategy::Module))
+                .app_data(test_state_with_css(webhub::CssStrategy::Module))
                 .configure(configure_app),
         )
         .await;
@@ -521,7 +521,7 @@ mod tests {
 
     #[actix_web::test]
     async fn module_mode_about_page_includes_cart_panel_style() {
-        let state = test_state_with_css(webui::CssStrategy::Module);
+        let state = test_state_with_css(webhub::CssStrategy::Module);
         let app = test::init_service(App::new().app_data(state).configure(configure_app)).await;
 
         let request = TestRequest::with_uri("/about").to_request();

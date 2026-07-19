@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Design token loading, filtering, and CSS generation for WebUI.
+//! Design token loading, filtering, and CSS generation for webhub.
 //!
 //! Loads token values from JSON files, filters them against the protocol's token
 //! list, follows present transitive `var(--x)` dependencies for tokens in each
@@ -653,7 +653,7 @@ mod tests {
     #[test]
     fn load_file_with_schema_key() {
         let json = serde_json::json!({
-            "$schema": "https://webui.dev/schemas/tokens.json",
+            "$schema": "https://webhub.dev/schemas/tokens.json",
             "themes": {
                 "light": { "color-brand": "#0078d4" }
             }

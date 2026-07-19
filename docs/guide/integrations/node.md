@@ -1,6 +1,6 @@
-# WebUI Native Node Module Handler
+# webhub Native Node Module Handler
 
-The `@microsoft/webui` npm package provides high-performance server-side
+The `@microsoft/webhub` npm package provides high-performance server-side
 rendering for Node.js, Bun, and Deno. It uses a native addon with direct
 `Buffer` access, a buffered string path for normal rendering, and batched
 callbacks for streaming responses.
@@ -8,25 +8,25 @@ callbacks for streaming responses.
 ## Installation
 
 ```bash
-npm install @microsoft/webui
+npm install @microsoft/webhub
 ```
 
 ## Examples
 
-<webui-press-tabs>
-<webui-press-tab slot="tab" active>Node.js</webui-press-tab>
-<webui-press-tab slot="tab">Bun</webui-press-tab>
-<webui-press-tab slot="tab">Deno</webui-press-tab>
-<webui-press-tab-panel active>
+<webhub-press-tabs>
+<webhub-press-tab slot="tab" active>Node.js</webhub-press-tab>
+<webhub-press-tab slot="tab">Bun</webhub-press-tab>
+<webhub-press-tab slot="tab">Deno</webhub-press-tab>
+<webhub-press-tab-panel active>
 
 ```js
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
-import { Protocol } from '@microsoft/webui';
+import { Protocol } from '@microsoft/webhub';
 
 const protocol = new Protocol(
   readFileSync('./dist/protocol.bin'),
-  { plugin: 'webui' },
+  { plugin: 'webhub' },
 );
 
 const server = createServer((req, res) => {
@@ -42,11 +42,11 @@ const server = createServer((req, res) => {
 server.listen(3000);
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```ts
-import { Protocol } from '@microsoft/webui';
+import { Protocol } from '@microsoft/webhub';
 
 const protocol = Bun.file('./dist/protocol.bin');
 const protocolData = Buffer.from(await protocol.arrayBuffer());
@@ -67,11 +67,11 @@ Bun.serve({
 });
 ```
 
-</webui-press-tab-panel>
-<webui-press-tab-panel>
+</webhub-press-tab-panel>
+<webhub-press-tab-panel>
 
 ```ts
-import { Protocol } from '@microsoft/webui';
+import { Protocol } from '@microsoft/webhub';
 
 const protocol = Deno.readFileSync('./dist/protocol.bin');
 const protocolData = Buffer.from(protocol);
@@ -89,8 +89,8 @@ Deno.serve({ port: 3000 }, (req) => {
 });
 ```
 
-</webui-press-tab-panel>
-</webui-press-tabs>
+</webhub-press-tab-panel>
+</webhub-press-tabs>
 
 ## API Reference
 
@@ -127,7 +127,7 @@ server:
 ```js
 const protocol = new Protocol(
   readFileSync('./dist/protocol.bin'),
-  { plugin: 'webui' },
+  { plugin: 'webhub' },
 );
 
 const server = createServer((req, res) => {
@@ -159,7 +159,7 @@ handler write.
 | `dom` | `"shadow" \| "light"` | `"shadow"` | DOM strategy for component rendering |
 | `plugin` | `string` | - | Parser plugin name (see [Plugins](/guide/concepts/plugins/) for the available identifiers) |
 | `components` | `string[]` | - | External component sources |
-| `componentAssetRoots` | `string[]` | - | Root component tags emitted as static `.webui.js` ESM assets |
+| `componentAssetRoots` | `string[]` | - | Root component tags emitted as static `.webhub.js` ESM assets |
 | `projectionManifests` | `string[]` | - | Projection manifest paths, merged with strict scripted-component coverage |
 | `projectionManifestObjects` | `{ path: string; manifest: unknown }[]` | - | Already-transported manifests with logical paths anchoring `root` and stale checks; native addon only |
 | `cssFileNameTemplate` | `string` | `"[name].[ext]"` | Emitted asset filename template for Link-mode CSS and component assets. Tokens: `[name]`, `[hash]`, `[ext]` |
@@ -170,8 +170,8 @@ handler write.
 ```js
 const result = build({
   appDir: './src',
-  plugin: 'webui',
-  projectionManifests: ['./dist/webui-projection.json'],
+  plugin: 'webhub',
+  projectionManifests: ['./dist/webhub-projection.json'],
 });
 ```
 

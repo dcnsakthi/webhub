@@ -495,31 +495,31 @@ dependencies = [
 ]
 
 [[package]]
-name = "webui-expressions"
+name = "webhub-expressions"
 version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "webui-protocol",
- "webui-state",
+ "webhub-protocol",
+ "webhub-state",
 ]
 
 [[package]]
-name = "webui-handler"
+name = "webhub-handler"
 version = "0.1.0"
 dependencies = [
  "html-escape",
  "serde",
  "serde_json",
  "thiserror",
- "webui-expressions",
- "webui-protocol",
- "webui-state",
+ "webhub-expressions",
+ "webhub-protocol",
+ "webhub-state",
 ]
 
 [[package]]
-name = "webui-protocol"
+name = "webhub-protocol"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -531,17 +531,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "webui-rust-example"
+name = "webhub-rust-example"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "serde_json",
- "webui-handler",
- "webui-protocol",
+ "webhub-handler",
+ "webhub-protocol",
 ]
 
 [[package]]
-name = "webui-state"
+name = "webhub-state"
 version = "0.1.0"
 dependencies = [
  "serde",

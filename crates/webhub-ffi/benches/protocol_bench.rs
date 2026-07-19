@@ -7,13 +7,13 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::hint::black_box;
-use webui_ffi::{
-    webui_free, webui_handler_create, webui_handler_destroy, webui_handler_render,
-    webui_protocol_create, webui_protocol_destroy, webui_protocol_render_partial,
+use webhub_ffi::{
+    webhub_free, webhub_handler_create, webhub_handler_destroy, webhub_handler_render,
+    webhub_protocol_create, webhub_protocol_destroy, webhub_protocol_render_partial,
 };
-use webui_protocol::{
-    ComponentData, FragmentList, InitialStateStrategy, StateProjectionMode, WebUIFragment,
-    WebUIProtocol,
+use webhub_protocol::{
+    ComponentData, FragmentList, InitialStateStrategy, StateProjectionMode, webhubFragment,
+    webhubProtocol,
 };
 
 fn build_protocol(component_count: usize) -> Vec<u8> {
@@ -21,11 +21,11 @@ fn build_protocol(component_count: usize) -> Vec<u8> {
     fragments.insert(
         "index.html".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<main>ready</main>")],
+            fragments: vec![webhubFragment::raw("<main>ready</main>")],
         },
     );
 
-    let mut protocol = WebUIProtocol::new(fragments);
+    let mut protocol = webhubProtocol::new(fragments);
     protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
     protocol.components.reserve(component_count);
     for index in 0..component_count {
@@ -33,7 +33,7 @@ fn build_protocol(component_count: usize) -> Vec<u8> {
         protocol.fragments.insert(
             name.clone(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>component</div>")],
+                fragments: vec![webhubFragment::raw("<div>component</div>")],
             },
         );
         protocol.components.insert(
@@ -65,14 +65,14 @@ fn protocol_bench(c: &mut Criterion) {
     let path = c_string("/");
     let inventory = c_string("");
 
-    let handler = webui_handler_create();
+    let handler = webhub_handler_create();
     assert!(!handler.is_null(), "handler creation failed");
 
     let mut group = c.benchmark_group("ffi_protocol_startup");
     for component_count in [100, 1_000] {
         let protocol = build_protocol(component_count);
         // SAFETY: protocol points to protocol.len() initialized bytes.
-        let prepared = unsafe { webui_protocol_create(protocol.as_ptr(), protocol.len()) };
+        let prepared = unsafe { webhub_protocol_create(protocol.as_ptr(), protocol.len()) };
         assert!(!prepared.is_null(), "protocol preparation failed");
 
         group.bench_function(
@@ -81,11 +81,11 @@ fn protocol_bench(c: &mut Criterion) {
                 b.iter(|| {
                     // SAFETY: protocol points to protocol.len() initialized bytes.
                     let request_protocol =
-                        unsafe { webui_protocol_create(protocol.as_ptr(), protocol.len()) };
+                        unsafe { webhub_protocol_create(protocol.as_ptr(), protocol.len()) };
                     assert!(!request_protocol.is_null(), "protocol preparation failed");
                     // SAFETY: All opaque and string pointers remain valid for the call.
                     let output = unsafe {
-                        webui_handler_render(
+                        webhub_handler_render(
                             handler,
                             request_protocol,
                             state.as_ptr(),
@@ -95,10 +95,10 @@ fn protocol_bench(c: &mut Criterion) {
                     };
                     assert!(!output.is_null(), "full render failed");
                     black_box(output);
-                    // SAFETY: output was allocated by webui_handler_render.
-                    unsafe { webui_free(output) };
+                    // SAFETY: output was allocated by webhub_handler_render.
+                    unsafe { webhub_free(output) };
                     // SAFETY: request_protocol is live and no longer borrowed.
-                    unsafe { webui_protocol_destroy(request_protocol) };
+                    unsafe { webhub_protocol_destroy(request_protocol) };
                 });
             },
         );
@@ -106,7 +106,7 @@ fn protocol_bench(c: &mut Criterion) {
             b.iter(|| {
                 // SAFETY: All opaque and string pointers remain valid for the call.
                 let output = unsafe {
-                    webui_handler_render(
+                    webhub_handler_render(
                         handler,
                         prepared,
                         state.as_ptr(),
@@ -116,8 +116,8 @@ fn protocol_bench(c: &mut Criterion) {
                 };
                 assert!(!output.is_null(), "prepared full render failed");
                 black_box(output);
-                // SAFETY: output was allocated by webui_handler_render.
-                unsafe { webui_free(output) };
+                // SAFETY: output was allocated by webhub_handler_render.
+                unsafe { webhub_free(output) };
             });
         });
         group.bench_function(
@@ -126,11 +126,11 @@ fn protocol_bench(c: &mut Criterion) {
                 b.iter(|| {
                     // SAFETY: protocol points to protocol.len() initialized bytes.
                     let request_protocol =
-                        unsafe { webui_protocol_create(protocol.as_ptr(), protocol.len()) };
+                        unsafe { webhub_protocol_create(protocol.as_ptr(), protocol.len()) };
                     assert!(!request_protocol.is_null(), "protocol preparation failed");
                     // SAFETY: All opaque and string pointers remain valid for the call.
                     let output = unsafe {
-                        webui_protocol_render_partial(
+                        webhub_protocol_render_partial(
                             request_protocol,
                             state.as_ptr(),
                             entry.as_ptr(),
@@ -140,10 +140,10 @@ fn protocol_bench(c: &mut Criterion) {
                     };
                     assert!(!output.is_null(), "partial render failed");
                     black_box(output);
-                    // SAFETY: output was allocated by webui_protocol_render_partial.
-                    unsafe { webui_free(output) };
+                    // SAFETY: output was allocated by webhub_protocol_render_partial.
+                    unsafe { webhub_free(output) };
                     // SAFETY: request_protocol is live and no longer borrowed.
-                    unsafe { webui_protocol_destroy(request_protocol) };
+                    unsafe { webhub_protocol_destroy(request_protocol) };
                 });
             },
         );
@@ -153,7 +153,7 @@ fn protocol_bench(c: &mut Criterion) {
                 b.iter(|| {
                     // SAFETY: All opaque and string pointers remain valid for the call.
                     let output = unsafe {
-                        webui_protocol_render_partial(
+                        webhub_protocol_render_partial(
                             prepared,
                             state.as_ptr(),
                             entry.as_ptr(),
@@ -163,20 +163,20 @@ fn protocol_bench(c: &mut Criterion) {
                     };
                     assert!(!output.is_null(), "prepared partial render failed");
                     black_box(output);
-                    // SAFETY: output was allocated by webui_protocol_render_partial.
-                    unsafe { webui_free(output) };
+                    // SAFETY: output was allocated by webhub_protocol_render_partial.
+                    unsafe { webhub_free(output) };
                 });
             },
         );
 
         // SAFETY: The prepared handle is live and its benchmark closures are complete.
-        unsafe { webui_protocol_destroy(prepared) };
+        unsafe { webhub_protocol_destroy(prepared) };
     }
     group.finish();
 
     // SAFETY: The handler is live and no benchmark closure can use it now.
     unsafe {
-        webui_handler_destroy(handler);
+        webhub_handler_destroy(handler);
     }
 }
 

@@ -1,16 +1,16 @@
-# microsoft-webui-wasm
+# microsoft-webhub-wasm
 
-WebAssembly bindings for the [WebUI](https://github.com/microsoft/webui) framework, built with `wasm-bindgen`.
+WebAssembly bindings for the [webhub](https://github.com/microsoft/webhub) framework, built with `wasm-bindgen`.
 
 ## Overview
 
-`microsoft-webui-wasm` can be built as three browser bundles:
+`microsoft-webhub-wasm` can be built as three browser bundles:
 
 | Feature | Bundle | Exports |
 |---------|--------|---------|
-| `handler` | `webui_wasm_handler.js` | `Protocol` |
-| `parser` | `webui_wasm_parser.js` | `build_protocol` |
-| `all` | `webui_wasm_all.js` | Parser and handler exports |
+| `handler` | `webhub_wasm_handler.js` | `Protocol` |
+| `parser` | `webhub_wasm_parser.js` | `build_protocol` |
+| `all` | `webhub_wasm_all.js` | Parser and handler exports |
 
 The default feature is `all`, which powers the online playground. Consumers that only need to render prebuilt protobuf protocol bytes should use the handler bundle to avoid shipping parser code.
 
@@ -25,11 +25,11 @@ JavaScript.
 cargo xtask build-wasm
 ```
 
-This writes the three generated bundles under `docs/.webui-press/public/wasm/`.
+This writes the three generated bundles under `docs/.webhub-press/public/wasm/`.
 
 ## Documentation
 
-See the [WebUI repository](https://github.com/microsoft/webui) for full usage guides and examples.
+See the [webhub repository](https://github.com/microsoft/webhub) for full usage guides and examples.
 
 ## License
 

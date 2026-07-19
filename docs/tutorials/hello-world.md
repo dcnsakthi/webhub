@@ -1,6 +1,6 @@
 # Hello World Tutorial
 
-In this tutorial, we'll build a simple "Hello World" application using WebUI, demonstrating the basics of the framework.
+In this tutorial, we'll build a simple "Hello World" application using webhub, demonstrating the basics of the framework.
 
 ## Project Setup
 
@@ -50,25 +50,25 @@ Create a `state.json` file with the data for rendering:
 
 ```json
 {
-    "title": "WebUI Hello World",
-    "name": "WebUI Developer",
+    "title": "webhub Hello World",
+    "name": "webhub Developer",
     "color": "#0066cc",
     "showMessage": true,
-    "message": "<em>Welcome to <strong>WebUI</strong>!</em>",
+    "message": "<em>Welcome to <strong>webhub</strong>!</em>",
     "details": [
-        {"label": "Framework", "value": "WebUI"},
+        {"label": "Framework", "value": "webhub"},
         {"label": "Version", "value": "1.0.0"},
         {"label": "Status", "value": "Learning"}
     ]
 }
 ```
 
-## Previewing with `webui serve`
+## Previewing with `webhub serve`
 
 The fastest way to preview your app during development is the built-in dev server:
 
 ```bash
-webui serve ./hello-world/templates --state ./hello-world/data/state.json --servedir ./hello-world/assets --watch
+webhub serve ./hello-world/templates --state ./hello-world/data/state.json --servedir ./hello-world/assets --watch
 ```
 
 This will:
@@ -82,7 +82,7 @@ Open `http://127.0.0.1:3000/` in your browser to see the rendered output. With `
 You can also specify a custom port:
 
 ```bash
-webui serve ./hello-world/templates --state ./hello-world/data/state.json --servedir ./hello-world/assets --watch --port 9090
+webhub serve ./hello-world/templates --state ./hello-world/data/state.json --servedir ./hello-world/assets --watch --port 9090
 ```
 
 ## Building for Production
@@ -90,7 +90,7 @@ webui serve ./hello-world/templates --state ./hello-world/data/state.json --serv
 To produce a `protocol.bin` for use with a handler in production:
 
 ```bash
-webui build ./hello-world/templates --out ./hello-world/dist
+webhub build ./hello-world/templates --out ./hello-world/dist
 ```
 
 ## Rendering with Rust
@@ -100,17 +100,17 @@ Here's how to render a pre-built protocol programmatically with Rust:
 ```rust
 use std::fs;
 use serde_json::Value;
-use webui_handler::{Protocol, RenderOptions, ResponseWriter, WebUIHandler};
+use webhub_handler::{Protocol, RenderOptions, ResponseWriter, webhubHandler};
 
 struct StdoutWriter;
 
 impl ResponseWriter for StdoutWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         print!("{content}");
         Ok(())
     }
     
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -119,7 +119,7 @@ fn main() -> anyhow::Result<()> {
     let protocol = Protocol::from_protobuf(&fs::read("dist/protocol.bin")?)?;
     let state: Value = serde_json::from_str(&fs::read_to_string("data/state.json")?)?;
     
-    let handler = WebUIHandler::new();
+    let handler = webhubHandler::new();
     let mut writer = StdoutWriter;
     handler.render(
         &protocol,
@@ -136,15 +136,15 @@ fn main() -> anyhow::Result<()> {
 
 In this tutorial, we've:
 
-1. Created a WebUI app folder with templates, data, and assets
-2. Used `webui serve` to preview the app with live reload
-3. Built the protocol with `webui build` for production use
+1. Created a webhub app folder with templates, data, and assets
+2. Used `webhub serve` to preview the app with live reload
+3. Built the protocol with `webhub build` for production use
 4. Rendered the protocol programmatically with the Rust handler
 
-This demonstrates the core workflow of WebUI:
+This demonstrates the core workflow of webhub:
 
 ```
-HTML Template → WebUI Protocol → Rendered HTML
+HTML Template → webhub Protocol → Rendered HTML
 ```
 
 ## Next Steps

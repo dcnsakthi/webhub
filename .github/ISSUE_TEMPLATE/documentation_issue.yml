@@ -1,12 +1,12 @@
 name: Documentation need
-description: Report missing, confusing, or incorrect WebUI documentation.
+description: Report missing, confusing, or incorrect webhub documentation.
 title: "[Docs]: "
 labels: ["documentation"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for helping improve WebUI documentation. Before opening an issue, please read the [documentation issue guidance](https://github.com/microsoft/webui/blob/main/CONTRIBUTING.md#documentation-issues).
+        Thank you for helping improve webhub documentation. Before opening an issue, please read the [documentation issue guidance](https://github.com/microsoft/webhub/blob/main/CONTRIBUTING.md#documentation-issues).
   - type: checkboxes
     id: preflight
     attributes:
@@ -37,7 +37,7 @@ body:
     attributes:
       label: Page, section, or workflow
       description: Link to the page or name the workflow, if you know it.
-      placeholder: https://microsoft.github.io/webui/guide/...
+      placeholder: https://microsoft.github.io/webhub/guide/...
   - type: textarea
     id: problem
     attributes:

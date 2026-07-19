@@ -1,6 +1,6 @@
 # Attribute Directives
 
-WebUI provides several ways to bind dynamic data to HTML attributes. When an attribute value contains handlebars expressions, the value is resolved from state at render time.
+webhub provides several ways to bind dynamic data to HTML attributes. When an attribute value contains handlebars expressions, the value is resolved from state at render time.
 
 ## Simple Dynamic Attributes
 
@@ -128,13 +128,13 @@ When an attribute value contains a mix of static text and dynamic expressions, e
 State:
 ```json
 {
-  "world": "WebUI"
+  "world": "webhub"
 }
 ```
 
 Output:
 ```html
-<input value="hello WebUI" />
+<input value="hello webhub" />
 ```
 
 ## Combining Attribute Types

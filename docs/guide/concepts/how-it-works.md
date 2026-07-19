@@ -1,19 +1,19 @@
 # How It Works
 
-WebUI is a **language-agnostic server-side rendering framework** that splits template processing into three distinct phases: build, server render, and client hydration. Each phase is optimized for its role, eliminating redundant work and keeping runtime overhead to a minimum.
+webhub is a **language-agnostic server-side rendering framework** that splits template processing into three distinct phases: build, server render, and client hydration. Each phase is optimized for its role, eliminating redundant work and keeping runtime overhead to a minimum.
 
 ```
 Build Time              Server Render             Client Hydration
 ──────────────────      ──────────────────        ──────────────────
 HTML + CSS + TS    →    Protocol + JSON      →    Web Components
-webui build             state → HTML              hydrate as islands
+webhub build             state → HTML              hydrate as islands
 ```
 
 ## Build Phase
 
-The `webui build` CLI command transforms your template source files into an optimized binary format. This is a one-time cost - the output is reused for every request.
+The `webhub build` CLI command transforms your template source files into an optimized binary format. This is a one-time cost - the output is reused for every request.
 
-During the build, WebUI:
+During the build, webhub:
 
 1. **Parses HTML templates** - scans component directories for `.html`, `.css`, and `.ts` files
 2. **Discovers web components** - identifies custom elements by their hyphenated tag names
@@ -25,10 +25,10 @@ During the build, WebUI:
    - JS bundles - client-side Web Component classes for hydration
 
 ```bash
-webui build ./src --out ./dist --plugin=webui
+webhub build ./src --out ./dist --plugin=webhub
 ```
 
-The binary protocol is the key to WebUI's performance. By moving parsing, expression compilation, and template analysis to build time, the server never repeats this work.
+The binary protocol is the key to webhub's performance. By moving parsing, expression compilation, and template analysis to build time, the server never repeats this work.
 
 ## Server Render Phase
 
@@ -115,7 +115,7 @@ Only components that need interactivity ship JavaScript. Static content stays as
 
 ## The SSR Mental Model
 
-Understanding the relationship between server and client is critical for building correct WebUI applications.
+Understanding the relationship between server and client is critical for building correct webhub applications.
 
 ### The server is the source of truth for the initial render
 
@@ -135,7 +135,7 @@ For complex derived values, compute them on the server and include them in the s
 
 State that participates in hydration is client-facing. When enabled with a
 bundler manifest, route-scoped projection reduces serialization work and
-response bytes, but it is not a secrecy boundary. Without a manifest, WebUI
+response bytes, but it is not a secrecy boundary. Without a manifest, webhub
 preserves full state. Do not put secrets in browser render state.
 
 ### The client handles interactivity after hydration
@@ -149,7 +149,7 @@ Client: "Got it. I'll hydrate the interactive parts and take over from here."
 
 ## What Makes This Fast
 
-WebUI's architecture is designed so that the most common operation - rendering a page - does the least possible work.
+webhub's architecture is designed so that the most common operation - rendering a page - does the least possible work.
 
 | Technique | Impact |
 |-----------|--------|

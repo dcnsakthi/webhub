@@ -4,11 +4,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebUI Service Worker Streaming</title>
+  <title>webhub Service Worker Streaming</title>
   <style>
     :root {
       color-scheme: light dark;
-      <!--WEBUI_THEME_LIGHT-->
+      <!--webhub_THEME_LIGHT-->
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #0f172a;
       color: #e2e8f0;
@@ -17,7 +17,7 @@
     @media (prefers-color-scheme: dark) {
       :root {
         color-scheme: dark;
-        <!--WEBUI_THEME_DARK-->
+        <!--webhub_THEME_DARK-->
       }
     }
 
@@ -47,12 +47,12 @@
 
 <body class="bootstrap">
   <main class="bootstrap-panel">
-    <p class="eyebrow">WebUI WASM handler</p>
+    <p class="eyebrow">webhub WASM handler</p>
     <h1>Installing service worker renderer</h1>
     <p data-status>Preparing the browser-side renderer...</p>
     <p class="hint">
       This page reloads once the service worker controls the tab. The next
-      navigation is streamed from WebUI fragments rendered in WASM.
+      navigation is streamed from webhub fragments rendered in WASM.
     </p>
   </main>
   <script type="module" src="./app.js"></script>

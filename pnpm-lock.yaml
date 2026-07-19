@@ -69,11 +69,11 @@ importers:
         specifier: 'catalog:'
         version: 1.61.1
 
-  crates/webui-press:
+  crates/webhub-press:
     devDependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../../packages/webui
+        version: link:../../packages/webhub
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.61.1
@@ -107,24 +107,24 @@ importers:
       '@codemirror/view':
         specifier: 'catalog:'
         version: 6.43.6
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../packages/webui
-      '@microsoft/webui-framework':
+        version: link:../packages/webhub
+      '@microsoft/webhub-framework':
         specifier: workspace:*
-        version: link:../packages/webui-framework
+        version: link:../packages/webhub-framework
       esbuild:
         specifier: 'catalog:'
         version: 0.28.1
 
   examples/app/calculator:
     devDependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../../../packages/webui
-      '@microsoft/webui-framework':
+        version: link:../../../packages/webhub
+      '@microsoft/webhub-framework':
         specifier: workspace:*
-        version: link:../../../packages/webui-framework
+        version: link:../../../packages/webhub-framework
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.61.1
@@ -140,15 +140,15 @@ importers:
 
   examples/app/commerce:
     devDependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../../../packages/webui
-      '@microsoft/webui-framework':
+        version: link:../../../packages/webhub
+      '@microsoft/webhub-framework':
         specifier: workspace:*
-        version: link:../../../packages/webui-framework
-      '@microsoft/webui-router':
+        version: link:../../../packages/webhub-framework
+      '@microsoft/webhub-router':
         specifier: workspace:*
-        version: link:../../../packages/webui-router
+        version: link:../../../packages/webhub-router
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.61.1
@@ -164,15 +164,15 @@ importers:
 
   examples/app/component-assets:
     devDependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../../../packages/webui
-      '@microsoft/webui-examples-theme':
+        version: link:../../../packages/webhub
+      '@microsoft/webhub-examples-theme':
         specifier: workspace:*
-        version: link:../../../packages/webui-examples-theme
-      '@microsoft/webui-framework':
+        version: link:../../../packages/webhub-examples-theme
+      '@microsoft/webhub-framework':
         specifier: workspace:*
-        version: link:../../../packages/webui-framework
+        version: link:../../../packages/webhub-framework
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.61.1
@@ -195,18 +195,18 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1
     devDependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../../../packages/webui
-      '@microsoft/webui-examples-theme':
+        version: link:../../../packages/webhub
+      '@microsoft/webhub-examples-theme':
         specifier: workspace:*
-        version: link:../../../packages/webui-examples-theme
-      '@microsoft/webui-framework':
+        version: link:../../../packages/webhub-examples-theme
+      '@microsoft/webhub-framework':
         specifier: workspace:*
-        version: link:../../../packages/webui-framework
-      '@microsoft/webui-router':
+        version: link:../../../packages/webhub-framework
+      '@microsoft/webhub-router':
         specifier: workspace:*
-        version: link:../../../packages/webui-router
+        version: link:../../../packages/webhub-router
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.61.1
@@ -228,9 +228,9 @@ importers:
 
   examples/app/hello-world:
     devDependencies:
-      '@microsoft/webui-examples-theme':
+      '@microsoft/webhub-examples-theme':
         specifier: workspace:*
-        version: link:../../../packages/webui-examples-theme
+        version: link:../../../packages/webhub-examples-theme
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.61.1
@@ -243,15 +243,15 @@ importers:
 
   examples/app/routes:
     devDependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../../../packages/webui
-      '@microsoft/webui-framework':
+        version: link:../../../packages/webhub
+      '@microsoft/webhub-framework':
         specifier: workspace:*
-        version: link:../../../packages/webui-framework
-      '@microsoft/webui-router':
+        version: link:../../../packages/webhub-framework
+      '@microsoft/webhub-router':
         specifier: workspace:*
-        version: link:../../../packages/webui-router
+        version: link:../../../packages/webhub-router
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.61.1
@@ -283,12 +283,12 @@ importers:
 
   examples/app/service-worker:
     devDependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../../../packages/webui
-      '@microsoft/webui-examples-theme':
+        version: link:../../../packages/webhub
+      '@microsoft/webhub-examples-theme':
         specifier: workspace:*
-        version: link:../../../packages/webui-examples-theme
+        version: link:../../../packages/webhub-examples-theme
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.61.1
@@ -307,9 +307,9 @@ importers:
       '@microsoft/fast-element':
         specifier: 'catalog:'
         version: 3.0.1
-      '@microsoft/webui-examples-theme':
+      '@microsoft/webhub-examples-theme':
         specifier: workspace:*
-        version: link:../../../packages/webui-examples-theme
+        version: link:../../../packages/webhub-examples-theme
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.61.1
@@ -323,14 +323,14 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  examples/app/todo-webui:
+  examples/app/todo-webhub:
     devDependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../../../packages/webui
-      '@microsoft/webui-framework':
+        version: link:../../../packages/webhub
+      '@microsoft/webhub-framework':
         specifier: workspace:*
-        version: link:../../../packages/webui-framework
+        version: link:../../../packages/webhub-framework
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.61.1
@@ -346,12 +346,12 @@ importers:
 
   examples/demo:
     devDependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../../packages/webui
-      '@microsoft/webui-framework':
+        version: link:../../packages/webhub
+      '@microsoft/webhub-framework':
         specifier: workspace:*
-        version: link:../../packages/webui-framework
+        version: link:../../packages/webhub-framework
       esbuild:
         specifier: 'catalog:'
         version: 0.28.1
@@ -364,9 +364,9 @@ importers:
 
   examples/integration/electron:
     dependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../../../packages/webui
+        version: link:../../../packages/webhub
     devDependencies:
       electron:
         specifier: 'catalog:'
@@ -380,9 +380,9 @@ importers:
 
   examples/integration/node:
     dependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../../../packages/webui
+        version: link:../../../packages/webhub
 
   examples/integration/streaming-browser-bench:
     devDependencies:
@@ -396,7 +396,7 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  packages/webui:
+  packages/webhub:
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -408,36 +408,36 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
     optionalDependencies:
-      '@microsoft/webui-darwin-arm64':
+      '@microsoft/webhub-darwin-arm64':
         specifier: workspace:*
-        version: link:../webui-darwin-arm64
-      '@microsoft/webui-darwin-x64':
+        version: link:../webhub-darwin-arm64
+      '@microsoft/webhub-darwin-x64':
         specifier: workspace:*
-        version: link:../webui-darwin-x64
-      '@microsoft/webui-linux-arm64':
+        version: link:../webhub-darwin-x64
+      '@microsoft/webhub-linux-arm64':
         specifier: workspace:*
-        version: link:../webui-linux-arm64
-      '@microsoft/webui-linux-x64':
+        version: link:../webhub-linux-arm64
+      '@microsoft/webhub-linux-x64':
         specifier: workspace:*
-        version: link:../webui-linux-x64
-      '@microsoft/webui-win32-arm64':
+        version: link:../webhub-linux-x64
+      '@microsoft/webhub-win32-arm64':
         specifier: workspace:*
-        version: link:../webui-win32-arm64
-      '@microsoft/webui-win32-x64':
+        version: link:../webhub-win32-arm64
+      '@microsoft/webhub-win32-x64':
         specifier: workspace:*
-        version: link:../webui-win32-x64
+        version: link:../webhub-win32-x64
 
-  packages/webui-darwin-arm64: {}
+  packages/webhub-darwin-arm64: {}
 
-  packages/webui-darwin-x64: {}
+  packages/webhub-darwin-x64: {}
 
-  packages/webui-examples-theme: {}
+  packages/webhub-examples-theme: {}
 
-  packages/webui-framework:
+  packages/webhub-framework:
     devDependencies:
-      '@microsoft/webui-test-support':
+      '@microsoft/webhub-test-support':
         specifier: workspace:*
-        version: link:../webui-test-support
+        version: link:../webhub-test-support
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.61.1
@@ -448,16 +448,16 @@ importers:
         specifier: 'catalog:'
         version: 6.0.3
 
-  packages/webui-linux-arm64: {}
+  packages/webhub-linux-arm64: {}
 
-  packages/webui-linux-x64: {}
+  packages/webhub-linux-x64: {}
 
-  packages/webui-router:
+  packages/webhub-router:
     devDependencies:
-      '@microsoft/webui-framework':
+      '@microsoft/webhub-framework':
         specifier: workspace:*
-        version: link:../webui-framework
-      '@microsoft/webui-router':
+        version: link:../webhub-framework
+      '@microsoft/webhub-router':
         specifier: workspace:*
         version: 'link:'
       '@playwright/test':
@@ -482,18 +482,18 @@ importers:
         specifier: 'catalog:'
         version: 10.1.0
 
-  packages/webui-test-support:
+  packages/webhub-test-support:
     dependencies:
-      '@microsoft/webui':
+      '@microsoft/webhub':
         specifier: workspace:*
-        version: link:../webui
+        version: link:../webhub
       esbuild:
         specifier: 'catalog:'
         version: 0.28.1
 
-  packages/webui-win32-arm64: {}
+  packages/webhub-win32-arm64: {}
 
-  packages/webui-win32-x64: {}
+  packages/webhub-win32-x64: {}
 
 packages:
 

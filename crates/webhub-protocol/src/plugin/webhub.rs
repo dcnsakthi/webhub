@@ -3,11 +3,11 @@
 
 use crate::{ProtocolError, Result};
 
-const WEBUI_ELEMENT_DATA_LEN: usize = 12;
+const webhub_ELEMENT_DATA_LEN: usize = 12;
 
-/// WebUI hydration element metadata encoded in plugin fragments.
+/// webhub hydration element metadata encoded in plugin fragments.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct WebUIElementData {
+pub struct webhubElementData {
     /// Number of dynamic attribute bindings on the element.
     pub binding_count: u32,
     /// Starting event index for this element within the fragment-local event list.
@@ -16,26 +16,26 @@ pub struct WebUIElementData {
     pub event_count: u32,
 }
 
-impl WebUIElementData {
-    /// Encode this metadata using the WebUI 12-byte little-endian wire format.
+impl webhubElementData {
+    /// Encode this metadata using the webhub 12-byte little-endian wire format.
     #[must_use]
-    pub fn encode(self) -> [u8; WEBUI_ELEMENT_DATA_LEN] {
-        let mut data = [0u8; WEBUI_ELEMENT_DATA_LEN];
+    pub fn encode(self) -> [u8; webhub_ELEMENT_DATA_LEN] {
+        let mut data = [0u8; webhub_ELEMENT_DATA_LEN];
         data[..4].copy_from_slice(&self.binding_count.to_le_bytes());
         data[4..8].copy_from_slice(&self.event_start.to_le_bytes());
         data[8..12].copy_from_slice(&self.event_count.to_le_bytes());
         data
     }
 
-    /// Decode WebUI hydration metadata from protocol bytes.
+    /// Decode webhub hydration metadata from protocol bytes.
     ///
     /// # Errors
     ///
     /// Returns [`ProtocolError::Validation`] when the payload length is not 12 bytes.
     pub fn decode(bytes: &[u8]) -> Result<Self> {
-        if bytes.len() != WEBUI_ELEMENT_DATA_LEN {
+        if bytes.len() != webhub_ELEMENT_DATA_LEN {
             return Err(ProtocolError::Validation(format!(
-                "WebUI element data must be {WEBUI_ELEMENT_DATA_LEN} bytes, received {}",
+                "webhub element data must be {webhub_ELEMENT_DATA_LEN} bytes, received {}",
                 bytes.len()
             )));
         }
@@ -50,26 +50,26 @@ impl WebUIElementData {
 
 #[cfg(test)]
 mod tests {
-    use super::WebUIElementData;
+    use super::webhubElementData;
     use crate::ProtocolError;
 
     #[test]
-    fn test_webui_element_data_roundtrip() {
-        let encoded = WebUIElementData {
+    fn test_webhub_element_data_roundtrip() {
+        let encoded = webhubElementData {
             binding_count: 2,
             event_start: 5,
             event_count: 1,
         }
         .encode();
-        let decoded = WebUIElementData::decode(&encoded).expect("decode should succeed");
+        let decoded = webhubElementData::decode(&encoded).expect("decode should succeed");
         assert_eq!(decoded.binding_count, 2);
         assert_eq!(decoded.event_start, 5);
         assert_eq!(decoded.event_count, 1);
     }
 
     #[test]
-    fn test_webui_element_data_rejects_invalid_length() {
-        let result = WebUIElementData::decode(&[1, 2, 3, 4]);
+    fn test_webhub_element_data_rejects_invalid_length() {
+        let result = webhubElementData::decode(&[1, 2, 3, 4]);
         assert!(
             matches!(result, Err(ProtocolError::Validation(ref msg)) if msg.contains("12 bytes")),
             "invalid payload length should be rejected: {result:?}"

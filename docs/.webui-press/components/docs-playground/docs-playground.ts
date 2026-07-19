@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from "@microsoft/webui-framework";
+import { webhubElement, observable } from "@microsoft/webhub-framework";
 
 import {
   EditorView,
@@ -223,9 +223,9 @@ function loadSharedPlayground(): LoadedPlayground | null {
 /**
  * Read the playground's initial files from the page render state, which the
  * docs build pipeline populates from the custom page's `stateFile` (see
- * `crates/webui-press/src/types.rs` `CustomPage`). The same object also drives
+ * `crates/webhub-press/src/types.rs` `CustomPage`). The same object also drives
  * server-side rendering of the tab strip — see `state` flattening in
- * `crates/webui-press/src/content.rs`. Falls back to a single empty entry file
+ * `crates/webhub-press/src/content.rs`. Falls back to a single empty entry file
  * if the page was published without a state file.
  */
 function loadInitialFiles(): LoadedPlayground {
@@ -233,9 +233,9 @@ function loadInitialFiles(): LoadedPlayground {
   if (shared) return shared;
 
   const w = window as unknown as {
-    __webui?: { state?: PlaygroundData };
+    __webhub?: { state?: PlaygroundData };
   };
-  const top = w.__webui?.state;
+  const top = w.__webhub?.state;
   if (top && Array.isArray(top.files) && top.files.length > 0) {
     const entry =
       top.entry && top.files.some((f) => f.name === top.entry)
@@ -272,7 +272,7 @@ function extOf(name: string): string {
   return i >= 0 ? name.slice(i + 1).toLowerCase() : "";
 }
 
-export class DocsPlayground extends WebUIElement {
+export class DocsPlayground extends webhubElement {
   editorWrap!: HTMLDivElement;
 
   @observable files: FileEntry[] = [];
@@ -803,7 +803,7 @@ export class DocsPlayground extends WebUIElement {
 
   /**
    * Parse a build/compile error string into the structured fields the error
-   * panel renders. WebUI surfaces authoring diagnostics in a stable shape:
+   * panel renders. webhub surfaces authoring diagnostics in a stable shape:
    *
    *   error: <title> [<code>]
    *     --> <file>:<line>:<col>
@@ -945,7 +945,7 @@ export class DocsPlayground extends WebUIElement {
       this.setPreviewStatus("Loading WASM", "loading");
       const baseMeta = document.querySelector('meta[name="base"]');
       const base = baseMeta?.getAttribute("content") || "/";
-      const wasmUrl = base + "wasm/all/webui_wasm_all.js";
+      const wasmUrl = base + "wasm/all/webhub_wasm_all.js";
       const mod = await import(/* @vite-ignore */ wasmUrl);
       await mod.default();
       this.wasm = mod;
@@ -953,7 +953,7 @@ export class DocsPlayground extends WebUIElement {
     } catch (e) {
       this.setPreviewStatus("Failed", "failed");
       this.setError(
-        'WASM not available at "wasm/all/webui_wasm_all.js". Run "cargo xtask build-wasm" to enable the playground.\n\n' +
+        'WASM not available at "wasm/all/webhub_wasm_all.js". Run "cargo xtask build-wasm" to enable the playground.\n\n' +
           String(e),
       );
     }

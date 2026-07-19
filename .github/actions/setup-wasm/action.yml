@@ -1,5 +1,5 @@
 name: 'Setup and Build WASM'
-description: 'Install WASM toolchain, build webui-wasm, and verify output'
+description: 'Install WASM toolchain, build webhub-wasm, and verify output'
 
 runs:
   using: 'composite'
@@ -27,7 +27,7 @@ runs:
       shell: bash
       run: |
         for variant in all handler parser; do
-          test -f "docs/.webui-press/public/wasm/${variant}/webui_wasm_${variant}_bg.wasm"
-          test -f "docs/.webui-press/public/wasm/${variant}/webui_wasm_${variant}.js"
-          ! grep -q "from 'env'" "docs/.webui-press/public/wasm/${variant}/webui_wasm_${variant}.js"
+          test -f "docs/.webhub-press/public/wasm/${variant}/webhub_wasm_${variant}_bg.wasm"
+          test -f "docs/.webhub-press/public/wasm/${variant}/webhub_wasm_${variant}.js"
+          ! grep -q "from 'env'" "docs/.webhub-press/public/wasm/${variant}/webhub_wasm_${variant}.js"
         done

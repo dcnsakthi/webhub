@@ -61,7 +61,7 @@ test.describe('state-seed fixture', () => {
   });
 
   test('preserves template-only SSR repeats until explicit navigation state arrives', async ({ page }) => {
-    const bootstrapState = await page.evaluate(() => window.__webui?.state ?? {});
+    const bootstrapState = await page.evaluate(() => window.__webhub?.state ?? {});
     expect(Object.hasOwn(bootstrapState, 'serverItems')).toBe(false);
     await expect(page.locator('test-state-seed .server-items li')).toHaveText([
       'server one',

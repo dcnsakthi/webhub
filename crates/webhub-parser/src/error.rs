@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Error handling for the WebUI parser.
+//! Error handling for the webhub parser.
 
 use crate::diagnostic::Diagnostic;
 use thiserror::Error;
 
-/// Result type for WebUI parser operations.
+/// Result type for webhub parser operations.
 pub type Result<T> = std::result::Result<T, ParserError>;
 
-/// Error type for WebUI parser.
+/// Error type for webhub parser.
 #[derive(Debug, Error)]
 pub enum ParserError {
     /// Generic error.

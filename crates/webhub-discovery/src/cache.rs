@@ -3,7 +3,7 @@
 
 //! Component discovery cache for avoiding repeated filesystem traversal.
 //!
-//! Caches discovered component data at `~/.webui/cache/components/` and
+//! Caches discovered component data at `~/.webhub/cache/components/` and
 //! invalidates when the source package's `package.json` changes.
 
 use anyhow::{Context, Result};
@@ -38,7 +38,7 @@ struct CachedComponent {
 
 /// File-based component discovery cache.
 ///
-/// Stores discovered component data at `~/.webui/cache/components/`
+/// Stores discovered component data at `~/.webhub/cache/components/`
 /// to avoid re-traversing npm packages on every build.
 pub struct DiscoveryCache {
     cache_dir: PathBuf,
@@ -50,7 +50,7 @@ impl DiscoveryCache {
         let home = expand_tilde(&PathBuf::from("~"))
             .context("Could not determine home directory for component cache")?
             .into_owned();
-        let cache_dir = home.join(".webui").join("cache").join("components");
+        let cache_dir = home.join(".webhub").join("cache").join("components");
         fs::create_dir_all(&cache_dir).with_context(|| {
             format!("Failed to create cache directory: {}", cache_dir.display())
         })?;

@@ -18,7 +18,7 @@
 .prose {
   font-size: 1rem;
   line-height: 1.85;
-  color: var(--webui-text-secondary);
+  color: var(--webhub-text-secondary);
 }
 
 .prose p {

@@ -31,7 +31,7 @@
 //! * **streaming_ttfb** — Streaming render: time until first 4 KB
 //!   chunk is available on the receiver.
 //!
-//! Run with: `cargo bench -p microsoft-webui --bench streaming_bench`
+//! Run with: `cargo bench -p microsoft-webhub --bench streaming_bench`
 
 #![allow(missing_docs)]
 
@@ -43,16 +43,16 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
-use webui::streaming::StreamingWriter;
-use webui::{build, BuildOptions, CssStrategy, Protocol, ResponseWriter, WebUIHandler};
-use webui_handler::RenderOptions;
+use webhub::streaming::StreamingWriter;
+use webhub::{build, BuildOptions, CssStrategy, Protocol, ResponseWriter, webhubHandler};
+use webhub_handler::RenderOptions;
 
 const CONTACT_COUNTS: &[usize] = &[10, 100, 1000];
 const MEASUREMENT_TIME: Duration = Duration::from_secs(8);
 const SAMPLE_SIZE: usize = 50;
 
 const HEAD_INJECT: &str = r#"<link rel="preload" as="image" href="/img/hero.jpg" fetchpriority="high"><link rel="preload" as="image" href="/img/p1.jpg"><link rel="preload" as="image" href="/img/p2.jpg">"#;
-const BODY_INJECT: &str = r#"<script>(function(){var e=new EventSource('/__webui/livereload');e.addEventListener('reload',function(){location.reload()})})();</script>"#;
+const BODY_INJECT: &str = r#"<script>(function(){var e=new EventSource('/__webhub/livereload');e.addEventListener('reload',function(){location.reload()})})();</script>"#;
 
 // ── State generation ──────────────────────────────────────────────────
 
@@ -144,11 +144,11 @@ impl StringWriter {
     }
 }
 impl ResponseWriter for StringWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.buf.push_str(content);
         Ok(())
     }
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -178,7 +178,7 @@ fn bench_writers(c: &mut Criterion) {
     let sizes: Vec<usize> = states
         .iter()
         .map(|(_, state)| {
-            let h = WebUIHandler::new();
+            let h = webhubHandler::new();
             let mut w = StringWriter::with_capacity(512 * 1024);
             h.render(
                 &protocol,
@@ -203,7 +203,7 @@ fn bench_writers(c: &mut Criterion) {
             BenchmarkId::new(format!("string/{count}"), output_size),
             state,
             |b, state| {
-                let h = WebUIHandler::new();
+                let h = webhubHandler::new();
                 b.iter(|| {
                     let mut w = StringWriter::with_capacity(output_size);
                     h.render(
@@ -228,7 +228,7 @@ fn bench_writers(c: &mut Criterion) {
             BenchmarkId::new(format!("streaming/{count}"), output_size),
             state,
             |b, state| {
-                let h = WebUIHandler::new();
+                let h = webhubHandler::new();
                 let cap = (output_size / StreamingWriter::CHUNK_TARGET) + 4;
                 b.iter(|| {
                     let (tx, rx) = mpsc::channel::<Bytes>(cap);
@@ -255,7 +255,7 @@ fn bench_writers(c: &mut Criterion) {
             BenchmarkId::new(format!("streaming+inject(opts)/{count}"), output_size),
             state,
             |b, state| {
-                let h = WebUIHandler::new();
+                let h = webhubHandler::new();
                 let cap = (output_size / StreamingWriter::CHUNK_TARGET) + 4;
                 b.iter(|| {
                     let (tx, rx) = mpsc::channel::<Bytes>(cap);
@@ -277,7 +277,7 @@ fn bench_writers(c: &mut Criterion) {
             BenchmarkId::new(format!("string+postinject/{count}"), output_size),
             state,
             |b, state| {
-                let h = WebUIHandler::new();
+                let h = webhubHandler::new();
                 b.iter(|| {
                     let mut w = StringWriter::with_capacity(output_size);
                     h.render(
@@ -335,7 +335,7 @@ fn streaming_ttfb(protocol: &Arc<Protocol>, state: &Value) -> Duration {
     let st = state.clone();
     let start = Instant::now();
     std::thread::spawn(move || {
-        let h = WebUIHandler::new();
+        let h = webhubHandler::new();
         let mut w = StreamingWriter::new(tx);
         // Both calls may legitimately return Err(ClientDisconnected)
         // when the bench drops the receiver after the first chunk —
@@ -355,7 +355,7 @@ fn streaming_ttfb(protocol: &Arc<Protocol>, state: &Value) -> Duration {
 /// render has completed and the result is handed off. This is what
 /// `pnpm start:server` did before streaming.
 fn buffered_ttfb(protocol: &Protocol, state: &Value) -> Duration {
-    let h = WebUIHandler::new();
+    let h = webhubHandler::new();
     let cap = 64 * 1024;
     let start = Instant::now();
     let mut w = StringWriter::with_capacity(cap);

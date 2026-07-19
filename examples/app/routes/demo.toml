@@ -6,8 +6,8 @@ description = "A multi-page routed app with backend route states"
 backend = "node"
 
 [server]
-type = "webui-cli"
-plugin = "webui"
+type = "webhub-cli"
+plugin = "webhub"
 source = "src"
 servedir = "dist"
 

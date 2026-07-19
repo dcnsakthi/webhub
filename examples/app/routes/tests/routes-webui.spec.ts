@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 /**
- * End-to-end tests for the WebUI nested routing example (webui-framework port).
+ * End-to-end tests for the webhub nested routing example (webhub-framework port).
  *
  * Tests SSR, client-side navigation, interactive islands (counters),
  * and auto-populated @observable state from the router.
@@ -89,7 +89,7 @@ test.describe('SSR routing', () => {
     await expect(lesson).toContainText('Updated through router fallback state.');
   });
 
-  test('webui-route elements have correct active state in SSR', async ({ page }) => {
+  test('webhub-route elements have correct active state in SSR', async ({ page }) => {
     const html = await (await page.goto('/sections/frontend'))!.text();
     expect(html).toContain('path="/" component="routes-app" data-ri="0" active>');
     expect(html).toContain('path="sections/:sectionId" component="section-page" data-ri="1" active>');
@@ -100,21 +100,21 @@ test.describe('SSR routing', () => {
     // Root page should only have routes-app template, not all 4
     await page.goto('/');
     const rootTemplates = await page.evaluate(
-      () => Object.keys(window.__webui?.templates ?? {}),
+      () => Object.keys(window.__webhub?.templates ?? {}),
     );
     expect(rootTemplates).toEqual(['routes-app']);
 
     // Section page should have routes-app + section-page
     await page.goto('/sections/frontend');
     const sectionTemplates = await page.evaluate(
-      () => Object.keys(window.__webui?.templates ?? {}).sort(),
+      () => Object.keys(window.__webhub?.templates ?? {}).sort(),
     );
     expect(sectionTemplates).toEqual(['routes-app', 'section-page']);
 
     // Deep page should have all 4
     await page.goto('/sections/frontend/topics/react/lessons/hooks');
     const deepTemplates = await page.evaluate(
-      () => Object.keys(window.__webui?.templates ?? {}).sort(),
+      () => Object.keys(window.__webhub?.templates ?? {}).sort(),
     );
     expect(deepTemplates).toEqual(['lesson-page', 'routes-app', 'section-page', 'topic-page']);
   });
@@ -122,19 +122,19 @@ test.describe('SSR routing', () => {
   test('partial response delivers missing templates during client navigation', async ({ page }) => {
     await page.goto('/');
     // Only routes-app on root
-    let templates = await page.evaluate(() => Object.keys(window.__webui?.templates ?? {}));
+    let templates = await page.evaluate(() => Object.keys(window.__webhub?.templates ?? {}));
     expect(templates).toEqual(['routes-app']);
 
     // Navigate to Frontend — section-page template should arrive via partial
     await page.getByRole('link', { name: 'Frontend' }).click();
     await expect(page.locator('main h2')).toContainText('Frontend');
-    templates = await page.evaluate(() => Object.keys(window.__webui?.templates ?? {}).sort());
+    templates = await page.evaluate(() => Object.keys(window.__webhub?.templates ?? {}).sort());
     expect(templates).toContain('section-page');
 
     // Navigate to React — topic-page template should arrive
     await page.getByRole('link', { name: 'React' }).click();
     await expect(page.locator('main h3')).toContainText('React');
-    templates = await page.evaluate(() => Object.keys(window.__webui?.templates ?? {}).sort());
+    templates = await page.evaluate(() => Object.keys(window.__webhub?.templates ?? {}).sort());
     expect(templates).toContain('topic-page');
   });
 });

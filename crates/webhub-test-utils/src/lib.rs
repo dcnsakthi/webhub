@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Test utilities for WebUI framework.
+//! Test utilities for webhub framework.
 //!
 //! This crate provides testing helpers and should only be used in test code.
 
 use std::fs;
 use std::{collections::HashMap, path::PathBuf};
 use tempfile::TempDir;
-pub use webui_protocol;
+pub use webhub_protocol;
 
 /// A macro that wraps `serde_json::json!` but allows bypassing clippy::disallowed_methods.
 ///
@@ -282,10 +282,10 @@ pub fn if_cond(template: &str) -> FragmentMatcher {
 
 /// Assert that a fragment list matches the expected matchers.
 pub fn assert_fragment_list(
-    fragments: &[webui_protocol::WebUIFragment],
+    fragments: &[webhub_protocol::webhubFragment],
     matchers: &[FragmentMatcher],
 ) {
-    use webui_protocol::web_ui_fragment::Fragment;
+    use webhub_protocol::web_ui_fragment::Fragment;
 
     assert_eq!(
         fragments.len(),
@@ -339,7 +339,7 @@ pub fn assert_fragment_list(
                         .as_ref()
                         .unwrap_or_else(|| panic!("Fragment[{}]: expected condition_tree", i));
                     match cond.expr.as_ref() {
-                        Some(webui_protocol::condition_expr::Expr::Identifier(id)) => {
+                        Some(webhub_protocol::condition_expr::Expr::Identifier(id)) => {
                             assert_eq!(
                                 id.value, *sig,
                                 "Fragment[{}]: bool attr signal mismatch",
@@ -358,7 +358,7 @@ pub fn assert_fragment_list(
                         .as_ref()
                         .unwrap_or_else(|| panic!("Fragment[{}]: expected condition_tree", i));
                     match cond.expr.as_ref() {
-                        Some(webui_protocol::condition_expr::Expr::Predicate(pred)) => {
+                        Some(webhub_protocol::condition_expr::Expr::Predicate(pred)) => {
                             assert_eq!(
                                 pred.left, *left,
                                 "Fragment[{}]: predicate left mismatch",
@@ -387,12 +387,12 @@ pub fn assert_fragment_list(
                         .as_ref()
                         .unwrap_or_else(|| panic!("Fragment[{}]: expected condition_tree", i));
                     match cond.expr.as_ref() {
-                        Some(webui_protocol::condition_expr::Expr::Not(not_cond)) => {
+                        Some(webhub_protocol::condition_expr::Expr::Not(not_cond)) => {
                             let inner_cond = not_cond.condition.as_ref().unwrap_or_else(|| {
                                 panic!("Fragment[{}]: not condition missing inner", i)
                             });
                             match inner_cond.expr.as_ref() {
-                                Some(webui_protocol::condition_expr::Expr::Identifier(id)) => {
+                                Some(webhub_protocol::condition_expr::Expr::Identifier(id)) => {
                                     assert_eq!(
                                         id.value, *inner,
                                         "Fragment[{}]: not inner identifier mismatch",
@@ -451,8 +451,8 @@ pub fn assert_fragment_list(
     }
 }
 
-fn format_fragment(frag: &webui_protocol::WebUIFragment) -> String {
-    use webui_protocol::web_ui_fragment::Fragment;
+fn format_fragment(frag: &webhub_protocol::webhubFragment) -> String {
+    use webhub_protocol::web_ui_fragment::Fragment;
     match frag.fragment.as_ref() {
         Some(Fragment::Raw(r)) => format!("raw({:?})", r.value),
         Some(Fragment::Signal(s)) => format!("signal({:?}, raw={})", s.value, s.raw),

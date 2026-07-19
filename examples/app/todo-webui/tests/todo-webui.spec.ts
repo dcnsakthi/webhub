@@ -37,7 +37,7 @@ test.describe('SSR rendering', () => {
   test('compiled templates registered in global registry', async ({ page }) => {
     await page.goto('/');
     const templateNames = await page.evaluate(
-      () => Object.keys(window.__webui?.templates ?? {}),
+      () => Object.keys(window.__webhub?.templates ?? {}),
     );
     expect(templateNames).toContain('todo-app');
     expect(templateNames).toContain('todo-item');
@@ -46,7 +46,7 @@ test.describe('SSR rendering', () => {
   test('compiled template is a metadata object', async ({ page }) => {
     await page.goto('/');
     const meta = await page.evaluate(() => {
-      const template = window.__webui?.templates?.['todo-app'];
+      const template = window.__webhub?.templates?.['todo-app'];
       const textPaths = Array.isArray(template?.tx)
         ? template.tx
           .flatMap(([, parts]) => parts)
@@ -95,7 +95,7 @@ test.describe('SSR rendering', () => {
     expect(real).toEqual([]);
   });
 
-  test('fires webui:hydration-complete event', async ({ page }) => {
+  test('fires webhub:hydration-complete event', async ({ page }) => {
     // Install listener before page loads to avoid race condition
     await page.goto('/', {
       waitUntil: 'load',
@@ -104,7 +104,7 @@ test.describe('SSR rendering', () => {
     // By the time 'load' fires, module scripts have executed and
     // hydration is complete.  Check the global performance measure.
     const totalDuration = await page.evaluate(() => {
-      const total = performance.getEntriesByName('webui:hydrate:total', 'measure');
+      const total = performance.getEntriesByName('webhub:hydrate:total', 'measure');
       return total[0]?.duration ?? -1;
     });
 

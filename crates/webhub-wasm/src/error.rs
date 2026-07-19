@@ -14,7 +14,7 @@ pub(crate) enum WasmError {
     /// Template parsing or authoring validation failed.
     #[cfg(feature = "parser")]
     #[error("{0}")]
-    Parse(#[from] webui_parser::ParserError),
+    Parse(#[from] webhub_parser::ParserError),
 
     /// Projection manifest validation or coverage failed.
     #[cfg(feature = "parser")]
@@ -23,7 +23,7 @@ pub(crate) enum WasmError {
 
     /// Protocol protobuf bytes could not be decoded or encoded.
     #[error("Protocol error: {0}")]
-    Protocol(#[from] webui_protocol::ProtocolError),
+    Protocol(#[from] webhub_protocol::ProtocolError),
 
     /// State JSON could not be decoded.
     #[cfg(feature = "handler")]
@@ -33,11 +33,11 @@ pub(crate) enum WasmError {
     /// Rendering failed.
     #[cfg(feature = "handler")]
     #[error("{0}")]
-    Render(#[from] webui_handler::HandlerError),
+    Render(#[from] webhub_handler::HandlerError),
 
     /// A requested handler plugin name is not supported.
     #[cfg(feature = "handler")]
-    #[error("Unknown plugin: {0}. Use \"webui\", \"fast-v3\", \"fast-v2\", or \"fast\".")]
+    #[error("Unknown plugin: {0}. Use \"webhub\", \"fast-v3\", \"fast-v2\", or \"fast\".")]
     UnknownPlugin(String),
 
     /// The JavaScript render options object was invalid.

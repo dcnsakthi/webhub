@@ -67,7 +67,7 @@ export interface PathBindings {
  * diverged, emits the hydration-mismatch warning once. Routing the element
  * through this function keeps every comparator and the message string in this
  * module, reached only via that dynamic import — so a production bundler drops
- * the whole module when `__WEBUI_DEV__` folds `DEV` to `false` (see
+ * the whole module when `__webhub_DEV__` folds `DEV` to `false` (see
  * `template-element.ts`). The comparison is read-only; it never mutates the DOM.
  */
 export function reportHydrationMismatch(
@@ -166,7 +166,7 @@ export function repeatDiffersFromDom(r: RepeatBinding, ctx: MismatchContext): bo
 export function formatHydrationMismatch(tag: string, paths: string[]): string {
   const list = paths.map((p) => `"${p}"`).join(', ');
   return (
-    `[WebUI] Hydration mismatch on <${tag}>: ` +
+    `[webhub] Hydration mismatch on <${tag}>: ` +
     `${list} changed at or before super.connectedCallback() to a value that ` +
     `differs from the server-rendered DOM. The DOM keeps the server value ` +
     `(SSR content is trusted), so the element's state and DOM disagree. ` +

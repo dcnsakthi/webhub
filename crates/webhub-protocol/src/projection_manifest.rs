@@ -24,9 +24,9 @@ pub mod codes {
 }
 
 /// Current projection manifest schema identifier.
-pub const SCHEMA_ID: &str = "webui.state-projection/v1";
+pub const SCHEMA_ID: &str = "webhub.state-projection/v1";
 /// Required producer identity.
-pub const PRODUCER_NAME: &str = "@microsoft/webui/projection.js";
+pub const PRODUCER_NAME: &str = "@microsoft/webhub/projection.js";
 /// Maximum component entries in one fragment.
 pub const MAX_COMPONENT_COUNT: usize = 65_535;
 /// Maximum parent segments in `root`.
@@ -126,7 +126,7 @@ impl ProjectionManifest {
         }
         if self.producer.name != PRODUCER_NAME || self.producer.version.is_empty() {
             return Err(invalid_field(
-                "producer must identify @microsoft/webui/projection.js with a non-empty version",
+                "producer must identify @microsoft/webhub/projection.js with a non-empty version",
             ));
         }
         if self.adapter.name.is_empty() || self.adapter.bundler.is_empty() {
@@ -507,7 +507,7 @@ mod tests {
     #[test]
     fn duplicate_json_key_is_rejected() {
         let error = ProjectionManifest::from_slice(
-            br#"{"schema":"webui.state-projection/v1","schema":"duplicate"}"#,
+            br#"{"schema":"webhub.state-projection/v1","schema":"duplicate"}"#,
         )
         .unwrap_err();
         assert_eq!(error.code(), codes::INVALID_FIELD);

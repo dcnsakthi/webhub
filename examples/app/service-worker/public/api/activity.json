@@ -15,7 +15,7 @@
       },
       {
         "name": "Render",
-        "detail": "Each state response is rendered by webui_wasm_handler and enqueued into the stream."
+        "detail": "Each state response is rendered by webhub_wasm_handler and enqueued into the stream."
       }
     ]
   }

@@ -1,8 +1,8 @@
-# `@microsoft/webui-test-support`
+# `@microsoft/webhub-test-support`
 
-Private workspace-only helpers for WebUI package tests.
+Private workspace-only helpers for webhub package tests.
 
-This package exists so `webui-framework` and `webui-router` can share the same
+This package exists so `webhub-framework` and `webhub-router` can share the same
 test infrastructure instead of each package carrying slightly different copies
 of it.
 
@@ -29,16 +29,16 @@ land in one place.
 
 This package is intentionally **not published**.
 
-- Package name: `@microsoft/webui-test-support`
+- Package name: `@microsoft/webhub-test-support`
 - `private: true`
 
 It is for workspace reuse only.
 
 ## Exports
 
-- `@microsoft/webui-test-support` — template metadata helpers safe for browser
+- `@microsoft/webhub-test-support` — template metadata helpers safe for browser
   fixture bundles.
-- `@microsoft/webui-test-support/fixture-build` — Node-only helpers for building
+- `@microsoft/webhub-test-support/fixture-build` — Node-only helpers for building
   fixture bundles.
-- `@microsoft/webui-test-support/fixture-server` — Node-only helpers for
+- `@microsoft/webhub-test-support/fixture-server` — Node-only helpers for
   Playwright fixture servers.

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
 interface RepeatConditionalItem {
   title: string;
@@ -10,7 +10,7 @@ interface RepeatConditionalItem {
   disabled: boolean;
 }
 
-export class TestRepeatConditional extends WebUIElement {
+export class TestRepeatConditional extends webhubElement {
   @observable selectedTitle = '';
 
   @observable items: RepeatConditionalItem[] = [

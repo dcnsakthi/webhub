@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
 interface Option {
   title: string;
   active: boolean;
 }
 
-export class TestTextOnlyRepeat extends WebUIElement {
+export class TestTextOnlyRepeat extends webhubElement {
   @observable options: Option[] = [];
 
   onUpdate(): void {

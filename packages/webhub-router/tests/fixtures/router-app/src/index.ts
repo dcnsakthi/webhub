@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Router } from '@microsoft/webui-router';
+import { Router } from '@microsoft/webhub-router';
 import { ErrorDisplay } from './error-display/error-display';
 import { LoadingSkeleton } from './loading-skeleton/loading-skeleton';
 import { PageAlpha } from './page-alpha/page-alpha';
@@ -51,7 +51,7 @@ PageFailing.define('page-failing');
 
 // ── Start router after hydration ─────────────────────────────────
 
-window.addEventListener('webui:hydration-complete', () => {
+window.addEventListener('webhub:hydration-complete', () => {
   Router.start({
     loaders: {
       'page-alpha': () => Promise.resolve(),
@@ -69,7 +69,7 @@ window.addEventListener('webui:hydration-complete', () => {
 });
 
 // Fallback if hydration already completed
-if (performance.getEntriesByName('webui:hydrate:total', 'measure').length > 0) {
+if (performance.getEntriesByName('webhub:hydrate:total', 'measure').length > 0) {
   Router.start({
     loaders: {
       'page-alpha': () => Promise.resolve(),

@@ -51,11 +51,11 @@ export function setupFormInterception(ctx: ActionContext): () => void {
     // Forms with a target attribute submit to a different browsing context
     if (form.target && form.target !== '_self') return;
 
-    // Find the nearest ancestor <webui-route> with a component
+    // Find the nearest ancestor <webhub-route> with a component
     let routeEl: HTMLElement | null = null;
     for (let i = 0; i < path.length; i++) {
       const el = path[i] as Element;
-      if (el?.tagName === 'WEBUI-ROUTE' && el.getAttribute('component')) {
+      if (el?.tagName === 'webhub-ROUTE' && el.getAttribute('component')) {
         routeEl = el as HTMLElement;
         break;
       }
@@ -115,7 +115,7 @@ export function setupFormInterception(ctx: ActionContext): () => void {
           invalidatedTags: mergedTags,
           path: ctx.currentRequestPath,
         };
-        window.dispatchEvent(new CustomEvent('webui:route:action-complete', { detail }));
+        window.dispatchEvent(new CustomEvent('webhub:route:action-complete', { detail }));
       })
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === 'AbortError') return;

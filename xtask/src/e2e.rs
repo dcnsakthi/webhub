@@ -123,8 +123,8 @@ const SUITES: &[PlaywrightSuite] = &[
         update_snapshots_script: "test:update-snapshots",
     },
     PlaywrightSuite {
-        name: "todo-webui",
-        dir: "examples/app/todo-webui",
+        name: "todo-webhub",
+        dir: "examples/app/todo-webhub",
         ports: &[3006],
         scripts: &["start:server"],
         build_client: true,
@@ -133,8 +133,8 @@ const SUITES: &[PlaywrightSuite] = &[
         update_snapshots_script: "test:update-snapshots",
     },
     PlaywrightSuite {
-        name: "webui-framework",
-        dir: "packages/webui-framework",
+        name: "webhub-framework",
+        dir: "packages/webhub-framework",
         ports: &[],
         scripts: &[],
         build_client: false,
@@ -143,8 +143,8 @@ const SUITES: &[PlaywrightSuite] = &[
         update_snapshots_script: "test:update-snapshots",
     },
     PlaywrightSuite {
-        name: "webui-router",
-        dir: "packages/webui-router",
+        name: "webhub-router",
+        dir: "packages/webhub-router",
         ports: &[39102],
         scripts: &["start:server"],
         build_client: false,
@@ -153,8 +153,8 @@ const SUITES: &[PlaywrightSuite] = &[
         update_snapshots_script: "test:update-snapshots",
     },
     PlaywrightSuite {
-        name: "webui-press",
-        dir: "crates/webui-press",
+        name: "webhub-press",
+        dir: "crates/webhub-press",
         ports: &[],
         scripts: &[],
         build_client: false,
@@ -179,9 +179,9 @@ pub fn run(args: &[String]) -> ExitCode {
     // never modify source files. Disable the dev server's filesystem
     // watcher (which `start:server` enables via --watch for dev mode)
     // so spurious filesystem events on CI cannot trigger a livereload
-    // and reload the browser mid-test. The CLI honors WEBUI_NO_WATCH
+    // and reload the browser mid-test. The CLI honors webhub_NO_WATCH
     // and ignores --watch when set; children inherit our env.
-    set_env_var("WEBUI_NO_WATCH", "1");
+    set_env_var("webhub_NO_WATCH", "1");
 
     // Filter to apps that exist on disk
     let suites: Vec<&PlaywrightSuite> = SUITES
@@ -228,9 +228,9 @@ pub fn run(args: &[String]) -> ExitCode {
 
     // Build native Rust artifacts that example servers and Node test fixtures
     // load at runtime. Without this:
-    // - Framework e2e tests load a stale libwebui_node dylib and produce
+    // - Framework e2e tests load a stale libwebhub_node dylib and produce
     //   mismatched SSR output (release profile, loaded by the Node addon).
-    // - Example `pnpm start:server` scripts compile webui-cli on the critical
+    // - Example `pnpm start:server` scripts compile webhub-cli on the critical
     //   path via `cargo run` and overflow the port-readiness timeout (debug
     //   profile, used by `cargo run` defaults).
     eprintln!(
@@ -239,24 +239,24 @@ pub fn run(args: &[String]) -> ExitCode {
     );
     match util::run_command_quiet(
         "cargo",
-        &["build", "--release", "-p", "microsoft-webui-node"],
+        &["build", "--release", "-p", "microsoft-webhub-node"],
         None,
     ) {
-        Ok(()) => eprintln!("  {}", console::style("✔ webui-node (release)").green()),
+        Ok(()) => eprintln!("  {}", console::style("✔ webhub-node (release)").green()),
         Err(msg) => {
             eprintln!(
-                "  {} webui-node release build failed",
+                "  {} webhub-node release build failed",
                 console::style("✘").red().bold(),
             );
             eprintln!("    {msg}");
             return ExitCode::FAILURE;
         }
     }
-    match util::run_command_quiet("cargo", &["build", "-p", "microsoft-webui-cli"], None) {
-        Ok(()) => eprintln!("  {}", console::style("✔ webui-cli (debug)").green()),
+    match util::run_command_quiet("cargo", &["build", "-p", "microsoft-webhub-cli"], None) {
+        Ok(()) => eprintln!("  {}", console::style("✔ webhub-cli (debug)").green()),
         Err(msg) => {
             eprintln!(
-                "  {} webui-cli debug build failed",
+                "  {} webhub-cli debug build failed",
                 console::style("✘").red().bold(),
             );
             eprintln!("    {msg}");
@@ -277,7 +277,7 @@ pub fn run(args: &[String]) -> ExitCode {
         if !dir.join("src").join("index.ts").exists() {
             continue;
         }
-        // Use each app's declared client build. WebUI examples run esbuild's
+        // Use each app's declared client build. webhub examples run esbuild's
         // JS API with esbuildProjection(), so bypassing the script would
         // overwrite bundle bytes without updating the manifest.
         match util::run_command_quiet("pnpm", &["build:client"], Some(&dir)) {

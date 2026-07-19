@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr, observable } from '@microsoft/webui-framework';
+import { webhubElement, attr, observable } from '@microsoft/webhub-framework';
 
 interface GalleryImage {
   index: number;
@@ -9,7 +9,7 @@ interface GalleryImage {
   imageUrl: string;
 }
 
-export class MpProductGallery extends WebUIElement {
+export class MpProductGallery extends webhubElement {
   @attr({ attribute: 'active-gradient' }) activeGradient = '';
   @attr({ attribute: 'active-image-url' }) activeImageUrl = '';
   @attr handle = '';

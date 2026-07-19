@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! `webui-press` CLI — standalone documentation site builder.
+//! `webhub-press` CLI — standalone documentation site builder.
 //!
 //! ```bash
-//! webui-press build                          # defaults: .webui-press/config.json
-//! webui-press build --config my-config.json  # custom config
-//! webui-press build --template ./my-template # custom template
-//! webui-press serve                          # build + watch + live-reload dev server
-//! webui-press serve --port 4000              # custom port
+//! webhub-press build                          # defaults: .webhub-press/config.json
+//! webhub-press build --config my-config.json  # custom config
+//! webhub-press build --template ./my-template # custom template
+//! webhub-press serve                          # build + watch + live-reload dev server
+//! webhub-press serve --port 4000              # custom port
 //! ```
 
 mod build;
@@ -37,7 +37,7 @@ const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_PRIME: u64 = 0x0100_0000_01b3;
 
 #[derive(Parser)]
-#[command(name = "webui-press", about = "WebUI documentation site builder")]
+#[command(name = "webhub-press", about = "webhub documentation site builder")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -48,7 +48,7 @@ enum Commands {
     /// Build the documentation site
     Build {
         /// Path to config.json
-        #[arg(short, long, default_value = ".webui-press/config.json")]
+        #[arg(short, long, default_value = ".webhub-press/config.json")]
         config: String,
 
         /// Path to the template directory (overrides bundled assets)
@@ -59,7 +59,7 @@ enum Commands {
     /// Build, watch sources, and serve with live reload (dev only)
     Serve {
         /// Path to config.json
-        #[arg(short, long, default_value = ".webui-press/config.json")]
+        #[arg(short, long, default_value = ".webhub-press/config.json")]
         config: String,
 
         /// Path to the template directory (overrides bundled assets)
@@ -130,7 +130,7 @@ fn load_config(
 /// sentinel and re-extracts.
 fn extract_embedded_assets() -> Result<PathBuf> {
     let dir_name = format!(
-        "webui-press-{}-{:016x}",
+        "webhub-press-{}-{:016x}",
         env!("CARGO_PKG_VERSION"),
         embedded_assets_hash()
     );
@@ -250,7 +250,7 @@ mod tests {
     #[test]
     fn incomplete_cache_is_not_treated_as_complete() -> Result<()> {
         let base = std::env::temp_dir().join(format!(
-            "webui-press-test-incomplete-{}",
+            "webhub-press-test-incomplete-{}",
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&base);

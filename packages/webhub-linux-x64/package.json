@@ -2,13 +2,13 @@
   "cpu": [
     "x64"
   ],
-  "description": "WebUI platform-specific binary for Linux x64",
+  "description": "webhub platform-specific binary for Linux x64",
   "files": [
-    "bin/webui",
-    "webui.node"
+    "bin/webhub",
+    "webhub.node"
   ],
   "license": "MIT",
-  "name": "@microsoft/webui-linux-x64",
+  "name": "@microsoft/webhub-linux-x64",
   "os": [
     "linux"
   ],

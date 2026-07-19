@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-// Minimal Node.js example: uses the @microsoft/webui package to build
+// Minimal Node.js example: uses the @microsoft/webhub package to build
 // templates into a protocol and render HTML with state data.
 //
 // Prerequisites:
-//   1. Build the native addon: cargo build -p microsoft-webui-node
-//   2. Build the @microsoft/webui package: pnpm --filter @microsoft/webui build
+//   1. Build the native addon: cargo build -p microsoft-webhub-node
+//   2. Build the @microsoft/webhub package: pnpm --filter @microsoft/webhub build
 //   3. Install workspace dependencies: pnpm install
 //
 // Usage:
@@ -15,7 +15,7 @@
 
 import { readFileSync } from "fs";
 import { resolve } from "path";
-import { build, Protocol } from "@microsoft/webui";
+import { build, Protocol } from "@microsoft/webhub";
 
 const appDir = resolve(import.meta.dirname, "../../app/hello-world/src");
 const stateFile = resolve(import.meta.dirname, "../../app/hello-world/data/state.json");

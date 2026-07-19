@@ -1,4 +1,4 @@
-# `microsoft-webui` benches
+# `microsoft-webhub` benches
 
 Two criterion benches in this directory:
 
@@ -13,7 +13,7 @@ Two criterion benches in this directory:
   streaming module replaces). Includes a separate `ttfb` group that
   measures time-to-first-chunk for the streaming path.
 
-Two **examples** (in `crates/webui/examples/`) round out the suite:
+Two **examples** (in `crates/webhub/examples/`) round out the suite:
 
 * **`streaming_resource_bench.rs`** — exact allocation count, bytes
   allocated, getrusage CPU time, and peak RSS via a custom

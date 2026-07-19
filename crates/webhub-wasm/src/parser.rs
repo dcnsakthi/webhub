@@ -6,15 +6,15 @@
 use crate::error::WasmError;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
-use webui_parser::plugin::webui::WebUIParserPlugin;
-use webui_parser::plugin::{ParserPluginArtifacts, StateSurface};
-use webui_parser::{CssStrategy, HtmlParser};
-use webui_protocol::projection_manifest::{ProjectionComponent, ProjectionManifest};
-use webui_protocol::{InitialStateStrategy, StateProjectionMode, WebUIProtocol};
+use webhub_parser::plugin::webhub::webhubParserPlugin;
+use webhub_parser::plugin::{ParserPluginArtifacts, StateSurface};
+use webhub_parser::{CssStrategy, HtmlParser};
+use webhub_protocol::projection_manifest::{ProjectionComponent, ProjectionManifest};
+use webhub_protocol::{InitialStateStrategy, StateProjectionMode, webhubProtocol};
 
 /// Build protocol protobuf bytes from virtual files without rendering.
 ///
-/// Returns the serialized `WebUIProtocol` as protobuf bytes.
+/// Returns the serialized `webhubProtocol` as protobuf bytes.
 #[wasm_bindgen]
 pub fn build_protocol(
     files: JsValue,
@@ -59,7 +59,7 @@ fn register_components(
                 // never analyzes its source; optional projection manifests
                 // provide exact client state surfaces.
                 parser.component_registry_mut().register_component(
-                    webui_parser::ComponentRegistration {
+                    webhub_parser::ComponentRegistration {
                         tag_name,
                         html_content: content,
                         css_content: css,
@@ -77,19 +77,19 @@ fn has_component_script(files: &HashMap<String, String>, tag_name: &str) -> bool
     files.contains_key(&format!("{tag_name}.ts")) || files.contains_key(&format!("{tag_name}.js"))
 }
 
-/// Parse virtual files into a `WebUIProtocol` using the real `webui-parser`
-/// with the WebUI plugin.
+/// Parse virtual files into a `webhubProtocol` using the real `webhub-parser`
+/// with the webhub plugin.
 pub(crate) fn parse_to_protocol(
     files: &HashMap<String, String>,
     entry: &str,
     projection_manifests: &[ProjectionManifest],
-) -> Result<WebUIProtocol, WasmError> {
+) -> Result<webhubProtocol, WasmError> {
     let entry_html = files
         .get(entry)
         .ok_or_else(|| WasmError::MissingEntry(entry.to_string()))?;
 
     let mut parser =
-        HtmlParser::with_plugin_options(Box::new(WebUIParserPlugin::new()), CssStrategy::Style);
+        HtmlParser::with_plugin_options(Box::new(webhubParserPlugin::new()), CssStrategy::Style);
     register_components(&mut parser, files, entry)?;
     parser.parse(entry, entry_html)?;
     let templates = match parser.take_plugin_artifacts()? {
@@ -97,7 +97,7 @@ pub(crate) fn parse_to_protocol(
         ParserPluginArtifacts::ComponentTemplates(templates) => templates,
     };
 
-    let mut protocol = WebUIProtocol::new(parser.into_fragment_records());
+    let mut protocol = webhubProtocol::new(parser.into_fragment_records());
     let projection = merge_projection_manifests(projection_manifests)?;
     protocol.initial_state_strategy = if projection.is_some() {
         InitialStateStrategy::Components as i32
@@ -240,7 +240,7 @@ mod tests {
     #[test]
     fn parse_to_protocol_applies_manifest_surfaces() {
         use std::collections::BTreeMap;
-        use webui_protocol::projection_manifest::{
+        use webhub_protocol::projection_manifest::{
             ProjectionAdapter, ProjectionComponent, ProjectionProducer, PRODUCER_NAME, SCHEMA_ID,
         };
 

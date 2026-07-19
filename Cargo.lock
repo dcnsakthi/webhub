@@ -924,9 +924,9 @@ dependencies = [
  "clap",
  "env_logger",
  "log",
- "microsoft-webui",
- "microsoft-webui-handler",
- "microsoft-webui-protocol",
+ "microsoft-webhub",
+ "microsoft-webhub-handler",
+ "microsoft-webhub-protocol",
  "mime_guess",
  "serde",
  "serde_json",
@@ -1758,8 +1758,8 @@ dependencies = [
  "clap",
  "hmac",
  "log",
- "microsoft-webui",
- "microsoft-webui-handler",
+ "microsoft-webhub",
+ "microsoft-webhub-handler",
  "mime_guess",
  "rcgen",
  "rustls",
@@ -1778,7 +1778,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "88904434abc2901f197fe8cc55f0445e7ded921dba5911dad2e2b39b48e663c4"
 
 [[package]]
-name = "microsoft-webui"
+name = "microsoft-webhub"
 version = "0.0.18"
 dependencies = [
  "actix-web",
@@ -1790,11 +1790,11 @@ dependencies = [
  "libc",
  "log",
  "memchr",
- "microsoft-webui-discovery",
- "microsoft-webui-handler",
- "microsoft-webui-parser",
- "microsoft-webui-protocol",
- "microsoft-webui-tokens",
+ "microsoft-webhub-discovery",
+ "microsoft-webhub-handler",
+ "microsoft-webhub-parser",
+ "microsoft-webhub-protocol",
+ "microsoft-webhub-tokens",
  "rayon",
  "serde",
  "serde_json",
@@ -1807,7 +1807,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "microsoft-webui-cli"
+name = "microsoft-webhub-cli"
 version = "0.0.18"
 dependencies = [
  "actix-web",
@@ -1818,12 +1818,12 @@ dependencies = [
  "console",
  "expand-tilde",
  "log",
- "microsoft-webui",
- "microsoft-webui-dev-server",
- "microsoft-webui-discovery",
- "microsoft-webui-handler",
- "microsoft-webui-protocol",
- "microsoft-webui-tokens",
+ "microsoft-webhub",
+ "microsoft-webhub-dev-server",
+ "microsoft-webhub-discovery",
+ "microsoft-webhub-handler",
+ "microsoft-webhub-protocol",
+ "microsoft-webhub-tokens",
  "mime_guess",
  "serde_json",
  "tempfile",
@@ -1832,7 +1832,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "microsoft-webui-dev-server"
+name = "microsoft-webhub-dev-server"
 version = "0.0.18"
 dependencies = [
  "actix-web",
@@ -1850,7 +1850,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "microsoft-webui-discovery"
+name = "microsoft-webhub-discovery"
 version = "0.0.18"
 dependencies = [
  "anyhow",
@@ -1862,50 +1862,50 @@ dependencies = [
 ]
 
 [[package]]
-name = "microsoft-webui-expressions"
+name = "microsoft-webhub-expressions"
 version = "0.0.18"
 dependencies = [
  "criterion",
- "microsoft-webui-protocol",
- "microsoft-webui-state",
- "microsoft-webui-test-utils",
+ "microsoft-webhub-protocol",
+ "microsoft-webhub-state",
+ "microsoft-webhub-test-utils",
  "serde_json",
  "thiserror",
 ]
 
 [[package]]
-name = "microsoft-webui-ffi"
+name = "microsoft-webhub-ffi"
 version = "0.0.18"
 dependencies = [
  "cbindgen",
  "criterion",
- "microsoft-webui-handler",
- "microsoft-webui-protocol",
+ "microsoft-webhub-handler",
+ "microsoft-webhub-protocol",
  "serde_json",
 ]
 
 [[package]]
-name = "microsoft-webui-handler"
+name = "microsoft-webhub-handler"
 version = "0.0.18"
 dependencies = [
  "criterion",
- "microsoft-webui-expressions",
- "microsoft-webui-protocol",
- "microsoft-webui-state",
- "microsoft-webui-test-utils",
+ "microsoft-webhub-expressions",
+ "microsoft-webhub-protocol",
+ "microsoft-webhub-state",
+ "microsoft-webhub-test-utils",
  "serde",
  "serde_json",
  "thiserror",
 ]
 
 [[package]]
-name = "microsoft-webui-node"
+name = "microsoft-webhub-node"
 version = "0.0.18"
 dependencies = [
- "microsoft-webui",
- "microsoft-webui-handler",
- "microsoft-webui-parser",
- "microsoft-webui-protocol",
+ "microsoft-webhub",
+ "microsoft-webhub-handler",
+ "microsoft-webhub-parser",
+ "microsoft-webhub-protocol",
  "napi",
  "napi-build",
  "napi-derive",
@@ -1914,22 +1914,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "microsoft-webui-parser"
+name = "microsoft-webhub-parser"
 version = "0.0.18"
 dependencies = [
  "clap",
  "criterion",
  "html-escape",
- "microsoft-webui-protocol",
- "microsoft-webui-test-utils",
- "microsoft-webui-tokens",
+ "microsoft-webhub-protocol",
+ "microsoft-webhub-test-utils",
+ "microsoft-webhub-tokens",
  "sha2",
  "thiserror",
  "walkdir",
 ]
 
 [[package]]
-name = "microsoft-webui-press"
+name = "microsoft-webhub-press"
 version = "0.0.18"
 dependencies = [
  "actix-web",
@@ -1939,11 +1939,11 @@ dependencies = [
  "console",
  "html-escape",
  "include_dir",
- "microsoft-webui",
- "microsoft-webui-dev-server",
- "microsoft-webui-discovery",
- "microsoft-webui-handler",
- "microsoft-webui-tokens",
+ "microsoft-webhub",
+ "microsoft-webhub-dev-server",
+ "microsoft-webhub-discovery",
+ "microsoft-webhub-handler",
+ "microsoft-webhub-tokens",
  "rayon",
  "serde",
  "serde_json",
@@ -1954,7 +1954,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "microsoft-webui-protocol"
+name = "microsoft-webhub-protocol"
 version = "0.0.18"
 dependencies = [
  "criterion",
@@ -1967,25 +1967,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "microsoft-webui-state"
+name = "microsoft-webhub-state"
 version = "0.0.18"
 dependencies = [
  "criterion",
- "microsoft-webui-test-utils",
+ "microsoft-webhub-test-utils",
  "serde_json",
 ]
 
 [[package]]
-name = "microsoft-webui-test-utils"
+name = "microsoft-webhub-test-utils"
 version = "0.0.18"
 dependencies = [
- "microsoft-webui-protocol",
+ "microsoft-webhub-protocol",
  "serde_json",
  "tempfile",
 ]
 
 [[package]]
-name = "microsoft-webui-tokens"
+name = "microsoft-webhub-tokens"
 version = "0.0.18"
 dependencies = [
  "serde_json",
@@ -1994,13 +1994,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "microsoft-webui-wasm"
+name = "microsoft-webhub-wasm"
 version = "0.0.18"
 dependencies = [
  "js-sys",
- "microsoft-webui-handler",
- "microsoft-webui-parser",
- "microsoft-webui-protocol",
+ "microsoft-webhub-handler",
+ "microsoft-webhub-parser",
+ "microsoft-webhub-protocol",
  "serde-wasm-bindgen",
  "serde_json",
  "thiserror",
@@ -2977,8 +2977,8 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "anyhow",
- "microsoft-webui-handler",
- "microsoft-webui-protocol",
+ "microsoft-webhub-handler",
+ "microsoft-webhub-protocol",
  "serde_json",
 ]
 
@@ -2997,8 +2997,8 @@ dependencies = [
  "bytes",
  "clap",
  "futures-util",
- "microsoft-webui",
- "microsoft-webui-handler",
+ "microsoft-webhub",
+ "microsoft-webhub-handler",
  "serde",
  "tokio",
  "tokio-stream",
@@ -3487,12 +3487,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "webui-rust-example"
+name = "webhub-rust-example"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "microsoft-webui-handler",
- "microsoft-webui-protocol",
+ "microsoft-webhub-handler",
+ "microsoft-webhub-protocol",
  "serde_json",
 ]
 

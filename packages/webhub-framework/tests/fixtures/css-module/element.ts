@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement } from '../../../src/index.js';
+import { webhubElement } from '../../../src/index.js';
 
-export class TestModuleHost extends WebUIElement {
+export class TestModuleHost extends webhubElement {
   spawnChild(): void {
     const slot = (this.shadowRoot ?? this).querySelector('.slot');
     if (!(slot instanceof HTMLDivElement)) {
@@ -15,7 +15,7 @@ export class TestModuleHost extends WebUIElement {
   }
 }
 
-export class TestModuleChild extends WebUIElement {}
+export class TestModuleChild extends webhubElement {}
 
 TestModuleHost.define('test-module-host');
 TestModuleChild.define('test-module-child');

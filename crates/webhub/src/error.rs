@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Error types for the WebUI library.
+//! Error types for the webhub library.
 
 use thiserror::Error;
 
-/// Errors that can occur during WebUI build, render, or inspection operations.
+/// Errors that can occur during webhub build, render, or inspection operations.
 #[derive(Debug, Error)]
-pub enum WebUIError {
+pub enum webhubError {
     /// I/O error (file read/write failures).
     #[error("I/O error: {context}")]
     Io {
@@ -33,12 +33,12 @@ pub enum WebUIError {
         context: String,
         /// The underlying parse error.
         #[source]
-        source: webui_parser::ParserError,
+        source: webhub_parser::ParserError,
     },
 
     /// Protocol serialization or deserialization failure.
     #[error("protocol error")]
-    Protocol(#[from] webui_protocol::ProtocolError),
+    Protocol(#[from] webhub_protocol::ProtocolError),
 
     /// JSON serialization failure.
     #[error("Serialization error: {0}")]
@@ -46,7 +46,7 @@ pub enum WebUIError {
 
     /// Handler rendering error.
     #[error("rendering error")]
-    Rendering(#[from] webui_handler::HandlerError),
+    Rendering(#[from] webhub_handler::HandlerError),
 
     /// Invalid build-option configuration.
     #[error("Invalid build options: {0}")]
@@ -56,15 +56,15 @@ pub enum WebUIError {
     /// stale/missing input or output file, build-ID mismatch, conflicting or
     /// duplicate fragment ownership, missing scripted-component coverage, or
     /// an incompatible plugin. Carries a structured, color-free [`Diagnostic`]
-    /// with a stable `PROJ-*` code (see `webui::projection::codes`).
+    /// with a stable `PROJ-*` code (see `webhub::projection::codes`).
     ///
     /// The diagnostic is boxed so this cold error path does not enlarge
-    /// `Result<_, WebUIError>` on the common success path.
+    /// `Result<_, webhubError>` on the common success path.
     #[error("{0}")]
-    Projection(Box<webui_parser::Diagnostic>),
+    Projection(Box<webhub_parser::Diagnostic>),
 }
 
-impl WebUIError {
+impl webhubError {
     /// The full, single-line message including the source chain, e.g.
     /// `Failed to parse index.html: Directive error: Invalid for each: x`.
     ///

@@ -61,7 +61,7 @@ impl LiveReload {
     /// Create a new broadcaster.
     ///
     /// `endpoint` should be a root-relative URL path (e.g.
-    /// `"/__webui/livereload"`). Use a root-relative path so the script
+    /// `"/__webhub/livereload"`). Use a root-relative path so the script
     /// works when the served pages set `<base href>` for sub-path
     /// deployments.
     #[must_use]
@@ -133,9 +133,9 @@ impl LiveReload {
 ///
 /// ```ignore
 /// use actix_web::{web, App};
-/// use webui_dev_server::{livereload, LiveReload};
+/// use webhub_dev_server::{livereload, LiveReload};
 ///
-/// let lr = LiveReload::new("/__webui/livereload");
+/// let lr = LiveReload::new("/__webhub/livereload");
 /// let app = App::new()
 ///     .app_data(web::Data::new(lr.clone()))
 ///     .route(lr.endpoint(), web::get().to(livereload::sse_handler));
@@ -195,8 +195,8 @@ fn build_client_script(endpoint: &str) -> String {
     format!(
         "<script>(function(){{try{{var s=new EventSource({endpoint_js});\
 s.addEventListener(\"reload\",function(){{location.reload();}});\
-s.addEventListener(\"reload-error\",function(e){{console.error(\"[webui-dev] rebuild failed:\",e.data);}});\
-}}catch(e){{console.warn(\"[webui-dev] live reload unavailable:\",e);}}}})();</script>"
+s.addEventListener(\"reload-error\",function(e){{console.error(\"[webhub-dev] rebuild failed:\",e.data);}});\
+}}catch(e){{console.warn(\"[webhub-dev] live reload unavailable:\",e);}}}})();</script>"
     )
 }
 
@@ -228,21 +228,21 @@ mod tests {
 
     #[test]
     fn live_reload_endpoint_round_trips() {
-        let lr = LiveReload::new("/__webui/livereload");
-        assert_eq!(lr.endpoint(), "/__webui/livereload");
+        let lr = LiveReload::new("/__webhub/livereload");
+        assert_eq!(lr.endpoint(), "/__webhub/livereload");
     }
 
     #[test]
     fn client_script_includes_endpoint() {
-        let lr = LiveReload::new("/__webui/livereload");
-        assert!(lr.client_script().contains("/__webui/livereload"));
+        let lr = LiveReload::new("/__webhub/livereload");
+        assert!(lr.client_script().contains("/__webhub/livereload"));
         assert!(lr.client_script().contains("EventSource"));
         assert!(lr.client_script().contains("reload"));
     }
 
     #[test]
     fn inject_places_script_before_close_body() {
-        let lr = LiveReload::new("/__webui/lr");
+        let lr = LiveReload::new("/__webhub/lr");
         let html = "<html><body>x</body></html>";
         let injected = lr.inject(html);
         let script_idx = injected.find("EventSource").unwrap();

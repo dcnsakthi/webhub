@@ -5,19 +5,19 @@
  * Template & CSS registration — shared by partial navigation and
  * `ensureLoaded()`.
  *
- * This module stores templates and announces that new WebUI template data
+ * This module stores templates and announces that new webhub template data
  * exists. The router stays framework-independent; optional runtimes decide
  * whether a registered template needs a compiler-owned host.
  */
 
 /** Shared event name understood by optional framework runtimes. */
-const TEMPLATES_REGISTERED_EVENT = 'webui:templates-registered';
+const TEMPLATES_REGISTERED_EVENT = 'webhub:templates-registered';
 
 /**
  * Register templates + inject CSS from a server response.
  * Shared by fetchPartial and fetchComponentTemplates.
  *
- * WebUI JSON template payloads are stored directly. FAST string templates are
+ * webhub JSON template payloads are stored directly. FAST string templates are
  * materialized as DOM.
  */
 export function registerTemplatesAndStyles(
@@ -88,7 +88,7 @@ export function registerTemplatesAndStyles(
   if (data.templateFunctions) {
     const tags = Object.keys(data.templateFunctions);
     if (tags.length > 0) {
-      executableTemplateBody += 'var w=(window.__webui||(window.__webui={}));var f=w.templateFns||(w.templateFns={});';
+      executableTemplateBody += 'var w=(window.__webhub||(window.__webhub={}));var f=w.templateFns||(w.templateFns={});';
     }
     for (let i = 0; i < tags.length; i++) {
       const tag = tags[i];
@@ -106,9 +106,9 @@ export function registerTemplatesAndStyles(
   //    `<f-template>` HTML strings are materialized as DOM; executable
   //    template strings are intentionally unsupported.
   if (data.templates) {
-    const w = window as unknown as { __webui?: { templates?: Record<string, unknown>; [key: string]: unknown } };
-    if (!w.__webui) w.__webui = {};
-    if (!w.__webui.templates) w.__webui.templates = {};
+    const w = window as unknown as { __webhub?: { templates?: Record<string, unknown>; [key: string]: unknown } };
+    if (!w.__webhub) w.__webhub = {};
+    if (!w.__webhub.templates) w.__webhub.templates = {};
     const tags = Object.keys(data.templates);
     for (let i = 0; i < tags.length; i++) {
       const tag = tags[i];
@@ -124,7 +124,7 @@ export function registerTemplatesAndStyles(
           throw new Error(`[Router] Unsupported executable template payload for ${tag}.`);
         }
       } else {
-        w.__webui.templates[tag] = template;
+        w.__webhub.templates[tag] = template;
         if (!registeredTemplates) registeredTemplates = {};
         registeredTemplates[tag] = template;
       }
@@ -184,7 +184,7 @@ export async function fetchComponentTemplates(
   registerTemplatesAndStyles(data, nonce, injectedStyles, updateInventory);
 }
 
-/** Announce newly registered WebUI templates. */
+/** Announce newly registered webhub templates. */
 export function notifyTemplatesRegistered(
   templates: Record<string, unknown> | undefined,
 ): void {

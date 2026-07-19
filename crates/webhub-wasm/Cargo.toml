@@ -1,6 +1,6 @@
 [package]
-name = "microsoft-webui-wasm"
-description = "WebAssembly bindings for WebUI framework — powers the online playground"
+name = "microsoft-webhub-wasm"
+description = "WebAssembly bindings for webhub framework — powers the online playground"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -8,26 +8,26 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 readme = "README.md"
-keywords = ["webui", "wasm", "webassembly", "ssr", "rendering"]
+keywords = ["webhub", "wasm", "webassembly", "ssr", "rendering"]
 categories = ["wasm", "web-programming"]
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
 
 [lib]
-name = "webui_wasm"
+name = "webhub_wasm"
 crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["all"]
 all = ["handler", "parser"]
-handler = ["dep:microsoft-webui-handler"]
-parser = ["dep:microsoft-webui-parser"]
+handler = ["dep:microsoft-webhub-handler"]
+parser = ["dep:microsoft-webhub-parser"]
 
 [dependencies]
-microsoft-webui-parser = { path = "../webui-parser", version = "0.0.18", default-features = false, optional = true }
-microsoft-webui-handler = { path = "../webui-handler", version = "0.0.18", optional = true }
-microsoft-webui-protocol = { path = "../webui-protocol", version = "0.0.18" }
+microsoft-webhub-parser = { path = "../webhub-parser", version = "0.0.18", default-features = false, optional = true }
+microsoft-webhub-handler = { path = "../webhub-handler", version = "0.0.18", optional = true }
+microsoft-webhub-protocol = { path = "../webhub-protocol", version = "0.0.18" }
 serde_json = { workspace = true }
 wasm-bindgen = { workspace = true }
 js-sys = { workspace = true }

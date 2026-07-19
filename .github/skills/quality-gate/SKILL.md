@@ -22,7 +22,7 @@ Missing Rust tools (`clippy`, `rustfmt`, `cargo-deny`, `wasm-pack`, `wasm32-unkn
 When iterating locally, use targeted crate checks for faster feedback:
 
 ```bash
-cargo test -p microsoft-webui-handler   # test one crate
+cargo test -p microsoft-webhub-handler   # test one crate
 cargo xtask check                        # then full gate before commit
 ```
 

@@ -1,10 +1,10 @@
 # React vs Web Components
 
-This guide compares common UI patterns written in React (imperative, JavaScript-centric) with their WebUI equivalents (declarative, HTML-centric). Each section shows React and WebUI side by side so you can see how familiar patterns translate to a Web Components model.
+This guide compares common UI patterns written in React (imperative, JavaScript-centric) with their webhub equivalents (declarative, HTML-centric). Each section shows React and webhub side by side so you can see how familiar patterns translate to a Web Components model.
 
 ## Key Differences at a Glance
 
-| | React | WebUI |
+| | React | webhub |
 |---|---|---|
 | **Component model** | JSX functions / classes with virtual DOM | Web Components with Shadow DOM or Light DOM |
 | **Rendering** | Client-side or Node.js SSR | Build-time compiled protocol, server-rendered HTML |
@@ -16,7 +16,7 @@ This guide compares common UI patterns written in React (imperative, JavaScript-
 
 ## Simple Counter
 
-<code-comparison left-label="React" right-label="WebUI Framework">
+<code-comparison left-label="React" right-label="webhub Framework">
 <div slot="left">
 
 **my-counter.jsx**
@@ -49,9 +49,9 @@ function Counter() {
 **my-counter.ts**
 
 ```typescript
-import { WebUIElement, observable } from '@microsoft/webui-framework';
+import { webhubElement, observable } from '@microsoft/webhub-framework';
 
-export class MyCounter extends WebUIElement {
+export class MyCounter extends webhubElement {
   @observable count = 0;
 
   increment(): void {
@@ -69,7 +69,7 @@ MyCounter.define('my-counter');
 
 ## Conditional Rendering
 
-<code-comparison left-label="React" right-label="WebUI Framework">
+<code-comparison left-label="React" right-label="webhub Framework">
 <div slot="left">
 
 **user-greeting.jsx**
@@ -111,7 +111,7 @@ function Greeting({ isLoggedIn, username }) {
 
 ## List Rendering
 
-<code-comparison left-label="React" right-label="WebUI Framework">
+<code-comparison left-label="React" right-label="webhub Framework">
 <div slot="left">
 
 **todo-list.jsx**
@@ -154,7 +154,7 @@ function TodoList({ items }) {
 
 ## Event Handling
 
-<code-comparison left-label="React" right-label="WebUI Framework">
+<code-comparison left-label="React" right-label="webhub Framework">
 <div slot="left">
 
 **search-box.jsx**
@@ -206,9 +206,9 @@ function SearchBox() {
 **search-box.ts**
 
 ```typescript
-import { WebUIElement, observable } from '@microsoft/webui-framework';
+import { webhubElement, observable } from '@microsoft/webhub-framework';
 
-export class SearchBox extends WebUIElement {
+export class SearchBox extends webhubElement {
   @observable query = '';
 
   onInput(e: InputEvent): void {
@@ -236,7 +236,7 @@ SearchBox.define('search-box');
 
 ## Parent-Child Communication
 
-<code-comparison left-label="React" right-label="WebUI Framework">
+<code-comparison left-label="React" right-label="webhub Framework">
 <div slot="left">
 
 **color-picker.jsx**
@@ -278,9 +278,9 @@ function App() {
 **color-picker.ts**
 
 ```typescript
-import { WebUIElement } from '@microsoft/webui-framework';
+import { webhubElement } from '@microsoft/webhub-framework';
 
-export class ColorPicker extends WebUIElement {
+export class ColorPicker extends webhubElement {
   selectColor(color: string): void {
     this.$emit('color-change', { detail: { color } });
   }
@@ -303,9 +303,9 @@ ColorPicker.define('color-picker');
 **theme-app.ts**
 
 ```typescript
-import { WebUIElement, observable } from '@microsoft/webui-framework';
+import { webhubElement, observable } from '@microsoft/webhub-framework';
 
-export class ThemeApp extends WebUIElement {
+export class ThemeApp extends webhubElement {
   @observable currentColor = '';
 
   onColorChange(e: CustomEvent): void {
@@ -319,11 +319,11 @@ ThemeApp.define('theme-app');
 </div>
 </code-comparison>
 
-**What changed:** React passes callback props down; WebUI uses native Custom Events that bubble up through the DOM. The child emits an event with `this.$emit()`, and the parent catches it with `@event` syntax on the component tag. Components are fully decoupled - the child doesn't reference the parent.
+**What changed:** React passes callback props down; webhub uses native Custom Events that bubble up through the DOM. The child emits an event with `this.$emit()`, and the parent catches it with `@event` syntax on the component tag. Components are fully decoupled - the child doesn't reference the parent.
 
 ## Styling
 
-<code-comparison left-label="React" right-label="WebUI Framework">
+<code-comparison left-label="React" right-label="webhub Framework">
 <div slot="left">
 
 **product-card.jsx**
@@ -386,7 +386,7 @@ h3 {
 
 ## Component Composition
 
-<code-comparison left-label="React" right-label="WebUI Framework">
+<code-comparison left-label="React" right-label="webhub Framework">
 <div slot="left">
 
 **user-profile.jsx**

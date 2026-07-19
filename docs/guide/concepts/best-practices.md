@@ -1,6 +1,6 @@
 # Best Practices
 
-This page covers proven patterns and common pitfalls when building WebUI applications. Following these practices will help you write components that render correctly on the server, hydrate efficiently, and stay maintainable as your application grows.
+This page covers proven patterns and common pitfalls when building webhub applications. Following these practices will help you write components that render correctly on the server, hydrate efficiently, and stay maintainable as your application grows.
 
 ## SSR State Completeness
 
@@ -98,11 +98,11 @@ Bind boolean attributes in templates with the `?` prefix:
 
 ### The String `"false"` Trap
 
-<webui-blockquote appearance="danger" title="Danger" icon="🚨">
+<webhub-blockquote appearance="danger" title="Danger" icon="🚨">
 
 Never use the string `"false"` for boolean attributes. In HTML and JavaScript, a non-empty string is truthy.
 
-</webui-blockquote>
+</webhub-blockquote>
 
 ```html
 
@@ -158,15 +158,15 @@ The `<if>` directive evaluates conditions using standard JavaScript truthiness r
 </if>
 ```
 
-<webui-blockquote appearance="tip" title="Tip" icon="💡">
+<webhub-blockquote appearance="tip" title="Tip" icon="💡">
 
 Always use `.length` to check whether an array is empty. An empty array `[]` is truthy - only its `.length` (which is `0`) is falsy.
 
-</webui-blockquote>
+</webhub-blockquote>
 
 ## React Patterns to Avoid
 
-If you're coming from React, some familiar patterns work against WebUI's declarative template model. Here are the most common ones and their WebUI equivalents.
+If you're coming from React, some familiar patterns work against webhub's declarative template model. Here are the most common ones and their webhub equivalents.
 
 ### 1. Array Rebuild for Single-Property Toggle
 
@@ -181,7 +181,7 @@ toggleItem(id: string): void {
 }
 ```
 
-✅ **WebUI approach - use a template condition:**
+✅ **webhub approach - use a template condition:**
 
 ```typescript
 toggleItem(id: string): void {
@@ -214,7 +214,7 @@ onItemsChanged(): void {
 }
 ```
 
-✅ **WebUI approach - let the template handle derived values:**
+✅ **webhub approach - let the template handle derived values:**
 
 ```html
 <if condition="items.length">
@@ -242,7 +242,7 @@ onNameChanged(): void {
 }
 ```
 
-✅ **WebUI approach - use expressions or provide from server state:**
+✅ **webhub approach - use expressions or provide from server state:**
 
 ```html
 <!-- Bind both values directly -->
@@ -274,7 +274,7 @@ onIsActiveChanged(): void {
 }
 ```
 
-✅ **WebUI approach - declarative attribute binding:**
+✅ **webhub approach - declarative attribute binding:**
 
 ```html
 <button
@@ -306,7 +306,7 @@ onThemeChanged(): void {
 }
 ```
 
-✅ **WebUI approach - use `@observable` + data attributes:**
+✅ **webhub approach - use `@observable` + data attributes:**
 
 ```typescript
 @observable theme = 'light';
@@ -367,7 +367,7 @@ This is roughly 15 KB - the handler renders faster, the network transfer is smal
 
 ## Light DOM vs Shadow DOM
 
-WebUI defaults to Shadow DOM for style encapsulation, but Light DOM is available when performance is the priority.
+webhub defaults to Shadow DOM for style encapsulation, but Light DOM is available when performance is the priority.
 
 ### Performance Comparison
 
@@ -394,16 +394,16 @@ WebUI defaults to Shadow DOM for style encapsulation, but Light DOM is available
 ### Enabling Light DOM
 
 ```bash
-webui build ./src --out ./dist --dom=light
+webhub build ./src --out ./dist --dom=light
 ```
 
 In Rust handler configuration, use `DomStrategy::Light`.
 
-<webui-blockquote appearance="tip" title="Tip" icon="💡">
+<webhub-blockquote appearance="tip" title="Tip" icon="💡">
 
 Start with Shadow DOM (the default). Switch individual components or pages to Light DOM only when profiling shows a measurable benefit.
 
-</webui-blockquote>
+</webhub-blockquote>
 
 ## Summary
 

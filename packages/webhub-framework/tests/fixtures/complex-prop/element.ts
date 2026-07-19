@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
-export class TestItemList extends WebUIElement {
+export class TestItemList extends webhubElement {
   @observable items: Array<{ name: string }> = [];
 }
 
 /** Child component with a conditional block driven by a complex :data property. */
-export class TestCondChild extends WebUIElement {
+export class TestCondChild extends webhubElement {
   @observable data: { showHeader?: boolean; label?: string } = {};
 }
 
-export class TestItemHost extends WebUIElement {
+export class TestItemHost extends webhubElement {
   @observable items: Array<{ name: string }> = [
     { name: 'Alpha' },
     { name: 'Beta' },

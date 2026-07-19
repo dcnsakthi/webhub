@@ -4,7 +4,7 @@
 //! Plugin-specific protocol helpers for framework hydration metadata.
 
 mod fast;
-mod webui;
+mod webhub;
 
 pub use fast::FastElementData;
-pub use webui::WebUIElementData;
+pub use webhub::webhubElementData;

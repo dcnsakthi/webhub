@@ -3,7 +3,7 @@
 
 import './demo-shell/demo-shell.js';
 
-window.addEventListener('webui:hydration-complete', () => {
+window.addEventListener('webhub:hydration-complete', () => {
   // eslint-disable-next-line no-console
   console.log('[demo-shell] hydration complete');
 });

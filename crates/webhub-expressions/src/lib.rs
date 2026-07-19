@@ -1,19 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! WebUI expression evaluation module.
+//! webhub expression evaluation module.
 //!
-//! This module handles the evaluation of condition expressions in WebUI templates.
+//! This module handles the evaluation of condition expressions in webhub templates.
 
 use std::borrow::Cow;
 
 use serde_json::Value;
 use thiserror::Error;
-use webui_protocol::{
+use webhub_protocol::{
     condition_expr, ComparisonOperator, CompoundCondition, ConditionExpr, LogicalOperator,
     Predicate,
 };
-use webui_state::find_value_by_dotted_path_ref;
+use webhub_state::find_value_by_dotted_path_ref;
 
 /// Error types for expression evaluation.
 #[derive(Debug, Error)]
@@ -326,8 +326,8 @@ fn extract_number(val: &Value) -> Result<f64> {
 mod tests {
     use super::*;
     use std::borrow::Cow;
-    use webui_protocol::{ComparisonOperator, ConditionExpr, LogicalOperator};
-    use webui_test_utils::test_json;
+    use webhub_protocol::{ComparisonOperator, ConditionExpr, LogicalOperator};
+    use webhub_test_utils::test_json;
 
     #[test]
     fn test_simple_identifier() {

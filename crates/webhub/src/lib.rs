@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Programmatic API for the WebUI build-time rendering framework.
+//! Programmatic API for the webhub build-time rendering framework.
 //!
 //! This crate provides the core build, render, and inspection APIs
-//! that power the `webui` CLI, Node.js bindings, and WASM module.
+//! that power the `webhub` CLI, Node.js bindings, and WASM module.
 //!
 //! # Example
 //!
 //! ```rust,no_run
-//! use webui::{build, BuildOptions};
+//! use webhub::{build, BuildOptions};
 //! use std::path::PathBuf;
 //!
 //! let result = build(BuildOptions {
@@ -27,40 +27,40 @@ pub mod server;
 pub mod streaming;
 
 pub use component_assets::{render_component_assets, ComponentAssetFile};
-pub use error::WebUIError;
+pub use error::webhubError;
 
 // Re-export core types from downstream crates
-pub use webui_handler::route_handler::{encode_inventory, get_needed_components, parse_inventory};
-pub use webui_handler::Result as HandlerResult;
-pub use webui_handler::{
-    plugin::HandlerPlugin, HandlerError, Protocol, RenderOptions, ResponseWriter, WebUIHandler,
+pub use webhub_handler::route_handler::{encode_inventory, get_needed_components, parse_inventory};
+pub use webhub_handler::Result as HandlerResult;
+pub use webhub_handler::{
+    plugin::HandlerPlugin, HandlerError, Protocol, RenderOptions, ResponseWriter, webhubHandler,
 };
-pub use webui_parser::plugin::{ComponentTemplateArtifact, StateSurface};
-pub use webui_parser::CssStrategy;
-pub use webui_parser::DomStrategy;
-pub use webui_parser::LegalComments;
-pub use webui_parser::ParserError;
-pub use webui_parser::ParserOptions;
-pub use webui_parser::Plugin;
-pub use webui_parser::DEFAULT_CSS_FILE_NAME_TEMPLATE;
-pub use webui_parser::{
+pub use webhub_parser::plugin::{ComponentTemplateArtifact, StateSurface};
+pub use webhub_parser::CssStrategy;
+pub use webhub_parser::DomStrategy;
+pub use webhub_parser::LegalComments;
+pub use webhub_parser::ParserError;
+pub use webhub_parser::ParserOptions;
+pub use webhub_parser::Plugin;
+pub use webhub_parser::DEFAULT_CSS_FILE_NAME_TEMPLATE;
+pub use webhub_parser::{
     AssetFileNameTemplate, AssetFileNameTemplateError, DEFAULT_ASSET_FILE_NAME_TEMPLATE,
 };
-pub use webui_parser::{CssFallbackChain, CssTokenAnalysis};
-pub use webui_parser::{Diagnostic, Severity};
-pub use webui_protocol::WebUIProtocol;
-pub use webui_tokens::{load_token_file, resolve_theme_path, TokenFile};
+pub use webhub_parser::{CssFallbackChain, CssTokenAnalysis};
+pub use webhub_parser::{Diagnostic, Severity};
+pub use webhub_protocol::webhubProtocol;
+pub use webhub_tokens::{load_token_file, resolve_theme_path, TokenFile};
 
 use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
-use webui_parser::plugin::fast_v2::FastV2ParserPlugin;
-use webui_parser::plugin::fast_v3::FastV3ParserPlugin;
-use webui_parser::plugin::webui::WebUIParserPlugin;
-use webui_parser::plugin::ParserPluginArtifacts;
-use webui_parser::HtmlParser;
+use webhub_parser::plugin::fast_v2::FastV2ParserPlugin;
+use webhub_parser::plugin::fast_v3::FastV3ParserPlugin;
+use webhub_parser::plugin::webhub::webhubParserPlugin;
+use webhub_parser::plugin::ParserPluginArtifacts;
+use webhub_parser::HtmlParser;
 
 /// Projection metadata validated once for reuse across many protocol builds.
 #[derive(Debug, Clone)]
@@ -120,11 +120,11 @@ impl From<std::path::PathBuf> for ProjectionManifestSource {
 
 /// Validate and merge projection sources once for repeated builds.
 ///
-/// This is intended for orchestrators such as `webui-press` that build many
+/// This is intended for orchestrators such as `webhub-press` that build many
 /// page protocols against one completed client bundle.
 pub fn prepare_projection_manifests(
     sources: &[ProjectionManifestSource],
-) -> Result<PreparedProjectionManifests, WebUIError> {
+) -> Result<PreparedProjectionManifests, webhubError> {
     let snapshot = projection::load_and_merge(sources)?
         .unwrap_or_else(|| std::sync::Arc::new(projection::ProjectionSnapshot::default()));
     Ok(PreparedProjectionManifests { snapshot })
@@ -150,16 +150,16 @@ pub fn projection_manifest_barrier() -> (ProjectionManifestSource, ProjectionMan
 }
 
 impl PendingProjectionManifests {
-    fn wait(&self) -> Result<PreparedProjectionManifests, WebUIError> {
+    fn wait(&self) -> Result<PreparedProjectionManifests, webhubError> {
         let (lock, ready) = self.state.as_ref();
         let mut state = lock.lock().map_err(|_| {
-            WebUIError::InvalidBuildOptions("projection synchronization lock poisoned".to_string())
+            webhubError::InvalidBuildOptions("projection synchronization lock poisoned".to_string())
         })?;
         loop {
             match &*state {
                 ProjectionBarrierState::Waiting => {
                     state = ready.wait(state).map_err(|_| {
-                        WebUIError::InvalidBuildOptions(
+                        webhubError::InvalidBuildOptions(
                             "projection synchronization lock poisoned".to_string(),
                         )
                     })?;
@@ -168,7 +168,7 @@ impl PendingProjectionManifests {
                     return Ok(projection.clone());
                 }
                 ProjectionBarrierState::Failed(message) => {
-                    return Err(WebUIError::InvalidBuildOptions(message.clone()));
+                    return Err(webhubError::InvalidBuildOptions(message.clone()));
                 }
             }
         }
@@ -205,7 +205,7 @@ impl Drop for ProjectionManifestCompleter {
     }
 }
 
-/// Options for building a WebUI application.
+/// Options for building a webhub application.
 #[derive(Debug, Clone)]
 pub struct BuildOptions {
     /// Path to the application folder containing templates.
@@ -247,7 +247,7 @@ pub struct BuildOptions {
     /// paths or inline JSON with a logical manifest path.
     ///
     /// Empty (the default) means projection is disabled: the build emits
-    /// [`webui_protocol::InitialStateStrategy::Full`] and every scripted
+    /// [`webhub_protocol::InitialStateStrategy::Full`] and every scripted
     /// component keeps a full-state (`All`) partial-navigation surface. No
     /// JavaScript/TypeScript analysis ever runs in Rust.
     ///
@@ -256,9 +256,9 @@ pub struct BuildOptions {
     /// scripted component that is actually compiled into the protocol down to
     /// an exact hydration/navigation key surface. Every such scripted
     /// component must have exactly one manifest entry, or the build fails
-    /// with [`WebUIError::Projection`] (`PROJ-B001`). Supplying manifests with
-    /// a `plugin` other than [`Plugin::WebUI`] fails the build immediately
-    /// (`PROJ-B002`): only the WebUI plugin produces protocol fields
+    /// with [`webhubError::Projection`] (`PROJ-B001`). Supplying manifests with
+    /// a `plugin` other than [`Plugin::webhub`] fails the build immediately
+    /// (`PROJ-B002`): only the webhub plugin produces protocol fields
     /// compatible with per-component key encoding.
     ///
     /// Manifests are read only at build time. The runtime handler never
@@ -305,8 +305,8 @@ pub struct BuildStats {
 /// Result of a successful build.
 #[derive(Debug)]
 pub struct BuildResult {
-    /// The compiled WebUI protocol.
-    pub protocol: WebUIProtocol,
+    /// The compiled webhub protocol.
+    pub protocol: webhubProtocol,
     /// Serialized protocol bytes (protobuf binary).
     pub protocol_bytes: Vec<u8>,
     /// Component CSS files: `(filename, content)` — only components referenced in the protocol.
@@ -330,17 +330,17 @@ pub struct BuildResult {
     pub stats: BuildStats,
 }
 
-/// Build a WebUI application from an app directory.
+/// Build a webhub application from an app directory.
 ///
 /// Parses templates, discovers components, and produces a compiled protocol
 /// with build statistics.
 ///
 /// # Errors
 ///
-/// Returns [`WebUIError`] if the app directory is invalid, templates fail
+/// Returns [`webhubError`] if the app directory is invalid, templates fail
 /// to parse, theme tokens are incomplete, or the protocol cannot be serialized.
 #[must_use = "BuildResult contains the compiled protocol and statistics"]
-pub fn build(options: BuildOptions) -> Result<BuildResult, WebUIError> {
+pub fn build(options: BuildOptions) -> Result<BuildResult, webhubError> {
     let started = Instant::now();
 
     let raw = build_protocol_inner(&options)?;
@@ -367,7 +367,7 @@ pub fn build(options: BuildOptions) -> Result<BuildResult, WebUIError> {
     })
 }
 
-/// Build a WebUI application and write output files to disk.
+/// Build a webhub application and write output files to disk.
 ///
 /// Writes `protocol.bin`, any external CSS files, and static component assets
 /// to `out_dir`.
@@ -375,31 +375,31 @@ pub fn build(options: BuildOptions) -> Result<BuildResult, WebUIError> {
 ///
 /// # Errors
 ///
-/// Returns [`WebUIError`] on build failure or if output files cannot be written.
-pub fn build_to_disk(options: BuildOptions, out_dir: &Path) -> Result<BuildStats, WebUIError> {
+/// Returns [`webhubError`] on build failure or if output files cannot be written.
+pub fn build_to_disk(options: BuildOptions, out_dir: &Path) -> Result<BuildStats, webhubError> {
     let result = build(options)?;
     validate_output_file_names(OsStr::new("protocol.bin"), &result)?;
 
-    fs::create_dir_all(out_dir).map_err(|source| WebUIError::Io {
+    fs::create_dir_all(out_dir).map_err(|source| webhubError::Io {
         context: format!("Failed to create {}", out_dir.display()),
         source,
     })?;
 
     fs::write(out_dir.join("protocol.bin"), &result.protocol_bytes).map_err(|source| {
-        WebUIError::Io {
+        webhubError::Io {
             context: format!("Failed to write protocol.bin to {}", out_dir.display()),
             source,
         }
     })?;
 
     for (name, content) in &result.css_files {
-        fs::write(out_dir.join(name), content).map_err(|source| WebUIError::Io {
+        fs::write(out_dir.join(name), content).map_err(|source| webhubError::Io {
             context: format!("Failed to write {name} to {}", out_dir.display()),
             source,
         })?;
     }
     for file in &result.component_asset_files {
-        fs::write(out_dir.join(&file.name), &file.content).map_err(|source| WebUIError::Io {
+        fs::write(out_dir.join(&file.name), &file.content).map_err(|source| webhubError::Io {
             context: format!(
                 "Failed to write component asset {} to {}",
                 file.name,
@@ -412,9 +412,9 @@ pub fn build_to_disk(options: BuildOptions, out_dir: &Path) -> Result<BuildStats
     Ok(result.stats)
 }
 
-/// Inspect a compiled WebUI protocol file and return its JSON representation.
-pub fn inspect(protocol_path: &Path) -> Result<String, WebUIError> {
-    let bytes = fs::read(protocol_path).map_err(|source| WebUIError::Io {
+/// Inspect a compiled webhub protocol file and return its JSON representation.
+pub fn inspect(protocol_path: &Path) -> Result<String, webhubError> {
+    let bytes = fs::read(protocol_path).map_err(|source| webhubError::Io {
         context: format!("Failed to read {}", protocol_path.display()),
         source,
     })?;
@@ -422,16 +422,16 @@ pub fn inspect(protocol_path: &Path) -> Result<String, WebUIError> {
 }
 
 /// Inspect raw protocol bytes and return their JSON representation.
-pub fn inspect_bytes(protocol_bytes: &[u8]) -> Result<String, WebUIError> {
-    let protocol = WebUIProtocol::from_protobuf(protocol_bytes)?;
+pub fn inspect_bytes(protocol_bytes: &[u8]) -> Result<String, webhubError> {
+    let protocol = webhubProtocol::from_protobuf(protocol_bytes)?;
     protocol
         .to_json_pretty()
-        .map_err(|e| WebUIError::Serialization(e.to_string()))
+        .map_err(|e| webhubError::Serialization(e.to_string()))
 }
 
 /// Internal intermediate build output before stats are computed.
 struct RawBuildOutput {
-    protocol: WebUIProtocol,
+    protocol: webhubProtocol,
     css_files: Vec<(String, String)>,
     component_asset_files: Vec<ComponentAssetFile>,
     component_templates: Vec<ComponentTemplateArtifact>,
@@ -442,9 +442,9 @@ struct RawBuildOutput {
 }
 
 /// Internal build logic shared by `build()` and `build_to_disk()`.
-fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIError> {
+fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, webhubError> {
     let projection_enabled = !options.projection_manifests.is_empty();
-    if projection_enabled && options.plugin != Some(Plugin::WebUI) {
+    if projection_enabled && options.plugin != Some(Plugin::webhub) {
         return Err(projection::incompatible_plugin_error());
     }
     let parser_options = ParserOptions::try_new(
@@ -454,7 +454,7 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
         options.css_public_base.as_deref(),
         options.legal_comments,
     )
-    .map_err(|e| WebUIError::InvalidBuildOptions(e.to_string()))?;
+    .map_err(|e| webhubError::InvalidBuildOptions(e.to_string()))?;
     let css_link_options = parser_options.css_link_options.clone();
 
     let mut parser = match options.plugin {
@@ -464,8 +464,8 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
         Some(Plugin::FastV3) => {
             HtmlParser::with_plugin_options(Box::new(FastV3ParserPlugin::new()), parser_options)
         }
-        Some(Plugin::WebUI) => {
-            HtmlParser::with_plugin_options(Box::new(WebUIParserPlugin::new()), parser_options)
+        Some(Plugin::webhub) => {
+            HtmlParser::with_plugin_options(Box::new(webhubParserPlugin::new()), parser_options)
         }
         None => HtmlParser::with_options(parser_options),
     };
@@ -475,7 +475,7 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
         .component_registry_mut()
         .register_from_paths(&[&options.app_dir])
         .map_err(|e| {
-            WebUIError::ComponentRegistration(format!(
+            webhubError::ComponentRegistration(format!(
                 "Failed to register components from {}: {e}",
                 options.app_dir.display()
             ))
@@ -483,8 +483,8 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
 
     // Discover and register external component sources
     for source in &options.components {
-        let result = webui_discovery::discover_source(source, &options.app_dir).map_err(|e| {
-            WebUIError::ComponentDiscovery(format!(
+        let result = webhub_discovery::discover_source(source, &options.app_dir).map_err(|e| {
+            webhubError::ComponentDiscovery(format!(
                 "Failed to discover components from {source}: {e}"
             ))
         })?;
@@ -493,14 +493,14 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
             // source; exact state surfaces come from projection manifests.
             parser
                 .component_registry_mut()
-                .register_component(webui_parser::ComponentRegistration {
+                .register_component(webhub_parser::ComponentRegistration {
                     tag_name: &comp.tag_name,
                     html_content: &comp.html_content,
                     css_content: comp.css_content.as_deref(),
                     is_client_owned: comp.is_client_owned,
                 })
                 .map_err(|e| {
-                    WebUIError::ComponentRegistration(format!(
+                    webhubError::ComponentRegistration(format!(
                         "Failed to register component '{}' from {}: {e}",
                         comp.tag_name, comp.source
                     ))
@@ -512,13 +512,13 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
 
     // Parse entry HTML
     let entry_path = options.app_dir.join(&options.entry);
-    let html_content = fs::read_to_string(&entry_path).map_err(|source| WebUIError::Io {
+    let html_content = fs::read_to_string(&entry_path).map_err(|source| webhubError::Io {
         context: format!("Failed to read {}", entry_path.display()),
         source,
     })?;
     parser
         .parse(&options.entry, &html_content)
-        .map_err(|source| WebUIError::Parse {
+        .map_err(|source| webhubError::Parse {
             context: format!("Failed to parse {}", options.entry),
             source,
         })?;
@@ -544,7 +544,7 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
     if let Some(theme) = options.theme.as_ref() {
         token_analysis
             .validate_theme_tokens(theme)
-            .map_err(|source| WebUIError::Parse {
+            .map_err(|source| webhubError::Parse {
                 context: "Failed to validate theme tokens".to_string(),
                 source,
             })?;
@@ -559,7 +559,7 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
     let component_templates =
         match parser
             .take_plugin_artifacts()
-            .map_err(|source| WebUIError::Parse {
+            .map_err(|source| webhubError::Parse {
                 context: format!(
                     "Failed to compile component templates for {}",
                     options.entry
@@ -580,11 +580,11 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
     // builds pay the same validation cost, while orchestrators can overlap
     // parser work with an in-flight client bundle through a pending source.
     let merged_manifest = projection::load_and_merge(&options.projection_manifests)?;
-    let mut protocol = WebUIProtocol::with_tokens(fragment_records, token_analysis.protocol_tokens);
+    let mut protocol = webhubProtocol::with_tokens(fragment_records, token_analysis.protocol_tokens);
     protocol.initial_state_strategy = if merged_manifest.is_some() {
-        webui_protocol::InitialStateStrategy::Components as i32
+        webhub_protocol::InitialStateStrategy::Components as i32
     } else {
-        webui_protocol::InitialStateStrategy::Full as i32
+        webhub_protocol::InitialStateStrategy::Full as i32
     };
 
     // Strict coverage applies only to scripted components that actually made
@@ -604,13 +604,13 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
 
     // Record build-wide strategies so the handler can decide rendering behavior.
     protocol.set_css_strategy(match options.css {
-        CssStrategy::Link => webui_protocol::CssStrategy::Link,
-        CssStrategy::Style => webui_protocol::CssStrategy::Style,
-        CssStrategy::Module => webui_protocol::CssStrategy::Module,
+        CssStrategy::Link => webhub_protocol::CssStrategy::Link,
+        CssStrategy::Style => webhub_protocol::CssStrategy::Style,
+        CssStrategy::Module => webhub_protocol::CssStrategy::Module,
     });
     protocol.set_dom_strategy(match options.dom {
-        DomStrategy::Shadow => webui_protocol::DomStrategy::Shadow,
-        DomStrategy::Light => webui_protocol::DomStrategy::Light,
+        DomStrategy::Shadow => webhub_protocol::DomStrategy::Shadow,
+        DomStrategy::Light => webhub_protocol::DomStrategy::Light,
     });
 
     // Process component CSS in a single pass: store Module CSS content,
@@ -628,7 +628,7 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
         } else if is_link {
             let resolved = css_link_options.resolve(&tag, &css);
             if !emitted_names.insert(resolved.filename.clone()) {
-                return Err(WebUIError::InvalidBuildOptions(format!(
+                return Err(webhubError::InvalidBuildOptions(format!(
                     "CSS filename collision for Link strategy: '{}'. Adjust the asset filename template to include [name] or another unique component-specific segment.",
                     resolved.filename
                 )));
@@ -701,19 +701,19 @@ fn build_protocol_inner(options: &BuildOptions) -> Result<RawBuildOutput, WebUIE
 
 fn encode_state_surface(surface: &StateSurface) -> (i32, Vec<String>) {
     match surface {
-        StateSurface::None => (webui_protocol::StateProjectionMode::None as i32, Vec::new()),
+        StateSurface::None => (webhub_protocol::StateProjectionMode::None as i32, Vec::new()),
         StateSurface::Keys(keys) => (
-            webui_protocol::StateProjectionMode::Keys as i32,
+            webhub_protocol::StateProjectionMode::Keys as i32,
             keys.clone(),
         ),
-        StateSurface::All => (webui_protocol::StateProjectionMode::All as i32, Vec::new()),
+        StateSurface::All => (webhub_protocol::StateProjectionMode::All as i32, Vec::new()),
     }
 }
 
 fn parse_component_asset_roots(
     parser: &mut HtmlParser,
     roots: &[String],
-) -> Result<Vec<String>, WebUIError> {
+) -> Result<Vec<String>, webhubError> {
     let mut synthetic_fragments = Vec::with_capacity(roots.len());
     for (index, root) in roots.iter().enumerate() {
         let root = root.trim();
@@ -729,10 +729,10 @@ fn parse_component_asset_roots(
         synthetic.push_str(root);
         synthetic.push('>');
 
-        let fragment_id = format!("__webui_asset_root_{index}");
+        let fragment_id = format!("__webhub_asset_root_{index}");
         parser
             .parse(&fragment_id, &synthetic)
-            .map_err(|source| WebUIError::Parse {
+            .map_err(|source| webhubError::Parse {
                 context: format!("Failed to parse component asset root <{root}>"),
                 source,
             })?;
@@ -744,14 +744,14 @@ fn parse_component_asset_roots(
 fn validate_generated_file_names(
     css_files: &[(String, String)],
     component_asset_files: &[ComponentAssetFile],
-) -> Result<(), WebUIError> {
+) -> Result<(), webhubError> {
     let mut names = HashSet::with_capacity(css_files.len() + component_asset_files.len());
     for (name, _) in css_files {
         names.insert(name.as_str());
     }
     for file in component_asset_files {
         if !names.insert(file.name.as_str()) {
-            return Err(WebUIError::InvalidBuildOptions(format!(
+            return Err(webhubError::InvalidBuildOptions(format!(
                 "output filename collision for '{}'. Adjust the asset filename template to include [ext] or another unique asset-type segment.",
                 file.name
             )));
@@ -763,7 +763,7 @@ fn validate_generated_file_names(
 fn validate_output_file_names(
     protocol_name: &OsStr,
     result: &BuildResult,
-) -> Result<(), WebUIError> {
+) -> Result<(), webhubError> {
     let mut names =
         HashSet::with_capacity(1 + result.css_files.len() + result.component_asset_files.len());
     names.insert(protocol_name.to_os_string());
@@ -782,8 +782,8 @@ fn validate_output_file_names(
     Ok(())
 }
 
-fn output_file_collision_error(name: &OsStr) -> WebUIError {
-    WebUIError::InvalidBuildOptions(format!(
+fn output_file_collision_error(name: &OsStr) -> webhubError {
+    webhubError::InvalidBuildOptions(format!(
         "output filename collision for '{}'. Adjust the asset filename template to include [ext] or another unique asset-type segment.",
         name.to_string_lossy()
     ))
@@ -796,20 +796,20 @@ mod tests {
     use std::collections::HashMap;
     use std::path::PathBuf;
     use tempfile::TempDir;
-    use webui_handler::plugin::webui::WebUIHydrationPlugin;
-    use webui_protocol::web_ui_fragment::Fragment;
+    use webhub_handler::plugin::webhub::webhubHydrationPlugin;
+    use webhub_protocol::web_ui_fragment::Fragment;
 
     struct StringWriter {
         buf: String,
     }
 
     impl ResponseWriter for StringWriter {
-        fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+        fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
             self.buf.push_str(content);
             Ok(())
         }
 
-        fn end(&mut self) -> webui_handler::Result<()> {
+        fn end(&mut self) -> webhub_handler::Result<()> {
             Ok(())
         }
     }
@@ -844,7 +844,7 @@ mod tests {
         assert!(!result.stats.duration.is_zero());
         assert_eq!(
             result.protocol.initial_state_strategy,
-            webui_protocol::InitialStateStrategy::Full as i32
+            webhub_protocol::InitialStateStrategy::Full as i32
         );
     }
 
@@ -854,7 +854,7 @@ mod tests {
         let (source, completer) = projection_manifest_barrier();
         let options = BuildOptions {
             app_dir: app.path().to_path_buf(),
-            plugin: Some(Plugin::WebUI),
+            plugin: Some(Plugin::webhub),
             projection_manifests: vec![source],
             ..BuildOptions::default()
         };
@@ -864,7 +864,7 @@ mod tests {
         let result = handle.join().unwrap().unwrap();
         assert_eq!(
             result.protocol.initial_state_strategy,
-            webui_protocol::InitialStateStrategy::Components as i32
+            webhub_protocol::InitialStateStrategy::Components as i32
         );
     }
 
@@ -885,16 +885,16 @@ mod tests {
             projection::test_support::build_valid_manifest_json(app.path(), &[], &[], &[]);
         let manifest = projection::test_support::write_manifest(
             app.path(),
-            "webui-projection.json",
+            "webhub-projection.json",
             &manifest_json,
         );
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         options.projection_manifests = vec![manifest.into()];
         let result = build(options).unwrap();
         assert_eq!(
             result.protocol.initial_state_strategy,
-            webui_protocol::InitialStateStrategy::Components as i32
+            webhub_protocol::InitialStateStrategy::Components as i32
         );
 
         assert!(result
@@ -910,7 +910,7 @@ mod tests {
         assert_eq!(component.navigation_keys, ["name", "serverTitle"]);
         assert!(component.template_json.contains(r#""th":1"#));
 
-        let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+        let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
         let state = serde_json::json!({ "name": "Server rendered" });
         let protocol = Protocol::new(result.protocol.clone());
         let mut writer = StringWriter { buf: String::new() };
@@ -937,13 +937,13 @@ mod tests {
             ),
             (
                 "demo-card.ts",
-                "import { WebUIElement } from '@microsoft/webui-framework';\n\
-                 class DemoCard extends WebUIElement { onClick() {} }\n\
+                "import { webhubElement } from '@microsoft/webhub-framework';\n\
+                 class DemoCard extends webhubElement { onClick() {} }\n\
                  DemoCard.define('demo-card');",
             ),
         ]);
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         let result = build(options).unwrap();
 
         let template = result
@@ -961,8 +961,8 @@ mod tests {
             ("demo-card.html", "<p>{{name}}</p>"),
             (
                 "demo-card.ts",
-                "import { WebUIElement, attr, observable } from '@microsoft/webui-framework';\n\
-                 class DemoCard extends WebUIElement {\n\
+                "import { webhubElement, attr, observable } from '@microsoft/webhub-framework';\n\
+                 class DemoCard extends webhubElement {\n\
                  @observable name = '';\n\
                  @attr({ attribute: 'cta-href' }) ctaHref = '/x';\n\
                  @observable count = 0;\n\
@@ -987,27 +987,27 @@ mod tests {
         );
         let manifest = projection::test_support::write_manifest(
             app.path(),
-            "webui-projection.json",
+            "webhub-projection.json",
             &manifest_json,
         );
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         options.projection_manifests = vec![manifest.into()];
         let result = build(options).unwrap();
 
         assert_eq!(
             result.protocol.initial_state_strategy,
-            webui_protocol::InitialStateStrategy::Components as i32
+            webhub_protocol::InitialStateStrategy::Components as i32
         );
         let component = result.protocol.components.get("demo-card").unwrap();
         assert_eq!(
             component.hydration_mode,
-            webui_protocol::StateProjectionMode::Keys as i32
+            webhub_protocol::StateProjectionMode::Keys as i32
         );
         assert_eq!(component.hydration_keys, vec!["count", "ctaHref", "name"]);
         assert_eq!(
             component.navigation_mode,
-            webui_protocol::StateProjectionMode::Keys as i32
+            webhub_protocol::StateProjectionMode::Keys as i32
         );
         assert_eq!(component.navigation_keys, vec!["count", "ctaHref", "name"]);
     }
@@ -1022,35 +1022,35 @@ mod tests {
             ("demo-card.html", "<p>{{name}}</p>"),
             (
                 "demo-card.ts",
-                "import { WebUIElement, observable } from '@microsoft/webui-framework';\n\
-                 class DemoCard extends WebUIElement {\n\
+                "import { webhubElement, observable } from '@microsoft/webhub-framework';\n\
+                 class DemoCard extends webhubElement {\n\
                  @observable name = '';\n\
                  }\n\
                  DemoCard.define('demo-card');",
             ),
         ]);
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         // No `projection_manifests` supplied: without a manifest, Rust never
         // analyzes `demo-card.ts` and must assume the full, unproven surface.
         let result = build(options).unwrap();
 
         assert_eq!(
             result.protocol.initial_state_strategy,
-            webui_protocol::InitialStateStrategy::Full as i32
+            webhub_protocol::InitialStateStrategy::Full as i32
         );
         let component = result.protocol.components.get("demo-card").unwrap();
         assert_eq!(
             component.hydration_mode,
-            webui_protocol::StateProjectionMode::All as i32
+            webhub_protocol::StateProjectionMode::All as i32
         );
         assert!(component.hydration_keys.is_empty());
         assert_eq!(
             component.navigation_mode,
-            webui_protocol::StateProjectionMode::All as i32
+            webhub_protocol::StateProjectionMode::All as i32
         );
 
-        let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+        let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
         let state = serde_json::json!({ "name": "Visible" });
         let protocol = Protocol::new(result.protocol.clone());
         let mut writer = StringWriter { buf: String::new() };
@@ -1078,7 +1078,7 @@ mod tests {
             ),
         ]);
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         let err = build(options).expect_err("scriptless events should fail");
 
         let message = err.chain_message();
@@ -1095,7 +1095,7 @@ mod tests {
             ("my-card.html", r#"<div><input w-ref="myInput" /></div>"#),
         ]);
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
 
         // Authoring mistakes are returned (not panicked) so every consumer —
         // CLI, Node, FFI, WASM — can surface the message its own way.
@@ -1121,7 +1121,7 @@ mod tests {
             ),
         ]);
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
 
         let Err(err) = build(options) else {
             panic!("invalid @event handler must fail the build");
@@ -1136,9 +1136,9 @@ mod tests {
 
     #[test]
     fn test_error_chain_message_has_no_duplicate_source() {
-        let err = WebUIError::Parse {
+        let err = webhubError::Parse {
             context: "Failed to parse index.html".to_string(),
-            source: webui_parser::ParserError::Directive("Invalid for each: x".to_string()),
+            source: webhub_parser::ParserError::Directive("Invalid for each: x".to_string()),
         };
         // Each layer's Display describes only its own level — the source is not
         // embedded — so anyhow's `{:#}` / chain walks never repeat it.
@@ -1318,7 +1318,7 @@ mod tests {
             "parser-generated component template should use CDN href: {component_html}"
         );
 
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let protocol = Protocol::new(result.protocol.clone());
         let mut writer = StringWriter { buf: String::new() };
         handler
@@ -1331,7 +1331,7 @@ mod tests {
             .unwrap();
         assert!(
             writer.buf.contains(&format!(
-                r#"<link rel="preload" href="{expected_href}" as="style" data-webui-ssr-preload="style">"#
+                r#"<link rel="preload" href="{expected_href}" as="style" data-webhub-ssr-preload="style">"#
             )),
             "handler head preload should use CDN href: {}",
             writer.buf
@@ -1339,7 +1339,7 @@ mod tests {
     }
 
     #[test]
-    fn test_css_public_base_emits_webui_plugin_template_links() {
+    fn test_css_public_base_emits_webhub_plugin_template_links() {
         let app = create_app_dir(&[
             ("index.html", "<my-card>Hello</my-card>"),
             ("my-card.html", "<div><slot></slot></div>"),
@@ -1347,7 +1347,7 @@ mod tests {
             ("my-card.ts", "export {};"),
         ]);
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         options.css_file_name_template = "[name]-[hash].[ext]".to_string();
         options.css_public_base = Some("https://cdn.example.com/assets".to_string());
         let result = build(options).unwrap();
@@ -1394,7 +1394,7 @@ mod tests {
         options.css_file_name_template = "[name]-[bogus].[ext]".to_string();
         let result = build(options);
 
-        assert!(matches!(result, Err(WebUIError::InvalidBuildOptions(_))));
+        assert!(matches!(result, Err(webhubError::InvalidBuildOptions(_))));
     }
 
     #[test]
@@ -1410,7 +1410,7 @@ mod tests {
         options.css_file_name_template = "[hash].[ext]".to_string();
         let result = build(options);
 
-        assert!(matches!(result, Err(WebUIError::InvalidBuildOptions(_))));
+        assert!(matches!(result, Err(webhubError::InvalidBuildOptions(_))));
     }
 
     #[test]
@@ -1425,16 +1425,16 @@ mod tests {
             ("lazy-panel.ts", "export {};"),
         ]);
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         options.component_asset_roots = vec!["lazy-panel".to_string()];
 
         let result = build(options).unwrap();
 
         assert_eq!(result.component_asset_files.len(), 1);
-        assert_eq!(result.component_asset_files[0].name, "lazy-panel.webui.js");
+        assert_eq!(result.component_asset_files[0].name, "lazy-panel.webhub.js");
         assert!(result.component_asset_files[0]
             .content
-            .contains(r#""type":"webui-component-asset""#));
+            .contains(r#""type":"webhub-component-asset""#));
         assert!(result.component_asset_files[0]
             .content
             .contains(r#""templateFunctions":{"lazy-panel":"#));
@@ -1444,7 +1444,7 @@ mod tests {
                 .protocol
                 .fragments
                 .keys()
-                .any(|key| key.starts_with("__webui_asset_root_")),
+                .any(|key| key.starts_with("__webhub_asset_root_")),
             "synthetic asset root fragments must not be serialized"
         );
     }
@@ -1458,13 +1458,13 @@ mod tests {
             ("lazy-panel.css", ".panel { color: red; }"),
         ]);
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         options.component_asset_roots = vec!["lazy-panel".to_string()];
         options.css_file_name_template = "[name]".to_string();
 
         let result = build(options);
 
-        assert!(matches!(result, Err(WebUIError::InvalidBuildOptions(_))));
+        assert!(matches!(result, Err(webhubError::InvalidBuildOptions(_))));
     }
 
     #[test]
@@ -1476,13 +1476,13 @@ mod tests {
         ]);
         let out = TempDir::new().unwrap();
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         options.component_asset_roots = vec!["lazy-panel".to_string()];
         options.css_file_name_template = "protocol.bin".to_string();
 
         let result = build_to_disk(options, out.path());
 
-        assert!(matches!(result, Err(WebUIError::InvalidBuildOptions(_))));
+        assert!(matches!(result, Err(webhubError::InvalidBuildOptions(_))));
         assert!(!out.path().join("protocol.bin").exists());
     }
 
@@ -1542,11 +1542,11 @@ mod tests {
         // Strategy fields on protocol
         assert_eq!(
             result.protocol.css_strategy(),
-            webui_protocol::CssStrategy::Link,
+            webhub_protocol::CssStrategy::Link,
         );
         assert_eq!(
             result.protocol.dom_strategy(),
-            webui_protocol::DomStrategy::Shadow,
+            webhub_protocol::DomStrategy::Shadow,
         );
 
         // CSS file should still be emitted for the server to serve
@@ -1637,7 +1637,7 @@ mod tests {
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(matches!(err, WebUIError::Io { .. }));
+        assert!(matches!(err, webhubError::Io { .. }));
     }
 
     #[test]
@@ -1700,13 +1700,13 @@ mod tests {
         let app = create_app_dir(&[("index.html", "<h1>{{title}}</h1>")]);
         let result = build(default_options(app.path())).unwrap();
 
-        let restored = WebUIProtocol::from_protobuf(&result.protocol_bytes).unwrap();
+        let restored = webhubProtocol::from_protobuf(&result.protocol_bytes).unwrap();
         assert!(restored.fragments.contains_key("index.html"));
     }
 
     #[test]
     fn protocol_is_available_from_facade() {
-        let protocol = Protocol::new(WebUIProtocol::new(HashMap::new()));
+        let protocol = Protocol::new(webhubProtocol::new(HashMap::new()));
         assert!(protocol.tokens().is_empty());
     }
 
@@ -1724,7 +1724,7 @@ mod tests {
     fn test_inspect_bytes_invalid() {
         let result = inspect_bytes(b"not a protobuf");
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), WebUIError::Protocol(_)));
+        assert!(matches!(result.unwrap_err(), webhubError::Protocol(_)));
     }
 
     #[test]
@@ -1742,7 +1742,7 @@ mod tests {
     fn test_inspect_missing_file() {
         let result = inspect(Path::new("/nonexistent/protocol.bin"));
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), WebUIError::Io { .. }));
+        assert!(matches!(result.unwrap_err(), webhubError::Io { .. }));
     }
 
     #[test]
@@ -1776,7 +1776,7 @@ mod tests {
         fs::write(ext_dir.path().join("ext-card.html"), "<p>{{title}}</p>").unwrap();
 
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         options.components = vec![ext_dir.path().to_string_lossy().to_string()];
 
         let result = build(options).unwrap();
@@ -1802,7 +1802,7 @@ mod tests {
         fs::write(ext_dir.path().join("ext-card.ts"), "export {};").unwrap();
 
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         options.components = vec![ext_dir.path().to_string_lossy().to_string()];
 
         let result = build(options).unwrap();
@@ -1811,7 +1811,7 @@ mod tests {
     }
 
     #[test]
-    fn test_build_rejects_projection_manifest_with_non_webui_plugin() {
+    fn test_build_rejects_projection_manifest_with_non_webhub_plugin() {
         let app = create_app_dir(&[
             ("index.html", "<demo-card></demo-card>"),
             ("demo-card.html", "<p>{{name}}</p>"),
@@ -1831,14 +1831,14 @@ mod tests {
         );
         let manifest = projection::test_support::write_manifest(
             app.path(),
-            "webui-projection.json",
+            "webhub-projection.json",
             &manifest_json,
         );
         let mut options = default_options(app.path());
         // No plugin selected: default/FAST builds are incompatible with
         // projection manifests (`PROJ-B002`).
         options.projection_manifests = vec![manifest.into()];
-        let err = build(options).expect_err("non-WebUI plugin + manifest should be rejected");
+        let err = build(options).expect_err("non-webhub plugin + manifest should be rejected");
         assert!(
             err.chain_message().contains("PROJ-B002"),
             "msg: {}",
@@ -1859,11 +1859,11 @@ mod tests {
             projection::test_support::build_valid_manifest_json(app.path(), &[], &[], &[]);
         let manifest = projection::test_support::write_manifest(
             app.path(),
-            "webui-projection.json",
+            "webhub-projection.json",
             &manifest_json,
         );
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         options.projection_manifests = vec![manifest.into()];
         let err = build(options).expect_err("missing coverage should fail the build");
         let message = err.chain_message();
@@ -1897,11 +1897,11 @@ mod tests {
         );
         let manifest = projection::test_support::write_manifest(
             app.path(),
-            "webui-projection.json",
+            "webhub-projection.json",
             &manifest_json,
         );
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         options.projection_manifests = vec![manifest.into()];
         let result = build(options).unwrap();
 
@@ -1946,13 +1946,13 @@ mod tests {
             projection::test_support::write_manifest(app.path(), "fragment-b.json", &json_b);
 
         let mut options = default_options(app.path());
-        options.plugin = Some(Plugin::WebUI);
+        options.plugin = Some(Plugin::webhub);
         options.projection_manifests = vec![manifest_a.into(), manifest_b.into()];
         let result = build(options).unwrap();
 
         assert_eq!(
             result.protocol.initial_state_strategy,
-            webui_protocol::InitialStateStrategy::Components as i32
+            webhub_protocol::InitialStateStrategy::Components as i32
         );
         let card_a = result.protocol.components.get("card-a").unwrap();
         assert_eq!(card_a.hydration_keys, vec!["alpha"]);
@@ -2057,7 +2057,7 @@ mod tests {
         assert!(result.protocol.fragments.contains_key("index.html"));
         assert_eq!(
             result.protocol.initial_state_strategy,
-            webui_protocol::InitialStateStrategy::Full as i32
+            webhub_protocol::InitialStateStrategy::Full as i32
         );
     }
 

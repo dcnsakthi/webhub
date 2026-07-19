@@ -12,21 +12,21 @@
  * blank. The components differ only in WHEN they assign the observables.
  */
 
-import { WebUIElement, observable } from '../../../src/index.js';
+import { webhubElement, observable } from '../../../src/index.js';
 
 /**
  * `@observable` field default differs from SSR state. The initializer runs
  * during construction (before hydration), so the value is dropped and the DOM
  * disagrees. Expect a hydration-mismatch warning.
  */
-export class MismatchFieldDefault extends WebUIElement {
+export class MismatchFieldDefault extends webhubElement {
   @observable show = true;
   @observable value = '3';
 }
 MismatchFieldDefault.define('mismatch-field-default');
 
 /** Assigns in the constructor — before hydration. Expect a warning. */
-export class MismatchConstructor extends WebUIElement {
+export class MismatchConstructor extends webhubElement {
   @observable show = false;
   @observable value = '';
 
@@ -39,7 +39,7 @@ export class MismatchConstructor extends WebUIElement {
 MismatchConstructor.define('mismatch-constructor');
 
 /** Assigns before `super.connectedCallback()`. Expect a warning. */
-export class MismatchBeforeSuper extends WebUIElement {
+export class MismatchBeforeSuper extends webhubElement {
   @observable show = false;
   @observable value = '';
 
@@ -52,7 +52,7 @@ export class MismatchBeforeSuper extends WebUIElement {
 MismatchBeforeSuper.define('mismatch-before-super');
 
 /** Assigns after `super.connectedCallback()`. No warning; the DOM updates. */
-export class MismatchAfterSuper extends WebUIElement {
+export class MismatchAfterSuper extends webhubElement {
   @observable show = false;
   @observable value = '';
 
@@ -65,7 +65,7 @@ export class MismatchAfterSuper extends WebUIElement {
 MismatchAfterSuper.define('mismatch-after-super');
 
 /** Assigns in a deferred task. No warning; the DOM updates. */
-export class MismatchDeferred extends WebUIElement {
+export class MismatchDeferred extends webhubElement {
   @observable show = false;
   @observable value = '';
 
@@ -84,7 +84,7 @@ MismatchDeferred.define('mismatch-deferred');
  * so the server already rendered them. A pre-ready write that matches the
  * server must NOT warn.
  */
-export class MismatchSeeded extends WebUIElement {
+export class MismatchSeeded extends webhubElement {
   @observable seededShow = true;
   @observable seededValue = '3';
 }

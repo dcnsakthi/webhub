@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr, observable } from '@microsoft/webui-framework';
+import { webhubElement, attr, observable } from '@microsoft/webhub-framework';
 import type { CalcState, ButtonDef } from '../modes/engine.js';
 import { createInitialState, getMode } from '../modes/engine.js';
 import '../modes/standard.js';
@@ -14,7 +14,7 @@ interface ButtonData {
   span: string;
 }
 
-export class CalcApp extends WebUIElement {
+export class CalcApp extends webhubElement {
   @attr mode = 'standard';
   @attr displayValue = '0';
   @attr expression = '';

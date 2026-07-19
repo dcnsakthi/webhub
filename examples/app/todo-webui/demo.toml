@@ -1,13 +1,13 @@
 # Demo shell metadata — auto-discovered by the demo shell server.
 # See examples/demo/README.md for the full schema.
 
-name = "Todo (WebUI Plugin)"
-description = "A todo app using the webui rendering plugin"
+name = "Todo (webhub Plugin)"
+description = "A todo app using the webhub rendering plugin"
 backend = "rust"
 
 [server]
-type = "webui-cli"
-plugin = "webui"
+type = "webhub-cli"
+plugin = "webhub"
 source = "src"
 servedir = "dist"
 state = "data/state.json"

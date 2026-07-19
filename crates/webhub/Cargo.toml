@@ -1,6 +1,6 @@
 [package]
-name = "microsoft-webui"
-description = "Programmatic API for the WebUI build-time rendering framework"
+name = "microsoft-webhub"
+description = "Programmatic API for the webhub build-time rendering framework"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -8,21 +8,21 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 readme = "README.md"
-keywords = ["webui", "ssr", "rendering", "templates", "server-side"]
+keywords = ["webhub", "ssr", "rendering", "templates", "server-side"]
 categories = ["web-programming", "template-engine"]
 
 [lib]
-name = "webui"
+name = "webhub"
 
 [features]
-cli = ["microsoft-webui-parser/cli"]
+cli = ["microsoft-webhub-parser/cli"]
 
 [dependencies]
-microsoft-webui-parser = { path = "../webui-parser", version = "0.0.18" }
-microsoft-webui-protocol = { path = "../webui-protocol", version = "0.0.18" }
-microsoft-webui-handler = { path = "../webui-handler", version = "0.0.18" }
-microsoft-webui-discovery = { path = "../webui-discovery", version = "0.0.18" }
-microsoft-webui-tokens = { path = "../webui-tokens", version = "0.0.18" }
+microsoft-webhub-parser = { path = "../webhub-parser", version = "0.0.18" }
+microsoft-webhub-protocol = { path = "../webhub-protocol", version = "0.0.18" }
+microsoft-webhub-handler = { path = "../webhub-handler", version = "0.0.18" }
+microsoft-webhub-discovery = { path = "../webhub-discovery", version = "0.0.18" }
+microsoft-webhub-tokens = { path = "../webhub-tokens", version = "0.0.18" }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -44,8 +44,8 @@ actix-web = { workspace = true }
 awc = { workspace = true }
 futures-util = { workspace = true }
 libc = { workspace = true }
-microsoft-webui-handler = { path = "../webui-handler", version = "0.0.18" }
-microsoft-webui-protocol = { path = "../webui-protocol", version = "0.0.18" }
+microsoft-webhub-handler = { path = "../webhub-handler", version = "0.0.18" }
+microsoft-webhub-protocol = { path = "../webhub-protocol", version = "0.0.18" }
 
 [target.'cfg(windows)'.dev-dependencies]
 windows-sys = { workspace = true }

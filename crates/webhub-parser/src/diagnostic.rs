@@ -10,11 +10,11 @@
 //! it carries no color and never decides whether output is a terminal.
 //!
 //! Presentation is the responsibility of the **entry point**, not the library:
-//! - `webui-cli` reads the structured fields and colorizes them with
+//! - `webhub-cli` reads the structured fields and colorizes them with
 //!   `console::style()` for a friendly terminal report.
-//! - `webui-ffi`, `webui-node`, and `webui-wasm` surface the plain
+//! - `webhub-ffi`, `webhub-node`, and `webhub-wasm` surface the plain
 //!   [`fmt::Display`] text through their own error channel
-//!   (`webui_last_error`, `napi::Error`, `JsValue`) so the host application can
+//!   (`webhub_last_error`, `napi::Error`, `JsValue`) so the host application can
 //!   handle it however it likes.
 //!
 //! A [`Diagnostic`] reaches those consumers as the payload of
@@ -56,7 +56,7 @@ impl Severity {
 ///
 /// Each constant is a permanent identifier for one class of authoring mistake.
 /// The code is rendered alongside every diagnostic and emitted as a structured
-/// field by `webui build --format json`, so editors, CI, and AI assistants can
+/// field by `webhub build --format json`, so editors, CI, and AI assistants can
 /// map an error to a deterministic fix or docs page regardless of the
 /// human-readable wording. Treat these as a stable API surface — rename only
 /// with a deliberate, documented migration.

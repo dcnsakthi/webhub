@@ -12,7 +12,7 @@
 //! Sample output across three rebuilds and one error:
 //!
 //! ```text
-//! ⚡ WebUI dev server
+//! ⚡ webhub dev server
 //!   ➜ http://localhost:3333/
 //!
 //!   ↻ rebuilt app-shell.css in 0.3s 16:42:51   ← repainted in place

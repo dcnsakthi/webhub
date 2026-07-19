@@ -3,7 +3,7 @@
 
 use std::sync::OnceLock;
 
-use webui::{Diagnostic, ParserError, Severity, WebUIError};
+use webhub::{Diagnostic, ParserError, Severity, webhubError};
 
 /// CLI output format, selected with the global `--format` flag.
 ///
@@ -78,8 +78,8 @@ pub fn finish(message: &str) {
 /// Find a build-time template [`Diagnostic`] within an error's source chain.
 fn template_diagnostic(err: &anyhow::Error) -> Option<&Diagnostic> {
     err.chain()
-        .find_map(|cause| match cause.downcast_ref::<WebUIError>() {
-            Some(WebUIError::Parse {
+        .find_map(|cause| match cause.downcast_ref::<webhubError>() {
+            Some(webhubError::Parse {
                 source: ParserError::Template(diag),
                 ..
             }) => Some(&**diag),
@@ -173,7 +173,7 @@ pub fn error(err: &anyhow::Error) {
 /// under redundant `Build failed: Failed to parse …:` context. Any other error
 /// flattens the anyhow chain for both renderings.
 ///
-/// [`RebuildReporter`]: webui_dev_server::RebuildReporter
+/// [`RebuildReporter`]: webhub_dev_server::RebuildReporter
 #[must_use]
 pub fn build_error_renderings(err: &anyhow::Error) -> (String, String) {
     match template_diagnostic(err) {
@@ -278,7 +278,7 @@ mod tests {
             .position(67, 5)
             .snippet(r#"each="person inpeople""#)
             .help(r#"use the form each="item in collection", e.g. each="todo in todos""#);
-        WebUIError::Parse {
+        webhubError::Parse {
             context: "Failed to parse index.html".to_owned(),
             source: ParserError::Template(Box::new(diag)),
         }
@@ -336,7 +336,7 @@ mod tests {
 
     #[test]
     fn build_error_falls_back_to_flat_chain_without_diagnostic() {
-        let err: anyhow::Error = WebUIError::Serialization("bad state json".to_owned()).into();
+        let err: anyhow::Error = webhubError::Serialization("bad state json".to_owned()).into();
         let (display, message) = build_error_renderings(&err);
         assert_eq!(display, message);
         assert!(message.contains("bad state json"));
@@ -364,7 +364,7 @@ mod tests {
 
     #[test]
     fn error_json_without_diagnostic_has_consistent_shape() {
-        let err: anyhow::Error = WebUIError::Serialization("bad state json".to_owned()).into();
+        let err: anyhow::Error = webhubError::Serialization("bad state json".to_owned()).into();
         let value = error_json(&err);
         assert_eq!(value["severity"], "error");
         assert!(value["code"].is_null());

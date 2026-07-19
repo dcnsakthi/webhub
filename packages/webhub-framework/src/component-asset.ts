@@ -2,10 +2,10 @@
 // Licensed under the MIT license.
 
 /**
- * Static component asset loader for the WebUI Framework plugin.
+ * Static component asset loader for the webhub Framework plugin.
  *
  * Kept outside the framework root entrypoint so apps that only hydrate normal
- * WebUI components do not load this optional CDN/static-asset helper.
+ * webhub components do not load this optional CDN/static-asset helper.
  */
 
 import {
@@ -15,16 +15,16 @@ import {
   type TemplateMeta,
 } from './template.js';
 
-const ASSET_TYPE = 'webui-component-asset';
+const ASSET_TYPE = 'webhub-component-asset';
 const ASSET_VERSION = 1;
 
 const injectedAssetStyles = new Set<string>();
 const assetLoadPromises = new Map<string, Promise<void>>();
 let assetStylesSeeded = false;
 
-/** Static WebUI Framework component asset emitted by `webui build --emit-component-assets`. */
+/** Static webhub Framework component asset emitted by `webhub build --emit-component-assets`. */
 export interface ComponentAsset {
-  type?: 'webui-component-asset';
+  type?: 'webhub-component-asset';
   version?: number;
   components?: string[];
   templateStyles?: string[];
@@ -37,7 +37,7 @@ export type ComponentAssetState = Record<string, unknown>;
 
 /** Manifest entry for one lazy component root. */
 export interface ComponentAssetManifestEntry<Data extends ComponentAssetState = ComponentAssetState> {
-  /** Static component asset module emitted by `webui build --emit-component-assets`. */
+  /** Static component asset module emitted by `webhub build --emit-component-assets`. */
   asset: string | URL;
   /** JavaScript module that defines/registers the custom element class. */
   module?: () => Promise<unknown>;
@@ -50,7 +50,7 @@ export type ComponentAssetManifest = Record<string, ComponentAssetManifestEntry>
 
 /** In-flight or completed work for one lazy component root. */
 export interface ComponentAssetPreload<Data extends ComponentAssetState = ComponentAssetState> {
-  /** Static WebUI template/style asset registration. */
+  /** Static webhub template/style asset registration. */
   asset: Promise<void>;
   /** Optional JavaScript module import. */
   module?: Promise<unknown>;
@@ -74,14 +74,14 @@ export interface ComponentAssetRegistry {
   create(tag: string, options?: ComponentAssetCreateOptions): Promise<HTMLElement>;
 }
 
-interface WebUIAssetGlobal {
+interface webhubAssetGlobal {
   nonce?: string;
   styles?: string[];
   [key: string]: unknown;
 }
 
-function assetGlobal(): WebUIAssetGlobal | undefined {
-  return window.__webui as WebUIAssetGlobal | undefined;
+function assetGlobal(): webhubAssetGlobal | undefined {
+  return window.__webhub as webhubAssetGlobal | undefined;
 }
 
 /** Define a reusable manifest-driven loader for static component assets. */
@@ -94,7 +94,7 @@ export function defineComponentAssets(manifest: ComponentAssetManifest): Compone
 
     const entry = manifest[tag];
     if (!entry) {
-      throw new Error(`[WebUI] No component asset manifest entry for <${tag}>.`);
+      throw new Error(`[webhub] No component asset manifest entry for <${tag}>.`);
     }
 
     const next: ComponentAssetPreload<Data> = {
@@ -173,7 +173,7 @@ function dataWithTimeout<Data extends ComponentAssetState>(
   ]);
 }
 
-/** Import and register a static component asset emitted by the WebUI CLI. */
+/** Import and register a static component asset emitted by the webhub CLI. */
 function loadComponentAsset(
   tag: string,
   url: string | URL,
@@ -216,7 +216,7 @@ async function importAndRegisterComponentAsset(
 
 function readComponentAssetModule(module: unknown): ComponentAsset {
   if (!isObject(module) || !isObject(module.default)) {
-    throw new Error('[WebUI] Component asset module must default-export an asset object.');
+    throw new Error('[webhub] Component asset module must default-export an asset object.');
   }
   return module.default as ComponentAsset;
 }
@@ -227,10 +227,10 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function validateAsset(asset: ComponentAsset): void {
   if (asset.type !== ASSET_TYPE) {
-    throw new Error(`[WebUI] Invalid component asset type: ${String(asset.type)}`);
+    throw new Error(`[webhub] Invalid component asset type: ${String(asset.type)}`);
   }
   if (asset.version !== ASSET_VERSION) {
-    throw new Error(`[WebUI] Unsupported component asset version: ${String(asset.version)}`);
+    throw new Error(`[webhub] Unsupported component asset version: ${String(asset.version)}`);
   }
 }
 
@@ -246,7 +246,7 @@ function templatesAlreadyRegistered(templates: Record<string, TemplateMeta>): bo
 function readNonce(): string {
   const nonce = assetGlobal()?.nonce;
   if (nonce) return nonce;
-  const meta = document.querySelector('meta[name="webui-nonce"]') as HTMLMetaElement | null;
+  const meta = document.querySelector('meta[name="webhub-nonce"]') as HTMLMetaElement | null;
   return meta?.content ?? '';
 }
 
@@ -289,19 +289,19 @@ function registerAssetStyles(templateStyles: string[] | undefined, nonce: string
 function parseImportMap(scriptMarkup: string): Record<string, string> {
   const trimmed = scriptMarkup.trim();
   if (!trimmed.startsWith('<script')) {
-    throw new Error('[WebUI] Component asset templateStyles entry must be a <script type="importmap"> tag.');
+    throw new Error('[webhub] Component asset templateStyles entry must be a <script type="importmap"> tag.');
   }
   const openTagEnd = trimmed.indexOf('>');
   const closeTagStart = trimmed.lastIndexOf('</script>');
   if (openTagEnd < 0 || closeTagStart <= openTagEnd) {
-    throw new Error('[WebUI] Component asset importmap tag is malformed.');
+    throw new Error('[webhub] Component asset importmap tag is malformed.');
   }
 
   const parsed = JSON.parse(trimmed.substring(openTagEnd + 1, closeTagStart)) as {
     imports?: Record<string, unknown>;
   };
   if (!parsed.imports || typeof parsed.imports !== 'object') {
-    throw new Error('[WebUI] Component asset importmap is missing an imports object.');
+    throw new Error('[webhub] Component asset importmap is missing an imports object.');
   }
 
   const imports: Record<string, string> = {};
@@ -310,7 +310,7 @@ function parseImportMap(scriptMarkup: string): Record<string, string> {
     const specifier = specifiers[i];
     const uri = parsed.imports[specifier];
     if (typeof uri !== 'string' || !uri.startsWith('data:text/css,')) {
-      throw new Error(`[WebUI] Component asset importmap entry "${specifier}" must be a data:text/css URI.`);
+      throw new Error(`[webhub] Component asset importmap entry "${specifier}" must be a data:text/css URI.`);
     }
     imports[specifier] = uri;
   }

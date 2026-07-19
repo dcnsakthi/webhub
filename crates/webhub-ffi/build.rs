@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .with_config(config)
             .generate()
             .map_err(Error::other)?;
-        bindings.write_to_file(out_dir.join("webui_ffi.h"));
+        bindings.write_to_file(out_dir.join("webhub_ffi.h"));
     }
 
     Ok(())

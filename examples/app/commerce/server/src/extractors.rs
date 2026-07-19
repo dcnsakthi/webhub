@@ -84,7 +84,7 @@ impl FromRequest for RequestContext {
             wants_json: wants_json(req),
             inventory_hex: req
                 .headers()
-                .get("x-webui-inventory")
+                .get("x-webhub-inventory")
                 .and_then(|value| value.to_str().ok())
                 .map_or_else(String::new, ToString::to_string),
             cart_read: cart::read_cart(req),

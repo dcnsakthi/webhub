@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement } from '@microsoft/webui-framework';
+import { webhubElement } from '@microsoft/webhub-framework';
 
-export class RoutesApp extends WebUIElement {
+export class RoutesApp extends webhubElement {
   counterLabel!: HTMLSpanElement;
   onCounterClick(): void {
     this.counterLabel.textContent = String(Number(this.counterLabel.textContent) + 1);

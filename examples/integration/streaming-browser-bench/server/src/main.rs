@@ -24,8 +24,8 @@ use serde::Deserialize;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
-use webui::streaming::{ChunkPool, StreamingWriter};
-use webui_handler::ResponseWriter;
+use webhub::streaming::{ChunkPool, StreamingWriter};
+use webhub_handler::ResponseWriter;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -90,7 +90,7 @@ struct DelayQuery {
 }
 
 /// Common writer driver: emit head + body in 64-byte slices to mirror
-/// the WebUI handler's slice frequency.
+/// the webhub handler's slice frequency.
 fn drive_writer(w: &mut dyn ResponseWriter, head: &str, body: &str, delay: Duration) {
     for chunk in head.as_bytes().chunks(64) {
         if !delay.is_zero() {
@@ -117,11 +117,11 @@ struct StringWriter {
     buf: String,
 }
 impl ResponseWriter for StringWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.buf.push_str(content);
         Ok(())
     }
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -159,7 +159,7 @@ async fn handle_stream(ctx: web::Data<AppCtx>, query: web::Query<DelayQuery>) ->
     let (tx, rx) = mpsc::channel::<Bytes>(StreamingWriter::DEFAULT_CHANNEL_CAPACITY);
     actix_web::rt::task::spawn_blocking(move || {
         // Bench writes directly to the streaming writer. Production
-        // hosts using the real WebUI handler would pass inject content
+        // hosts using the real webhub handler would pass inject content
         // via `RenderOptions::with_head_inject`/`with_body_inject` —
         // but this bench renders a hand-built HTML template, so no
         // handler-mediated injection is needed.

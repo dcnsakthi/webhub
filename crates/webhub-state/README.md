@@ -1,10 +1,10 @@
-# microsoft-webui-state
+# microsoft-webhub-state
 
-State management for the [WebUI](https://github.com/microsoft/webui) framework. Provides the scoped JSON state store used by the expression evaluator and renderer during a render pass.
+State management for the [webhub](https://github.com/microsoft/webhub) framework. Provides the scoped JSON state store used by the expression evaluator and renderer during a render pass.
 
 ## Documentation
 
-See the [WebUI repository](https://github.com/microsoft/webui) for full usage guides and examples.
+See the [webhub repository](https://github.com/microsoft/webhub) for full usage guides and examples.
 
 ## License
 

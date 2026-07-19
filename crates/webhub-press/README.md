@@ -1,10 +1,10 @@
-# WebUI Press
+# webhub Press
 
-A static site generator powered by the [WebUI Framework](https://github.com/microsoft/webui). Markdown in, hydration-ready HTML out, with no Node.js server required.
+A static site generator powered by the [webhub Framework](https://github.com/microsoft/webhub). Markdown in, hydration-ready HTML out, with no Node.js server required.
 
-[![microsoft-webui-press on crates.io](https://img.shields.io/badge/crate-microsoft--webui--press-orange)](https://github.com/microsoft/webui)
+[![microsoft-webhub-press on crates.io](https://img.shields.io/badge/crate-microsoft--webhub--press-orange)](https://github.com/microsoft/webhub)
 
-`webui-press` is what powers [microsoft.github.io/webui](https://microsoft.github.io/webui). It is the WebUI Framework eating its own dog food: every page in the site is rendered server-side by the same protocol-compiled engine that the framework ships to consumers.
+`webhub-press` is what powers [microsoft.github.io/webhub](https://microsoft.github.io/webhub). It is the webhub Framework eating its own dog food: every page in the site is rendered server-side by the same protocol-compiled engine that the framework ships to consumers.
 
 ---
 
@@ -12,10 +12,10 @@ A static site generator powered by the [WebUI Framework](https://github.com/micr
 
 Most documentation site generators are JavaScript first. They run a Node.js server, ship a virtual-DOM bundle to the client, and re-render everything in the browser. That's a lot of moving parts for what is essentially a folder of markdown files.
 
-`webui-press` takes the opposite approach:
+`webhub-press` takes the opposite approach:
 
 - **Single Rust binary.** No Node.js server, no build server, no JavaScript runtime on the server. Drop the binary into CI, run it, ship the `dist/` folder.
-- **Pre-compiled templates.** Pages are compiled into the WebUI binary protocol once, then rendered with state. Repeat builds reuse the cached protocol.
+- **Pre-compiled templates.** Pages are compiled into the webhub binary protocol once, then rendered with state. Repeat builds reuse the cached protocol.
 - **Parallel everything.** Page rendering is parallelized with [rayon](https://docs.rs/rayon). Syntax highlighting reuses one preloaded `syntect` syntax set across threads. Markdown parsing is per-page and free of cross-page state.
 - **Hydration that works on GitHub Pages.** The output is static HTML with Declarative Shadow DOM pre-expanded. The browser parses it as HTML, no JavaScript required for first paint. Optional client-side hydration upgrades interactive components without re-rendering anything.
 - **Custom Web Components in markdown.** Drop a component into `components/`, reference it from any `.md` file with normal HTML, and it gets server-rendered with full DSD output. Page-specific scripts can opt into esbuild bundling when they need npm imports.
@@ -25,17 +25,17 @@ Most documentation site generators are JavaScript first. They run a Node.js serv
 ## Install
 
 ```bash
-cargo install microsoft-webui-press
+cargo install microsoft-webhub-press
 ```
 
 Or as a workspace dependency:
 
 ```toml
 [dependencies]
-microsoft-webui-press = "0.0.10"
+microsoft-webhub-press = "0.0.10"
 ```
 
-The binary is named `webui-press`. If your docs site includes component `.ts` files or per-page bundled scripts, install esbuild in the docs project:
+The binary is named `webhub-press`. If your docs site includes component `.ts` files or per-page bundled scripts, install esbuild in the docs project:
 
 ```bash
 pnpm add -D esbuild
@@ -50,8 +50,8 @@ pnpm add -D esbuild
 mkdir docs && cd docs
 
 # 2. Drop a config and a markdown file
-mkdir -p .webui-press
-cat > .webui-press/config.json <<'EOF'
+mkdir -p .webhub-press
+cat > .webhub-press/config.json <<'EOF'
 {
   "site": { "title": "My Project" },
   "basePath": "/",
@@ -77,11 +77,11 @@ mkdir -p guide
 cat > guide/index.md <<'EOF'
 # Welcome
 
-Hello from `webui-press`.
+Hello from `webhub-press`.
 EOF
 
 # 3. Build
-webui-press build
+webhub-press build
 # → dist/ ready to deploy
 ```
 
@@ -93,7 +93,7 @@ Deploy `dist/` to GitHub Pages, Netlify, S3, or any static host.
 
 ```
 docs/                          # contentDir (anything you want)
-├── .webui-press/
+├── .webhub-press/
 │   ├── config.json            # site + nav + sidebar + hero + custom pages
 │   ├── theme.css              # optional theme overrides (design tokens)
 │   ├── components/            # optional custom Web Components
@@ -118,10 +118,10 @@ Every `.md` file under `contentDir` becomes a page automatically. The sidebar/na
 ## CLI
 
 ```
-webui-press build [OPTIONS]
+webhub-press build [OPTIONS]
 
 Options:
-  -c, --config <PATH>      Path to config.json [default: .webui-press/config.json]
+  -c, --config <PATH>      Path to config.json [default: .webhub-press/config.json]
   -t, --template <PATH>    Override the bundled template directory
   -h, --help               Print help
 ```
@@ -133,9 +133,9 @@ The build pipeline:
 2. Discover .md files        → walk(contentDir) for every .md
 3. Render markdown           → comrak GFM + syntect highlighting
 4. Pre-expand DSD            → Declarative Shadow DOM in content
-5. Build WebUI protocol      → compiled per page, cached templates
+5. Build webhub protocol      → compiled per page, cached templates
 6. Write base + theme CSS    → docs.css and theme.css emitted to outDir
-7. Render pages in parallel  → rayon + WebUI handler
+7. Render pages in parallel  → rayon + webhub handler
 8. Generate search index     → JSON for client-side fuzzy search
 9. Copy public/              → static asset passthrough
 10. Write 404.html
@@ -181,7 +181,7 @@ Shadow DOM components can react to the layout via `:host-context([data-layout="f
 
 ## Configuration reference
 
-`config.json` lives in `.webui-press/`. Every field is optional except `site`, `basePath`, `contentDir`, `nav`, and `sidebar`.
+`config.json` lives in `.webhub-press/`. Every field is optional except `site`, `basePath`, `contentDir`, `nav`, and `sidebar`.
 
 ```json
 {
@@ -192,10 +192,10 @@ Shadow DOM components can react to the layout via `:host-context([data-layout="f
   "basePath": "/my-project/",
   "contentDir": ".",
   "outDir": "./dist",
-  "publicDir": "./.webui-press/public",
+  "publicDir": "./.webhub-press/public",
   "theme": "@my-org/design-tokens",
-  "css": "./.webui-press/theme.css",
-  "components": ["./.webui-press/components"],
+  "css": "./.webhub-press/theme.css",
+  "components": ["./.webhub-press/components"],
   "bundler": {
     "target": "es2022",
     "external": [],
@@ -294,7 +294,7 @@ Shared state cannot override reserved docs keys such as `site`, `navigation`,
 state is applied afterward for that page, so non-reserved custom page keys can
 override global keys.
 
-The merged render state is embedded into each generated page's `#webui-data`
+The merged render state is embedded into each generated page's `#webhub-data`
 hydration block. Do not put secrets in `state` or `stateFile`, and keep shared
 state small. Large global JSON files are duplicated into every output page; use
 custom page state or static JSON assets for large page-specific datasets.
@@ -305,7 +305,7 @@ Every entry in `head[]` is rendered into `<head>` with attributes sorted alphabe
 
 ### `bundler`
 
-`webui-press` uses [esbuild](https://esbuild.github.io/) for client JavaScript. It runs one build with a shared root entry plus page entries only when page content needs extra scripts, so page-specific code stays local and shared imports are split into reusable chunks automatically.
+`webhub-press` uses [esbuild](https://esbuild.github.io/) for client JavaScript. It runs one build with a shared root entry plus page entries only when page content needs extra scripts, so page-specific code stays local and shared imports are split into reusable chunks automatically.
 
 | Field      | Type             | Effect                                                   |
 | ---------- | ---------------- | -------------------------------------------------------- |
@@ -320,21 +320,21 @@ You usually do not need a `bundler` section. Add one only when you need a packag
 
 ## Theme and CSS overrides
 
-The bundled `docs.css` is built around CSS custom properties. For design-token packages, set `"theme"` to the same kind of value accepted by `webui serve --theme`: a local JSON file, an npm package that exports `tokens.json`, or a package subpath.
+The bundled `docs.css` is built around CSS custom properties. For design-token packages, set `"theme"` to the same kind of value accepted by `webhub serve --theme`: a local JSON file, an npm package that exports `tokens.json`, or a package subpath.
 
 ```json
 { "theme": "@my-org/design-tokens" }
 ```
 
-During each page build, webui-press reads the WebUI protocol token inventory emitted by the parser, resolves only those used tokens from the configured theme package, and injects the resolved CSS declarations into render state as `tokens.light`, `tokens.dark`, etc. Templates can inline them with raw CSS placeholders such as `/*{{{tokens.light}}}*/`.
+During each page build, webhub-press reads the webhub protocol token inventory emitted by the parser, resolves only those used tokens from the configured theme package, and injects the resolved CSS declarations into render state as `tokens.light`, `tokens.dark`, etc. Templates can inline them with raw CSS placeholders such as `/*{{{tokens.light}}}*/`.
 
 Use `"css"` for site-specific chrome overrides that should stay outside the reusable theme package. The path is resolved relative to `config.json`'s directory:
 
 ```json
-{ "css": "./.webui-press/theme.css" }
+{ "css": "./.webhub-press/theme.css" }
 ```
 
-So the conventional layout is `.webui-press/config.json` + `.webui-press/theme.css` side by side, optionally with `"theme"` pointing at a shared token package.
+So the conventional layout is `.webhub-press/config.json` + `.webhub-press/theme.css` side by side, optionally with `"theme"` pointing at a shared token package.
 
 Override the design tokens you care about:
 
@@ -368,10 +368,10 @@ Syntax-highlighting colors are also tokens (`--docs-hl-keyword`, `--docs-hl-stri
 
 ## Custom Web Components in markdown
 
-Drop a component directory under `.webui-press/components/` (or any path listed in `config.components`):
+Drop a component directory under `.webhub-press/components/` (or any path listed in `config.components`):
 
 ```
-.webui-press/components/my-callout/
+.webhub-press/components/my-callout/
 ├── my-callout.html
 ├── my-callout.css
 └── my-callout.ts
@@ -389,14 +389,14 @@ Reference it from any `.md`:
 
 Components are:
 
-1. Compiled into the WebUI protocol at build time
+1. Compiled into the webhub protocol at build time
 2. Server-rendered with **Declarative Shadow DOM** pre-expanded, visible without JavaScript
 3. Auto-imported into the root script for template chrome or a page script when page content uses the component tag
 4. Shared through esbuild chunks when multiple pages use the same component or dependency
 
 Markdown inside slots is rendered as markdown, so you can mix prose and components freely.
 
-See the [WebUI Framework component guide](https://microsoft.github.io/webui/guide/concepts/components) for authoring details.
+See the [webhub Framework component guide](https://microsoft.github.io/webhub/guide/concepts/components) for authoring details.
 
 ### Per-page scripts
 
@@ -421,11 +421,11 @@ You can also point at a file:
 <script type="module" bundle src="./scripts/example.ts"></script>
 ```
 
-`src` paths are resolved relative to `config.json`'s directory (`.webui-press/` by convention), not relative to the markdown file. For example, if your config is `.webui-press/config.json`, use `src="./scripts/example.ts"` for `.webui-press/scripts/example.ts`.
+`src` paths are resolved relative to `config.json`'s directory (`.webhub-press/` by convention), not relative to the markdown file. For example, if your config is `.webhub-press/config.json`, use `src="./scripts/example.ts"` for `.webhub-press/scripts/example.ts`.
 
 Bundled script files must stay inside the docs project (`config.json`'s directory or `contentDir`) and use a JavaScript/TypeScript extension (`.js`, `.mjs`, `.jsx`, `.ts`, or `.tsx`). Relative imports inside bundled scripts are checked against the same project roots, and absolute filesystem imports are rejected. Package imports such as `@fluentui/web-components/button.js` remain supported.
 
-`webui-press` extracts those scripts before rendering and imports them into that page's virtual esbuild entry. Plain `<script>` tags without `bundle` pass through unchanged.
+`webhub-press` extracts those scripts before rendering and imports them into that page's virtual esbuild entry. Plain `<script>` tags without `bundle` pass through unchanged.
 
 Local component scripts are discovered automatically. If a page contains `<live-preview>` and the component source has `live-preview.html` next to `live-preview.ts`, the generated page entry imports `live-preview.ts`. Component templates are scanned too, so local child components are included without adding duplicate imports.
 
@@ -433,11 +433,11 @@ Package custom elements stay explicit because tag names cannot reliably be mappe
 
 ```markdown
 <live-preview>
-  <webui-button appearance="button">Click Me</webui-button>
+  <webhub-button appearance="button">Click Me</webhub-button>
 </live-preview>
 
 <script type="module" bundle>
-import "@microsoft/webui-components/button.js";
+import "@microsoft/webhub-components/button.js";
 </script>
 ```
 
@@ -445,19 +445,19 @@ The template chrome uses a shared root script (`index.js`). Pages with no page-s
 
 All root and page entries are bundled in one esbuild build. If ten pages import the same package or local component runtime, esbuild can emit that dependency once as a shared chunk. Import-only page wrappers are collapsed after bundling, so generated pages link directly to the chunks they need instead of loading a `page-N.js` file that only re-imports the same chunks.
 
-`webui-press build` minifies bundled JavaScript. `webui-press serve` skips minification for faster rebuilds during local development.
+`webhub-press build` minifies bundled JavaScript. `webhub-press serve` skips minification for faster rebuilds during local development.
 
 ### Built-in components
 
-`webui-press` ships with these components pre-registered for content use:
+`webhub-press` ships with these components pre-registered for content use:
 
 | Tag                         | Purpose                                                |
 | --------------------------- | ------------------------------------------------------ |
 | `<code-block>`              | Syntax-highlighted code with a copy button (auto-injected around code fences) |
-| `<webui-blockquote>`        | Styled quotes / callouts                               |
-| `<webui-press-tabs>`        | Tabbed content groups                                  |
-| `<webui-press-tab>`         | Tab triggers                                           |
-| `<webui-press-tab-panel>`   | Tab content panels                                     |
+| `<webhub-blockquote>`        | Styled quotes / callouts                               |
+| `<webhub-press-tabs>`        | Tabbed content groups                                  |
+| `<webhub-press-tab>`         | Tab triggers                                           |
+| `<webhub-press-tab-panel>`   | Tab content panels                                     |
 
 Plus shadow components used by the chrome itself: `<docs-search>`, `<docs-theme-toggle>`.
 
@@ -524,7 +524,7 @@ For pages that are pure interactive components (a playground, a live editor, a c
 | `html`      | Page body. Usually a single component tag.                                          |
 | `layout`    | `doc`, `home`, `page`, `full` (see [Layouts](#layouts)).                            |
 | `state`     | Inline JSON merged into the page's render state under `pageData`.                   |
-| `stateFile` | Path to a JSON file, resolved relative to `config.json`'s directory (`.webui-press/`). Each unique file is read and parsed once and shared across pages. |
+| `stateFile` | Path to a JSON file, resolved relative to `config.json`'s directory (`.webhub-press/`). Each unique file is read and parsed once and shared across pages. |
 | `scriptFile` | Path to a TypeScript or JavaScript file, resolved relative to `config.json`'s directory. The file is imported into this page's generated esbuild entry and linked only from this page. |
 
 `state` and `stateFile` are mutually exclusive. State files are cached so multiple pages can share one source of truth without re-parsing.
@@ -532,7 +532,7 @@ For pages that are pure interactive components (a playground, a live editor, a c
 `scriptFile` is useful for full-page components such as playgrounds. Keep the script next to its component HTML and CSS:
 
 ```
-.webui-press/components/docs-playground/
+.webhub-press/components/docs-playground/
 ├── docs-playground.html
 ├── docs-playground.css
 └── docs-playground.ts
@@ -553,13 +553,13 @@ Hide search by overriding the component or removing it from the template.
 The output is fully renderable without JavaScript:
 
 - Markdown → HTML at build time
-- Components rendered server-side via the WebUI protocol
+- Components rendered server-side via the webhub protocol
 - Declarative Shadow DOM pre-expanded inline
 - Critical styles inlined per component shadow root
 
 When the browser loads the generated root/page scripts (deferred, after first paint), the framework finds existing DSD shadow roots and **upgrades** them in place, no re-render, no flash, no virtual DOM. Event handlers and observable state are bound to the already-painted DOM. Page scripts import only the local component scripts and explicit bundled scripts needed by that page, with shared dependencies split into reusable chunks.
 
-This is the WebUI Framework's [`webui` plugin](https://microsoft.github.io/webui/guide/concepts/plugins/) at work, and it is what makes the site feel instant on slow connections.
+This is the webhub Framework's [`webhub` plugin](https://microsoft.github.io/webhub/guide/concepts/plugins/) at work, and it is what makes the site feel instant on slow connections.
 
 ---
 
@@ -567,14 +567,14 @@ This is the WebUI Framework's [`webui` plugin](https://microsoft.github.io/webui
 
 - **Parallel rendering.** Pages render concurrently via rayon. Build time scales with cores, not page count.
 - **Single esbuild build.** Template chrome, component TypeScript, and page script entries are bundled together so shared dependencies are split once and reused.
-- **Cached protocol.** The WebUI binary protocol is built once per run and reused across all pages.
+- **Cached protocol.** The webhub binary protocol is built once per run and reused across all pages.
 - **Shared highlighter.** One `syntect::SyntaxSet` is loaded per build and cloned per worker, not per page.
 - **No regex in core paths.** Markdown processing, link normalization, and DSD pre-expansion are deterministic scanners.
 - **Buffer-first IO.** HTML output uses pre-sized `String` buffers and `push_str`, never `format!` in hot loops.
 - **Allocation-aware.** Hot data structures use `BTreeMap` (sorted, deterministic) over `HashMap` (non-deterministic, larger). Sidebar resolution is `O(prefixes)`, not `O(pages × prefixes)`.
-- **Dev server is full-rebuild on every change.** `webui-press serve` re-runs the entire build pipeline on every filesystem event rather than tracking per-file dependencies. This keeps the dev path simple, makes every refresh byte-identical to a `build`, and benchmarks at sub-second rebuilds for sites under a few hundred pages. The only state amortized across rebuilds is the `syntect` highlighter (~30–50 ms to load).
+- **Dev server is full-rebuild on every change.** `webhub-press serve` re-runs the entire build pipeline on every filesystem event rather than tracking per-file dependencies. This keeps the dev path simple, makes every refresh byte-identical to a `build`, and benchmarks at sub-second rebuilds for sites under a few hundred pages. The only state amortized across rebuilds is the `syntect` highlighter (~30–50 ms to load).
 
-If your build slows down, profile with `cargo flamegraph -p microsoft-webui-press --bin webui-press -- build`, every hot path is fair game for further optimization.
+If your build slows down, profile with `cargo flamegraph -p microsoft-webhub-press --bin webhub-press -- build`, every hot path is fair game for further optimization.
 
 ---
 
@@ -596,8 +596,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - run: cargo install microsoft-webui-press
-      - run: cd docs && webui-press build
+      - run: cargo install microsoft-webhub-press
+      - run: cd docs && webhub-press build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs/dist
@@ -618,9 +618,9 @@ Set `basePath` in `config.json` to `/<repo-name>/` so internal links work under 
 
 ## Status
 
-`webui-press` is the production builder for the WebUI Framework site. It is stable enough to ship a real documentation site to GitHub Pages today; it is not yet stable enough to promise no breaking changes between `0.0.x` versions. Pin a version, watch the changelog.
+`webhub-press` is the production builder for the webhub Framework site. It is stable enough to ship a real documentation site to GitHub Pages today; it is not yet stable enough to promise no breaking changes between `0.0.x` versions. Pin a version, watch the changelog.
 
-Issues, PRs, and feedback welcome at [github.com/microsoft/webui](https://github.com/microsoft/webui).
+Issues, PRs, and feedback welcome at [github.com/microsoft/webhub](https://github.com/microsoft/webhub).
 
 ---
 

@@ -2,12 +2,12 @@
 # See examples/demo/README.md for the full schema.
 
 name = "Calculator"
-description = "A calculator with basic and scientific mode built on WebUI Framework"
+description = "A calculator with basic and scientific mode built on webhub Framework"
 backend = "none"
 
 [server]
-type = "webui-cli"
-plugin = "webui"
+type = "webhub-cli"
+plugin = "webhub"
 source = "src"
 servedir = "dist"
 state = "data/state.json"

@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 test.describe('SSR rendering', () => {
   test('renders heading', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('h1')).toContainText('Hello, WebUI!');
+    await expect(page.locator('h1')).toContainText('Hello, webhub!');
   });
 
   test('renders people list', async ({ page }) => {
@@ -19,7 +19,7 @@ test.describe('SSR rendering', () => {
 
   test('renders raw HTML description', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('b')).toContainText('WebUI');
+    await expect(page.locator('b')).toContainText('webhub');
     await expect(page.locator('i')).toContainText('Rust');
   });
 

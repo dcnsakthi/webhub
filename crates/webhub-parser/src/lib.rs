@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Directive parser for WebUI template directives.
+//! Directive parser for webhub template directives.
 //!
-//! This module handles parsing WebUI-specific directives like <for>, <if>, etc.
+//! This module handles parsing webhub-specific directives like <for>, <if>, etc.
 mod asset_filename;
 mod comment_policy;
 mod component_registry;
@@ -28,15 +28,15 @@ pub use css_parser::CssParser;
 pub use diagnostic::{codes, Diagnostic, Severity};
 pub use error::{ParserError, Result};
 pub use handlebars_parser::HandlebarsParser;
-pub use webui_tokens::CssFallbackChain;
+pub use webhub_tokens::CssFallbackChain;
 
 use crate::html_parser::{self as html, Attrs, Element, Event, Walker};
 use crate::plugin::{AttributeAction, ParserPlugin, ParserPluginArtifacts};
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
-use webui_protocol::{
-    web_ui_fragment, web_ui_fragment::Fragment, ConditionExpr, FragmentList, WebUIFragment,
-    WebUIFragmentAttribute, WebUIFragmentRecords, WebUiFragmentRoute,
+use webhub_protocol::{
+    web_ui_fragment, web_ui_fragment::Fragment, ConditionExpr, FragmentList, webhubFragment,
+    webhubFragmentAttribute, webhubFragmentRecords, webhubFragmentRoute,
 };
 
 /// Maximum template size accepted by the parser.
@@ -246,9 +246,9 @@ pub enum Plugin {
     /// FAST 3 hydration plugin with compact marker output.
     #[cfg_attr(feature = "cli", value(name = "fast-v3"))]
     FastV3,
-    /// WebUI plugin — full component model with shadow DOM support.
-    #[cfg_attr(feature = "cli", value(name = "webui"))]
-    WebUI,
+    /// webhub plugin — full component model with shadow DOM support.
+    #[cfg_attr(feature = "cli", value(name = "webhub"))]
+    webhub,
 }
 
 impl std::fmt::Display for Plugin {
@@ -257,7 +257,7 @@ impl std::fmt::Display for Plugin {
             Plugin::Fast => write!(f, "fast"),
             Plugin::FastV2 => write!(f, "fast-v2"),
             Plugin::FastV3 => write!(f, "fast-v3"),
-            Plugin::WebUI => write!(f, "webui"),
+            Plugin::webhub => write!(f, "webhub"),
         }
     }
 }
@@ -270,9 +270,9 @@ impl std::str::FromStr for Plugin {
             "fast" => Ok(Plugin::Fast),
             "fast-v2" => Ok(Plugin::FastV2),
             "fast-v3" => Ok(Plugin::FastV3),
-            "webui" => Ok(Plugin::WebUI),
+            "webhub" => Ok(Plugin::webhub),
             other => Err(format!(
-                "Unknown plugin: {other}. Use \"webui\", \"fast-v3\", \"fast-v2\", or \"fast\"."
+                "Unknown plugin: {other}. Use \"webhub\", \"fast-v3\", \"fast-v2\", or \"fast\"."
             )),
         }
     }
@@ -301,7 +301,7 @@ impl FragmentIdCounter {
 }
 
 struct ParseContext {
-    fragments: Vec<WebUIFragment>,
+    fragments: Vec<webhubFragment>,
     raw_buffer: String,
 }
 
@@ -362,7 +362,7 @@ enum ParseOp<'a> {
 enum TokenGraphOp<'a> {
     EnterFragment(&'a str),
     EnterComponent(&'a str),
-    EnterRoute(&'a WebUiFragmentRoute),
+    EnterRoute(&'a webhubFragmentRoute),
     ExitDefinitions(&'a [String]),
 }
 
@@ -372,7 +372,7 @@ impl Default for HtmlParser {
     }
 }
 
-/// Parser for WebUI directives.
+/// Parser for webhub directives.
 pub struct HtmlParser {
     /// CSS parser.
     css_parser: CssParser,
@@ -386,11 +386,11 @@ pub struct HtmlParser {
     /// Handlebars parser for parsing handlebars expressions.
     handlebars_parser: HandlebarsParser,
 
-    /// Component registry for WebUI components.
+    /// Component registry for webhub components.
     component_registry: ComponentRegistry,
 
     /// Map of fragment IDs to their fragments
-    fragment_records: WebUIFragmentRecords,
+    fragment_records: webhubFragmentRecords,
 
     /// Buffer for accumulating raw content
     raw_buffer: String,
@@ -570,26 +570,26 @@ impl CssTokenAnalysis {
     /// [`protocol_tokens`](Self::protocol_tokens) for runtime resolution (the
     /// theme value still wins when present) but does not fail the build when the
     /// theme omits it. The chain/theme policy lives in
-    /// [`webui_tokens::validate_chain_tokens`]; this only adapts its
-    /// [`webui_tokens::TokenError`] into a structured [`Diagnostic`].
+    /// [`webhub_tokens::validate_chain_tokens`]; this only adapts its
+    /// [`webhub_tokens::TokenError`] into a structured [`Diagnostic`].
     ///
     /// # Errors
     ///
     /// Returns [`ParserError::Template`] with a stable diagnostic code when a
     /// required token is missing from a theme. Theme token values are trusted and
     /// their transitive references are left to browser CSS semantics.
-    pub fn validate_theme_tokens(&self, theme: &webui_tokens::TokenFile) -> Result<()> {
-        webui_tokens::validate_chain_tokens(&self.fallback_chains, theme)
+    pub fn validate_theme_tokens(&self, theme: &webhub_tokens::TokenFile) -> Result<()> {
+        webhub_tokens::validate_chain_tokens(&self.fallback_chains, theme)
             .map_err(|source| self.theme_token_error(source, theme))
     }
 
     /// CSS tokens used **only** with a literal `var()` fallback and defined in no
     /// theme — likely typos that callers may surface as non-fatal advisories.
     ///
-    /// Thin wrapper over [`webui_tokens::unthemed_literal_fallback_tokens`].
+    /// Thin wrapper over [`webhub_tokens::unthemed_literal_fallback_tokens`].
     #[must_use]
-    pub fn unthemed_literal_fallback_tokens(&self, theme: &webui_tokens::TokenFile) -> Vec<String> {
-        webui_tokens::unthemed_literal_fallback_tokens(&self.fallback_chains, theme)
+    pub fn unthemed_literal_fallback_tokens(&self, theme: &webhub_tokens::TokenFile) -> Vec<String> {
+        webhub_tokens::unthemed_literal_fallback_tokens(&self.fallback_chains, theme)
     }
 
     /// Structured, color-free advisories for CSS tokens used only with a
@@ -600,9 +600,9 @@ impl CssTokenAnalysis {
     /// other hosts use the plain [`Diagnostic::body`]). Each carries the token's
     /// source location and a `did you mean --…?` suggestion.
     #[must_use]
-    pub fn theme_token_warnings(&self, theme: &webui_tokens::TokenFile) -> Vec<Diagnostic> {
+    pub fn theme_token_warnings(&self, theme: &webhub_tokens::TokenFile) -> Vec<Diagnostic> {
         let mut warnings = Vec::new();
-        for token in webui_tokens::unthemed_literal_fallback_tokens(&self.fallback_chains, theme) {
+        for token in webhub_tokens::unthemed_literal_fallback_tokens(&self.fallback_chains, theme) {
             let help = match closest_theme_token(&token, theme.themes.values()) {
                 Some(suggestion) => {
                     format!("did you mean --{suggestion}? otherwise the literal fallback is used")
@@ -622,18 +622,18 @@ impl CssTokenAnalysis {
         warnings
     }
 
-    /// Adapt a [`webui_tokens::TokenError`] into a structured [`Diagnostic`],
+    /// Adapt a [`webhub_tokens::TokenError`] into a structured [`Diagnostic`],
     /// enriching it with the token's source location and a `did you mean …?`
     /// suggestion drawn from the theme's own tokens.
     #[cold]
     #[inline(never)]
     fn theme_token_error(
         &self,
-        source: webui_tokens::TokenError,
-        theme: &webui_tokens::TokenFile,
+        source: webhub_tokens::TokenError,
+        theme: &webhub_tokens::TokenFile,
     ) -> ParserError {
         match source {
-            webui_tokens::TokenError::MissingToken {
+            webhub_tokens::TokenError::MissingToken {
                 theme: theme_name,
                 token,
             } => {
@@ -713,7 +713,7 @@ impl HtmlParser {
             condition_parser: ConditionParser::new(),
             handlebars_parser: HandlebarsParser::new(),
             raw_buffer: String::new(),
-            fragment_records: WebUIFragmentRecords::new(),
+            fragment_records: webhubFragmentRecords::new(),
             options,
             plugin: None,
             token_roots: Vec::new(),
@@ -758,7 +758,7 @@ impl HtmlParser {
         &self.component_registry
     }
 
-    pub fn into_fragment_records(mut self) -> WebUIFragmentRecords {
+    pub fn into_fragment_records(mut self) -> webhubFragmentRecords {
         std::mem::take(&mut self.fragment_records)
     }
 
@@ -916,7 +916,7 @@ impl HtmlParser {
 
     fn enter_token_route<'a>(
         &'a self,
-        route: &'a WebUiFragmentRoute,
+        route: &'a webhubFragmentRoute,
         available_counts: &mut HashMap<String, usize>,
         out: &mut UnresolvedTokens,
         ops: &mut Vec<TokenGraphOp<'a>>,
@@ -962,7 +962,7 @@ impl HtmlParser {
         css.fallback_chains.extend(fallback_chains);
     }
 
-    /// Parse HTML content to generate WebUI fragments.
+    /// Parse HTML content to generate webhub fragments.
     pub fn parse(&mut self, fragment_id: &str, html_content: &str) -> Result<()> {
         let fragment_key = fragment_id.to_string();
         let is_token_root = self.in_progress_fragments.is_empty();
@@ -1011,7 +1011,7 @@ impl HtmlParser {
             plugin.start_fragment(fragment_id);
         }
 
-        let mut entry_fragment: Vec<WebUIFragment> = Vec::new();
+        let mut entry_fragment: Vec<webhubFragment> = Vec::new();
         self.parse_range(html_content, 0..html_content.len(), &mut entry_fragment, 0)?;
 
         self.flush_raw_buffer(&mut entry_fragment);
@@ -1039,10 +1039,10 @@ impl HtmlParser {
         item: String,
         collection: String,
         fragment_id: String,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
     ) {
         self.flush_raw_buffer(fragments);
-        fragments.push(WebUIFragment::for_loop(item, collection, fragment_id));
+        fragments.push(webhubFragment::for_loop(item, collection, fragment_id));
     }
 
     /// Add an if fragment, flushing raw buffer first
@@ -1050,22 +1050,22 @@ impl HtmlParser {
         &mut self,
         condition: ConditionExpr,
         fragment_id: String,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
     ) {
         self.flush_raw_buffer(fragments);
-        fragments.push(WebUIFragment::if_cond(condition, fragment_id));
+        fragments.push(webhubFragment::if_cond(condition, fragment_id));
     }
 
     /// Add a non-raw fragment, flushing the raw buffer first if needed
-    fn add_fragment(&mut self, fragment: WebUIFragment, fragments: &mut Vec<WebUIFragment>) {
+    fn add_fragment(&mut self, fragment: webhubFragment, fragments: &mut Vec<webhubFragment>) {
         self.flush_raw_buffer(fragments);
         fragments.push(fragment);
     }
 
     /// Flush the raw buffer into fragments if not empty
-    fn flush_raw_buffer(&mut self, fragments: &mut Vec<WebUIFragment>) {
+    fn flush_raw_buffer(&mut self, fragments: &mut Vec<webhubFragment>) {
         if !self.raw_buffer.is_empty() {
-            fragments.push(WebUIFragment::raw(std::mem::take(&mut self.raw_buffer)));
+            fragments.push(webhubFragment::raw(std::mem::take(&mut self.raw_buffer)));
         }
     }
 
@@ -1092,7 +1092,7 @@ impl HtmlParser {
         &mut self,
         source: &str,
         range: Range<usize>,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
         depth: usize,
     ) -> Result<()> {
         let mut ops = vec![ParseOp::Parse { range, depth }];
@@ -1237,7 +1237,7 @@ impl HtmlParser {
                                 }
                                 "outlet" => {
                                     self.flush_raw_buffer(fragments);
-                                    fragments.push(WebUIFragment::outlet());
+                                    fragments.push(webhubFragment::outlet());
                                 }
                                 name if name.eq_ignore_ascii_case("style") => {
                                     self.process_style_element(&element, fragments)?;
@@ -1278,12 +1278,12 @@ impl HtmlParser {
                 }
                 ParseOp::EndHead => {
                     self.flush_raw_buffer(fragments);
-                    fragments.push(WebUIFragment::signal("head_end", true));
+                    fragments.push(webhubFragment::signal("head_end", true));
                     self.add_raw_fragment("</head>");
                 }
                 ParseOp::EndBody => {
                     self.flush_raw_buffer(fragments);
-                    fragments.push(WebUIFragment::signal("body_end", true));
+                    fragments.push(webhubFragment::signal("body_end", true));
                     self.add_raw_fragment("</body>");
                 }
                 ParseOp::CompleteFor {
@@ -1338,7 +1338,7 @@ impl HtmlParser {
     fn enter_regular_element<'a>(
         &mut self,
         element: &Element<'a>,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
         depth: usize,
         ops: &mut Vec<ParseOp<'a>>,
     ) -> Result<()> {
@@ -1348,7 +1348,7 @@ impl HtmlParser {
         let binding_count = self.process_tag_attributes(element.attrs(), fragments, false)?;
         if let Some(ref mut p) = self.plugin {
             if let Some(data) = p.finish_element(binding_count) {
-                self.add_fragment(WebUIFragment::plugin(data), fragments);
+                self.add_fragment(webhubFragment::plugin(data), fragments);
             }
         }
 
@@ -1387,7 +1387,7 @@ impl HtmlParser {
     fn enter_body_element<'a>(
         &mut self,
         element: &Element<'a>,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
         depth: usize,
         ops: &mut Vec<ParseOp<'a>>,
     ) -> Result<()> {
@@ -1395,12 +1395,12 @@ impl HtmlParser {
         let binding_count = self.process_tag_attributes(element.attrs(), fragments, false)?;
         if let Some(ref mut p) = self.plugin {
             if let Some(data) = p.finish_element(binding_count) {
-                self.add_fragment(WebUIFragment::plugin(data), fragments);
+                self.add_fragment(webhubFragment::plugin(data), fragments);
             }
         }
         self.add_raw_fragment(">");
         self.flush_raw_buffer(fragments);
-        fragments.push(WebUIFragment::signal("body_start", true));
+        fragments.push(webhubFragment::signal("body_start", true));
         ops.push(ParseOp::EndBody);
         ops.push(ParseOp::Parse {
             range: element.inner(),
@@ -1592,7 +1592,7 @@ impl HtmlParser {
     fn enter_for_directive<'a>(
         &mut self,
         element: &Element<'a>,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
         depth: usize,
         ops: &mut Vec<ParseOp<'a>>,
     ) -> Result<()> {
@@ -1680,7 +1680,7 @@ impl HtmlParser {
     fn enter_if_directive<'a>(
         &mut self,
         element: &Element<'a>,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
         depth: usize,
         ops: &mut Vec<ParseOp<'a>>,
     ) -> Result<()> {
@@ -1716,7 +1716,7 @@ impl HtmlParser {
     fn enter_component_directive<'a>(
         &mut self,
         element: &Element<'a>,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
         depth: usize,
         ops: &mut Vec<ParseOp<'a>>,
     ) -> Result<()> {
@@ -1726,7 +1726,7 @@ impl HtmlParser {
         let binding_count = self.process_tag_attributes(element.attrs(), fragments, true)?;
         if let Some(ref mut p) = self.plugin {
             if let Some(data) = p.finish_element(binding_count) {
-                self.add_fragment(WebUIFragment::plugin(data), fragments);
+                self.add_fragment(webhubFragment::plugin(data), fragments);
             }
         }
 
@@ -1780,7 +1780,7 @@ impl HtmlParser {
             self.parse(element.name(), &built.ssr)?;
         }
 
-        fragments.push(WebUIFragment::component(element.name().to_string()));
+        fragments.push(webhubFragment::component(element.name().to_string()));
 
         if !element.self_closing() {
             ops.push(ParseOp::EmitClose(element.name()));
@@ -1793,7 +1793,7 @@ impl HtmlParser {
         Ok(())
     }
 
-    fn process_text(&mut self, content: &str, fragments: &mut Vec<WebUIFragment>) -> Result<()> {
+    fn process_text(&mut self, content: &str, fragments: &mut Vec<webhubFragment>) -> Result<()> {
         if !Self::should_emit_text_content(content) {
             return Ok(());
         }
@@ -1815,7 +1815,7 @@ impl HtmlParser {
         &mut self,
         css: &str,
         comments: &[crate::css_parser::CssComment],
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
     ) {
         let mut last_end = 0usize;
 
@@ -1840,9 +1840,9 @@ impl HtmlParser {
         self.add_raw_fragment(&css[last_end..]);
     }
 
-    fn css_signal_comment_fragment(&self, comment: &str) -> Option<WebUIFragment> {
+    fn css_signal_comment_fragment(&self, comment: &str) -> Option<webhubFragment> {
         let signal = comment_policy::parse_css_signal_comment(comment)?;
-        Some(WebUIFragment::signal(signal.path, signal.raw))
+        Some(webhubFragment::signal(signal.path, signal.raw))
     }
 
     /// Check if an attribute value is a pure handlebars expression (e.g., "{{name}}" or
@@ -1867,7 +1867,7 @@ impl HtmlParser {
     fn process_tag_attributes(
         &mut self,
         attrs: Attrs<'_>,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
         is_component: bool,
     ) -> Result<u32> {
         let mut first_dynamic_emitted = false;
@@ -1892,7 +1892,7 @@ impl HtmlParser {
                 if is_component {
                     if let Some(condition) = self.parse_boolean_condition(attr_value) {
                         let frag = Self::maybe_mark_attr_start(
-                            WebUIFragment::attribute_boolean(bool_name, condition),
+                            webhubFragment::attribute_boolean(bool_name, condition),
                             &mut first_dynamic_emitted,
                         );
                         self.add_fragment(frag, fragments);
@@ -1918,7 +1918,7 @@ impl HtmlParser {
                 if let Some(val) = attr_value {
                     if let Some(signal_name) = Self::extract_single_handlebars(val) {
                         let frag = Self::maybe_mark_attr_start(
-                            WebUIFragment::attribute_complex(attr_name, signal_name),
+                            webhubFragment::attribute_complex(attr_name, signal_name),
                             &mut first_dynamic_emitted,
                         );
                         self.add_fragment(frag, fragments);
@@ -1928,9 +1928,9 @@ impl HtmlParser {
             } else if is_component && Self::is_skipped_attribute(attr_name) {
                 if let Some(val) = attr_value {
                     if let Some(signal_name) = Self::extract_single_handlebars(val) {
-                        let frag = WebUIFragment {
+                        let frag = webhubFragment {
                             fragment: Some(web_ui_fragment::Fragment::Attribute(
-                                WebUIFragmentAttribute {
+                                webhubFragmentAttribute {
                                     name: attr_name.to_string(),
                                     value: signal_name.to_string(),
                                     attr_skip: true,
@@ -1945,9 +1945,9 @@ impl HtmlParser {
                         let parsed = self.handlebars_parser.parse(val)?;
                         self.fragment_records
                             .insert(template_id.clone(), FragmentList { fragments: parsed });
-                        let frag = WebUIFragment {
+                        let frag = webhubFragment {
                             fragment: Some(web_ui_fragment::Fragment::Attribute(
-                                WebUIFragmentAttribute {
+                                webhubFragmentAttribute {
                                     name: attr_name.to_string(),
                                     template: template_id,
                                     attr_skip: true,
@@ -1958,9 +1958,9 @@ impl HtmlParser {
                         self.add_fragment(frag, fragments);
                         binding_count += 1;
                     } else {
-                        let frag = WebUIFragment {
+                        let frag = webhubFragment {
                             fragment: Some(web_ui_fragment::Fragment::Attribute(
-                                WebUIFragmentAttribute {
+                                webhubFragmentAttribute {
                                     name: attr_name.to_string(),
                                     value: val.to_string(),
                                     raw_value: true,
@@ -1977,7 +1977,7 @@ impl HtmlParser {
                     if is_component {
                         if let Some(signal_name) = Self::extract_single_handlebars(val) {
                             let frag = Self::maybe_mark_attr_start(
-                                WebUIFragment::attribute(attr_name, signal_name),
+                                webhubFragment::attribute(attr_name, signal_name),
                                 &mut first_dynamic_emitted,
                             );
                             self.add_fragment(frag, fragments);
@@ -1988,7 +1988,7 @@ impl HtmlParser {
                             self.fragment_records
                                 .insert(template_id.clone(), FragmentList { fragments: parsed });
                             let frag = Self::maybe_mark_attr_start(
-                                WebUIFragment::attribute_template(attr_name, template_id),
+                                webhubFragment::attribute_template(attr_name, template_id),
                                 &mut first_dynamic_emitted,
                             );
                             self.add_fragment(frag, fragments);
@@ -2000,9 +2000,9 @@ impl HtmlParser {
                     }
                 } else if is_component {
                     let frag = Self::maybe_mark_attr_start(
-                        WebUIFragment {
+                        webhubFragment {
                             fragment: Some(web_ui_fragment::Fragment::Attribute(
-                                WebUIFragmentAttribute {
+                                webhubFragmentAttribute {
                                     name: attr_name.to_string(),
                                     value: val.to_string(),
                                     raw_value: true,
@@ -2028,9 +2028,9 @@ impl HtmlParser {
     /// Set `attr_start = true` on the first non-skipped attribute fragment for
     /// a component element.
     fn maybe_mark_attr_start(
-        mut frag: WebUIFragment,
+        mut frag: webhubFragment,
         first_dynamic_emitted: &mut bool,
-    ) -> WebUIFragment {
+    ) -> webhubFragment {
         if !*first_dynamic_emitted {
             if let Some(web_ui_fragment::Fragment::Attribute(ref mut a)) = frag.fragment {
                 a.attr_start = true;
@@ -2060,10 +2060,10 @@ impl HtmlParser {
         &mut self,
         name: &str,
         value: Option<&str>,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
     ) -> Result<bool> {
         if let Some(condition) = self.parse_boolean_condition(value) {
-            self.add_fragment(WebUIFragment::attribute_boolean(name, condition), fragments);
+            self.add_fragment(webhubFragment::attribute_boolean(name, condition), fragments);
             return Ok(true);
         }
         // Invalid boolean attribute — silently drop (no output at all)
@@ -2075,11 +2075,11 @@ impl HtmlParser {
         &mut self,
         name: &str,
         value: &str,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
     ) -> Result<()> {
         if let Some(signal_name) = Self::extract_single_handlebars(value) {
             // Pure handlebars — simple attribute fragment
-            self.add_fragment(WebUIFragment::attribute(name, signal_name), fragments);
+            self.add_fragment(webhubFragment::attribute(name, signal_name), fragments);
         } else {
             // Mixed static + dynamic — create a template sub-stream
             let template_id = self.id_counter.next_id("attr");
@@ -2089,7 +2089,7 @@ impl HtmlParser {
                 .insert(template_id.clone(), FragmentList { fragments: parsed });
 
             self.add_fragment(
-                WebUIFragment::attribute_template(name, template_id),
+                webhubFragment::attribute_template(name, template_id),
                 fragments,
             );
         }
@@ -2099,7 +2099,7 @@ impl HtmlParser {
     fn process_style_element(
         &mut self,
         element: &Element<'_>,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
     ) -> Result<()> {
         self.add_raw_fragment(element.opening());
         let inner = element.inner();
@@ -2127,12 +2127,12 @@ impl HtmlParser {
     /// Process a `<route>` directive.
     ///
     /// Emits a `Fragment::Route` protocol fragment. The handler renders
-    /// `<webui-route>` elements with server-side route matching — matched
+    /// `<webhub-route>` elements with server-side route matching — matched
     /// routes get `active` + component content, non-matched get `display:none`.
     fn process_route_directive(
         &mut self,
         element: &Element<'_>,
-        fragments: &mut Vec<WebUIFragment>,
+        fragments: &mut Vec<webhubFragment>,
     ) -> Result<()> {
         let attrs = Self::route_attrs_from_element(element);
         let path = attrs.path.clone();
@@ -2175,7 +2175,7 @@ impl HtmlParser {
         self.flush_raw_buffer(fragments);
         let route_fragment =
             route_parser::build_route_fragment(&attrs, component.clone(), children);
-        fragments.push(WebUIFragment::route_from(route_fragment));
+        fragments.push(webhubFragment::route_from(route_fragment));
 
         Ok(())
     }
@@ -2192,7 +2192,7 @@ impl HtmlParser {
         range: Range<usize>,
         ancestor_params: &std::collections::HashSet<String>,
         depth: usize,
-    ) -> Result<Vec<WebUiFragmentRoute>> {
+    ) -> Result<Vec<webhubFragmentRoute>> {
         if depth > MAX_TEMPLATE_DEPTH {
             return Err(self
                 .html_error(
@@ -2437,7 +2437,7 @@ impl HtmlParser {
         element: &Element<'_>,
         ancestor_params: &std::collections::HashSet<String>,
         depth: usize,
-    ) -> Result<WebUiFragmentRoute> {
+    ) -> Result<webhubFragmentRoute> {
         let attrs = Self::route_attrs_from_element(element);
         let path = attrs.path.clone();
         let component = attrs.component.clone();
@@ -2871,7 +2871,7 @@ impl HtmlParser {
 
 #[cfg(test)]
 mod tests {
-    use webui_test_utils::*;
+    use webhub_test_utils::*;
 
     use super::*;
 
@@ -2880,7 +2880,7 @@ mod tests {
         assert_eq!(Plugin::Fast.to_string(), "fast");
         assert_eq!(Plugin::FastV2.to_string(), "fast-v2");
         assert_eq!(Plugin::FastV3.to_string(), "fast-v3");
-        assert_eq!(Plugin::WebUI.to_string(), "webui");
+        assert_eq!(Plugin::webhub.to_string(), "webhub");
     }
 
     #[test]
@@ -2888,7 +2888,7 @@ mod tests {
         assert_eq!("fast".parse::<Plugin>(), Ok(Plugin::Fast));
         assert_eq!("fast-v2".parse::<Plugin>(), Ok(Plugin::FastV2));
         assert_eq!("fast-v3".parse::<Plugin>(), Ok(Plugin::FastV3));
-        assert_eq!("webui".parse::<Plugin>(), Ok(Plugin::WebUI));
+        assert_eq!("webhub".parse::<Plugin>(), Ok(Plugin::webhub));
     }
 
     #[test]
@@ -3625,7 +3625,7 @@ mod tests {
             .get(1)
             .and_then(|fragment| fragment.fragment.as_ref())
         {
-            Some(webui_protocol::web_ui_fragment::Fragment::Attribute(attr)) => {
+            Some(webhub_protocol::web_ui_fragment::Fragment::Attribute(attr)) => {
                 assert_eq!(attr.name, "disabled");
                 assert!(attr.attr_start);
                 match attr
@@ -3633,7 +3633,7 @@ mod tests {
                     .as_ref()
                     .and_then(|condition| condition.expr.as_ref())
                 {
-                    Some(webui_protocol::condition_expr::Expr::Predicate(pred)) => {
+                    Some(webhub_protocol::condition_expr::Expr::Predicate(pred)) => {
                         assert_eq!(pred.left, "page");
                         assert_eq!(pred.operator, 3);
                         assert_eq!(pred.right, "'dashboard'");
@@ -3763,7 +3763,7 @@ mod tests {
     // ── Attribute fragment tests ─────────────────────────────────────────
 
     /// Helper to parse HTML and return the fragments for the entry stream.
-    fn parse_and_get_fragments(html: &str) -> (Vec<WebUIFragment>, WebUIFragmentRecords) {
+    fn parse_and_get_fragments(html: &str) -> (Vec<webhubFragment>, webhubFragmentRecords) {
         let mut parser = HtmlParser::new();
         let result = parser.parse("index.html", html);
         assert!(result.is_ok(), "Parse error: {:?}", result.err());
@@ -3777,7 +3777,7 @@ mod tests {
     }
 
     /// Helper to parse HTML with a pre-registered component.
-    fn parse_with_component(tag: &str, html: &str) -> (Vec<WebUIFragment>, WebUIFragmentRecords) {
+    fn parse_with_component(tag: &str, html: &str) -> (Vec<webhubFragment>, webhubFragmentRecords) {
         let mut parser = HtmlParser::new();
         parser
             .component_registry
@@ -5240,11 +5240,11 @@ mod tests {
     // The NodeJS `<f-signal value="testSignal">Default Text</f-signal>` feature
     // is not supported in the Rust parser. There is no `f-signal` element
     // handling in HtmlParser and no corresponding fragment type in
-    // webui_protocol.
+    // webhub_protocol.
 
     // test_estimated_buffer_size — SKIPPED
     // The NodeJS `estimatedBufferSize` field does not exist in the Rust
-    // WebUIFragmentRecords / WebUIProtocol types. Buffer size estimation is
+    // webhubFragmentRecords / webhubProtocol types. Buffer size estimation is
     // not part of the Rust parser output.
 
     #[test]
@@ -5272,7 +5272,7 @@ mod tests {
     #[test]
     fn test_body_preserves_static_attributes() {
         // The <body> tag's attributes must be carried through to the rendered
-        // HTML, otherwise host frames (e.g. webui-press's `<body data-layout="…">`)
+        // HTML, otherwise host frames (e.g. webhub-press's `<body data-layout="…">`)
         // lose their styling hooks. Earlier versions of `process_body_with_signals`
         // emitted a bare `<body>` and dropped every attribute on the element.
         let html = r#"<html><head><title>T</title></head><body data-layout="doc" class="page"><p>x</p></body></html>"#;
@@ -5786,9 +5786,9 @@ mod tests {
     }
 
     #[test]
-    fn test_webui_plugin_strips_component_comments_before_metadata() {
+    fn test_webhub_plugin_strips_component_comments_before_metadata() {
         let mut parser =
-            HtmlParser::with_plugin(Box::new(crate::plugin::webui::WebUIParserPlugin::new()));
+            HtmlParser::with_plugin(Box::new(crate::plugin::webhub::webhubParserPlugin::new()));
         parser
             .component_registry_mut()
             .register_component(ComponentRegistration::new(
@@ -5816,9 +5816,9 @@ mod tests {
     }
 
     #[test]
-    fn test_webui_plugin_strips_component_style_line_comments_before_metadata() {
+    fn test_webhub_plugin_strips_component_style_line_comments_before_metadata() {
         let mut parser =
-            HtmlParser::with_plugin(Box::new(crate::plugin::webui::WebUIParserPlugin::new()));
+            HtmlParser::with_plugin(Box::new(crate::plugin::webhub::webhubParserPlugin::new()));
         parser
             .component_registry_mut()
             .register_component(ComponentRegistration::new(
@@ -5963,7 +5963,7 @@ mod tests {
             .expect("parse failed");
 
         let analysis = parser.token_analysis();
-        let theme = webui_tokens::TokenFile {
+        let theme = webhub_tokens::TokenFile {
             themes: HashMap::from([(
                 "light".to_string(),
                 HashMap::from([("token-b".to_string(), "green".to_string())]),
@@ -6005,7 +6005,7 @@ mod tests {
 
         // A theme without `--brand` must NOT fail the build: the CSS literal
         // fallback (`#000`) already provides a value.
-        let theme = webui_tokens::TokenFile {
+        let theme = webhub_tokens::TokenFile {
             themes: HashMap::from([("light".to_string(), HashMap::new())]),
         };
         analysis
@@ -6032,7 +6032,7 @@ mod tests {
             .expect("parse failed");
 
         let analysis = parser.token_analysis();
-        let theme = webui_tokens::TokenFile {
+        let theme = webhub_tokens::TokenFile {
             themes: HashMap::from([("light".to_string(), HashMap::new())]),
         };
 
@@ -6066,7 +6066,7 @@ mod tests {
             .expect("parse failed");
 
         let analysis = parser.token_analysis();
-        let theme = webui_tokens::TokenFile {
+        let theme = webhub_tokens::TokenFile {
             themes: HashMap::from([(
                 "light".to_string(),
                 HashMap::from([
@@ -6102,7 +6102,7 @@ mod tests {
             .expect("parse failed");
 
         let analysis = parser.token_analysis();
-        let theme = webui_tokens::TokenFile {
+        let theme = webhub_tokens::TokenFile {
             themes: HashMap::from([(
                 "dark".to_string(),
                 HashMap::from([("color-neutral-200".to_string(), "#222".to_string())]),
@@ -6149,7 +6149,7 @@ mod tests {
             .expect("parse failed");
 
         let analysis = parser.token_analysis();
-        let theme = webui_tokens::TokenFile {
+        let theme = webhub_tokens::TokenFile {
             themes: HashMap::from([(
                 "light".to_string(),
                 HashMap::from([("color-brand".to_string(), "#abc".to_string())]),

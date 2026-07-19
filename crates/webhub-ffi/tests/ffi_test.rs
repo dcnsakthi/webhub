@@ -4,7 +4,7 @@
 // FFI tests exercise unsafe C ABI functions.
 #![allow(unsafe_code)]
 
-//! Integration tests for the webui-ffi C ABI.
+//! Integration tests for the webhub-ffi C ABI.
 //!
 //! These tests call every `#[no_mangle] extern "C"` function through the
 //! Rust linkage to verify correctness. The same functions are exported as
@@ -16,14 +16,14 @@ use std::ffi::{c_void, CStr, CString};
 // Re-use the crate's public C API functions directly.
 // Because we added "lib" to crate-type, Rust integration tests can link
 // against the rlib and call the `pub extern "C"` functions.
-use webui_ffi::{
-    webui_free, webui_handler_create, webui_handler_create_with_plugin, webui_handler_destroy,
-    webui_handler_render, webui_handler_set_nonce, webui_last_error, webui_protocol_create,
-    webui_protocol_destroy, webui_protocol_render_partial, webui_protocol_tokens,
+use webhub_ffi::{
+    webhub_free, webhub_handler_create, webhub_handler_create_with_plugin, webhub_handler_destroy,
+    webhub_handler_render, webhub_handler_set_nonce, webhub_last_error, webhub_protocol_create,
+    webhub_protocol_destroy, webhub_protocol_render_partial, webhub_protocol_tokens,
 };
-use webui_protocol::{
-    FragmentList, InitialStateStrategy, StateProjectionMode, WebUIFragment, WebUIProtocol,
-    WebUiFragmentRoute,
+use webhub_protocol::{
+    FragmentList, InitialStateStrategy, StateProjectionMode, webhubFragment, webhubProtocol,
+    webhubFragmentRoute,
 };
 
 // ---------------------------------------------------------------------------
@@ -32,7 +32,7 @@ use webui_protocol::{
 
 /// Retrieve the last error as a Rust String, or `None`.
 unsafe fn last_error_string() -> Option<String> {
-    let ptr = webui_last_error();
+    let ptr = webhub_last_error();
     if ptr.is_null() {
         None
     } else {
@@ -41,7 +41,7 @@ unsafe fn last_error_string() -> Option<String> {
 }
 
 unsafe fn prepare_protocol(bytes: &[u8]) -> *mut c_void {
-    let prepared = webui_protocol_create(bytes.as_ptr(), bytes.len());
+    let prepared = webhub_protocol_create(bytes.as_ptr(), bytes.len());
     assert!(
         !prepared.is_null(),
         "protocol preparation failed: {}",
@@ -52,11 +52,11 @@ unsafe fn prepare_protocol(bytes: &[u8]) -> *mut c_void {
 
 unsafe fn read_protocol_tokens(bytes: &[u8]) -> String {
     let prepared = prepare_protocol(bytes);
-    let ptr = webui_protocol_tokens(prepared);
+    let ptr = webhub_protocol_tokens(prepared);
     assert!(!ptr.is_null(), "protocol token extraction failed");
     let tokens = CStr::from_ptr(ptr).to_string_lossy().into_owned();
-    webui_free(ptr);
-    webui_protocol_destroy(prepared);
+    webhub_free(ptr);
+    webhub_protocol_destroy(prepared);
     tokens
 }
 
@@ -67,29 +67,29 @@ unsafe fn read_protocol_tokens(bytes: &[u8]) -> String {
 #[test]
 fn handler_create_and_destroy() {
     unsafe {
-        let handler = webui_handler_create();
+        let handler = webhub_handler_create();
         assert!(!handler.is_null());
-        webui_handler_destroy(handler);
+        webhub_handler_destroy(handler);
     }
 }
 
 #[test]
 fn handler_destroy_null_is_safe() {
     unsafe {
-        webui_handler_destroy(std::ptr::null_mut()); // should not crash
+        webhub_handler_destroy(std::ptr::null_mut()); // should not crash
     }
 }
 
 #[test]
 fn handler_render_null_args_returns_null() {
     unsafe {
-        let handler = webui_handler_create();
+        let handler = webhub_handler_create();
         let c_json = CString::new("{}").expect("static string");
 
         let c_entry = CString::new("index.html").expect("static string");
         let c_request_path = CString::new("/").expect("static string");
         // null protocol data
-        let ptr = webui_handler_render(
+        let ptr = webhub_handler_render(
             handler,
             std::ptr::null(),
             c_json.as_ptr(),
@@ -99,7 +99,7 @@ fn handler_render_null_args_returns_null() {
         assert!(ptr.is_null());
         assert!(last_error_string().is_some());
 
-        webui_handler_destroy(handler);
+        webhub_handler_destroy(handler);
     }
 }
 
@@ -109,22 +109,22 @@ fn render_partial_returns_templates_inventory_and_chain() {
     fragments.insert(
         "index.html".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::component("mp-app")],
+            fragments: vec![webhubFragment::component("mp-app")],
         },
     );
     fragments.insert(
         "mp-app".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::component("mp-category-nav"),
-                WebUIFragment::route_from(WebUiFragmentRoute {
+                webhubFragment::component("mp-category-nav"),
+                webhubFragment::route_from(webhubFragmentRoute {
                     path: "/search/:category".to_string(),
                     fragment_id: "mp-search-page".to_string(),
                     exact: true,
                     keep_alive: false,
                     ..Default::default()
                 }),
-                WebUIFragment::route_from(WebUiFragmentRoute {
+                webhubFragment::route_from(webhubFragmentRoute {
                     path: "/product/:handle".to_string(),
                     fragment_id: "mp-product-page".to_string(),
                     exact: true,
@@ -137,35 +137,35 @@ fn render_partial_returns_templates_inventory_and_chain() {
     fragments.insert(
         "mp-category-nav".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<nav></nav>")],
+            fragments: vec![webhubFragment::raw("<nav></nav>")],
         },
     );
     fragments.insert(
         "mp-search-page".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::component("mp-product-grid")],
+            fragments: vec![webhubFragment::component("mp-product-grid")],
         },
     );
     fragments.insert(
         "mp-product-grid".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<grid></grid>")],
+            fragments: vec![webhubFragment::raw("<grid></grid>")],
         },
     );
     fragments.insert(
         "mp-product-page".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::component("mp-product-detail")],
+            fragments: vec![webhubFragment::component("mp-product-detail")],
         },
     );
     fragments.insert(
         "mp-product-detail".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<detail></detail>")],
+            fragments: vec![webhubFragment::raw("<detail></detail>")],
         },
     );
 
-    let mut protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+    let mut protocol = webhubProtocol::with_tokens(fragments, Vec::new());
     protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
     protocol
         .components
@@ -207,7 +207,7 @@ fn render_partial_returns_templates_inventory_and_chain() {
         let c_inventory = CString::new("").expect("static string");
         let prepared = prepare_protocol(&protocol_bytes);
 
-        let ptr = webui_protocol_render_partial(
+        let ptr = webhub_protocol_render_partial(
             prepared,
             c_state.as_ptr(),
             c_entry.as_ptr(),
@@ -216,13 +216,13 @@ fn render_partial_returns_templates_inventory_and_chain() {
         );
         assert!(
             !ptr.is_null(),
-            "webui_protocol_render_partial returned NULL: {}",
+            "webhub_protocol_render_partial returned NULL: {}",
             last_error_string().unwrap_or_else(|| "<none>".to_string())
         );
 
         let json = CStr::from_ptr(ptr).to_string_lossy().into_owned();
-        webui_free(ptr);
-        webui_protocol_destroy(prepared);
+        webhub_free(ptr);
+        webhub_protocol_destroy(prepared);
 
         let value: serde_json::Value =
             serde_json::from_str(&json).expect("ffi response should be valid json");
@@ -296,18 +296,18 @@ fn render_partial_returns_templates_inventory_and_chain() {
 }
 
 // ---------------------------------------------------------------------------
-// Tests: webui_free
+// Tests: webhub_free
 // ---------------------------------------------------------------------------
 
 #[test]
 fn free_string_null_is_safe() {
     unsafe {
-        webui_free(std::ptr::null_mut()); // should not crash
+        webhub_free(std::ptr::null_mut()); // should not crash
     }
 }
 
 // ---------------------------------------------------------------------------
-// Tests: webui_protocol_tokens
+// Tests: webhub_protocol_tokens
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -317,10 +317,10 @@ fn protocol_tokens_empty_vec_returns_empty_string() {
     fragments.insert(
         "index.html".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<p>hello</p>")],
+            fragments: vec![webhubFragment::raw("<p>hello</p>")],
         },
     );
-    let protocol = WebUIProtocol::with_tokens(fragments, Vec::new());
+    let protocol = webhubProtocol::with_tokens(fragments, Vec::new());
     let bytes = protocol.to_protobuf().expect("serialize");
     assert!(
         !bytes.is_empty(),
@@ -338,10 +338,10 @@ fn protocol_tokens_single_token() {
     fragments.insert(
         "index.html".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<p>hello</p>")],
+            fragments: vec![webhubFragment::raw("<p>hello</p>")],
         },
     );
-    let protocol = WebUIProtocol::with_tokens(fragments, vec!["colorBrandBackground".to_string()]);
+    let protocol = webhubProtocol::with_tokens(fragments, vec!["colorBrandBackground".to_string()]);
     let bytes = protocol.to_protobuf().expect("serialize");
 
     unsafe {
@@ -355,10 +355,10 @@ fn protocol_tokens_multiple_tokens_newline_delimited() {
     fragments.insert(
         "index.html".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<p>hello</p>")],
+            fragments: vec![webhubFragment::raw("<p>hello</p>")],
         },
     );
-    let protocol = WebUIProtocol::with_tokens(
+    let protocol = webhubProtocol::with_tokens(
         fragments,
         vec![
             "colorBrandBackground".to_string(),
@@ -378,7 +378,7 @@ fn protocol_tokens_multiple_tokens_newline_delimited() {
 }
 
 // ---------------------------------------------------------------------------
-// Tests: webui_handler_set_nonce
+// Tests: webhub_handler_set_nonce
 // ---------------------------------------------------------------------------
 
 /// Build a minimal protocol that will produce a `<script>` tag when rendered.
@@ -390,15 +390,15 @@ fn build_protocol_with_body_end() -> Vec<u8> {
         "index.html".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<html><head>"),
-                WebUIFragment::signal("head_end".to_string(), true),
-                WebUIFragment::raw("</head><body>"),
-                WebUIFragment::signal("body_end".to_string(), true),
-                WebUIFragment::raw("</body></html>"),
+                webhubFragment::raw("<html><head>"),
+                webhubFragment::signal("head_end".to_string(), true),
+                webhubFragment::raw("</head><body>"),
+                webhubFragment::signal("body_end".to_string(), true),
+                webhubFragment::raw("</body></html>"),
             ],
         },
     );
-    let protocol = WebUIProtocol {
+    let protocol = webhubProtocol {
         fragments,
         ..Default::default()
     };
@@ -410,19 +410,19 @@ fn handler_set_nonce_applies_to_render() {
     let proto_bytes = build_protocol_with_body_end();
 
     unsafe {
-        let plugin_id = CString::new("webui").expect("static string");
-        let handler = webui_handler_create_with_plugin(plugin_id.as_ptr());
+        let plugin_id = CString::new("webhub").expect("static string");
+        let handler = webhub_handler_create_with_plugin(plugin_id.as_ptr());
         let prepared = prepare_protocol(&proto_bytes);
 
         // Set a nonce
         let nonce_val = CString::new("Ep7tTOr+HyRkByAPXxZ9ag==").expect("static string");
-        webui_handler_set_nonce(handler, nonce_val.as_ptr());
+        webhub_handler_set_nonce(handler, nonce_val.as_ptr());
 
         let c_json = CString::new("{}").expect("static string");
         let c_entry = CString::new("index.html").expect("static string");
         let c_path = CString::new("/").expect("static string");
 
-        let ptr = webui_handler_render(
+        let ptr = webhub_handler_render(
             handler,
             prepared,
             c_json.as_ptr(),
@@ -436,7 +436,7 @@ fn handler_set_nonce_applies_to_render() {
         );
 
         let result = CStr::from_ptr(ptr).to_string_lossy().into_owned();
-        webui_free(ptr);
+        webhub_free(ptr);
 
         // Verify the script tag has the nonce attribute
         assert!(
@@ -446,12 +446,12 @@ fn handler_set_nonce_applies_to_render() {
 
         // Verify the meta tag is emitted for the client router
         assert!(
-            result.contains(r#"<meta name="webui-nonce" content="Ep7tTOr+HyRkByAPXxZ9ag==""#),
+            result.contains(r#"<meta name="webhub-nonce" content="Ep7tTOr+HyRkByAPXxZ9ag==""#),
             "rendered HTML should contain nonce meta tag, got:\n{result}"
         );
 
-        webui_protocol_destroy(prepared);
-        webui_handler_destroy(handler);
+        webhub_protocol_destroy(prepared);
+        webhub_handler_destroy(handler);
     }
 }
 
@@ -460,15 +460,15 @@ fn handler_render_without_nonce_has_no_nonce_attribute() {
     let proto_bytes = build_protocol_with_body_end();
 
     unsafe {
-        let plugin_id = CString::new("webui").expect("static string");
-        let handler = webui_handler_create_with_plugin(plugin_id.as_ptr());
+        let plugin_id = CString::new("webhub").expect("static string");
+        let handler = webhub_handler_create_with_plugin(plugin_id.as_ptr());
         let prepared = prepare_protocol(&proto_bytes);
 
         let c_json = CString::new("{}").expect("static string");
         let c_entry = CString::new("index.html").expect("static string");
         let c_path = CString::new("/").expect("static string");
 
-        let ptr = webui_handler_render(
+        let ptr = webhub_handler_render(
             handler,
             prepared,
             c_json.as_ptr(),
@@ -482,7 +482,7 @@ fn handler_render_without_nonce_has_no_nonce_attribute() {
         );
 
         let result = CStr::from_ptr(ptr).to_string_lossy().into_owned();
-        webui_free(ptr);
+        webhub_free(ptr);
 
         // Script tag should NOT have a nonce attribute
         assert!(
@@ -492,12 +492,12 @@ fn handler_render_without_nonce_has_no_nonce_attribute() {
 
         // No meta nonce tag either
         assert!(
-            !result.contains("webui-nonce"),
+            !result.contains("webhub-nonce"),
             "rendered HTML without set_nonce should not have nonce meta, got:\n{result}"
         );
 
-        webui_protocol_destroy(prepared);
-        webui_handler_destroy(handler);
+        webhub_protocol_destroy(prepared);
+        webhub_handler_destroy(handler);
     }
 }
 
@@ -506,22 +506,22 @@ fn handler_set_nonce_null_clears_nonce() {
     let proto_bytes = build_protocol_with_body_end();
 
     unsafe {
-        let plugin_id = CString::new("webui").expect("static string");
-        let handler = webui_handler_create_with_plugin(plugin_id.as_ptr());
+        let plugin_id = CString::new("webhub").expect("static string");
+        let handler = webhub_handler_create_with_plugin(plugin_id.as_ptr());
         let prepared = prepare_protocol(&proto_bytes);
 
         // Set a nonce
         let nonce_val = CString::new("test-nonce-123").expect("static string");
-        webui_handler_set_nonce(handler, nonce_val.as_ptr());
+        webhub_handler_set_nonce(handler, nonce_val.as_ptr());
 
         // Clear it by passing NULL
-        webui_handler_set_nonce(handler, std::ptr::null());
+        webhub_handler_set_nonce(handler, std::ptr::null());
 
         let c_json = CString::new("{}").expect("static string");
         let c_entry = CString::new("index.html").expect("static string");
         let c_path = CString::new("/").expect("static string");
 
-        let ptr = webui_handler_render(
+        let ptr = webhub_handler_render(
             handler,
             prepared,
             c_json.as_ptr(),
@@ -531,7 +531,7 @@ fn handler_set_nonce_null_clears_nonce() {
         assert!(!ptr.is_null());
 
         let result = CStr::from_ptr(ptr).to_string_lossy().into_owned();
-        webui_free(ptr);
+        webhub_free(ptr);
 
         // Nonce should be cleared — no nonce in output
         assert!(
@@ -539,8 +539,8 @@ fn handler_set_nonce_null_clears_nonce() {
             "after clearing nonce with NULL, output should not contain nonce, got:\n{result}"
         );
 
-        webui_protocol_destroy(prepared);
-        webui_handler_destroy(handler);
+        webhub_protocol_destroy(prepared);
+        webhub_handler_destroy(handler);
     }
 }
 
@@ -548,7 +548,7 @@ fn handler_set_nonce_null_clears_nonce() {
 fn handler_set_nonce_null_handler_sets_error() {
     unsafe {
         let nonce_val = CString::new("some-nonce").expect("static string");
-        webui_handler_set_nonce(std::ptr::null_mut(), nonce_val.as_ptr());
+        webhub_handler_set_nonce(std::ptr::null_mut(), nonce_val.as_ptr());
 
         let err = last_error_string();
         assert!(err.is_some(), "should set error for null handler_ptr");
@@ -562,10 +562,10 @@ fn protocol_tokens_preserves_order_and_duplicates() {
     fragments.insert(
         "index.html".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<p>hello</p>")],
+            fragments: vec![webhubFragment::raw("<p>hello</p>")],
         },
     );
-    let protocol = WebUIProtocol::with_tokens(
+    let protocol = webhubProtocol::with_tokens(
         fragments,
         vec!["zeta".to_string(), "alpha".to_string(), "zeta".to_string()],
     );
@@ -579,7 +579,7 @@ fn protocol_tokens_preserves_order_and_duplicates() {
 #[test]
 fn protocol_tokens_null_handle_returns_null() {
     unsafe {
-        let ptr = webui_protocol_tokens(std::ptr::null());
+        let ptr = webhub_protocol_tokens(std::ptr::null());
         assert!(ptr.is_null());
         let err = last_error_string().expect("error should be set for null input");
         assert!(
@@ -594,17 +594,17 @@ fn protocol_tokens_zero_length_returns_empty_string() {
     // A non-null pointer with len 0 should decode as an empty protocol (no tokens).
     let dummy: u8 = 0;
     unsafe {
-        let prepared = webui_protocol_create(&dummy as *const u8, 0);
+        let prepared = webhub_protocol_create(&dummy as *const u8, 0);
         assert!(!prepared.is_null());
-        let ptr = webui_protocol_tokens(prepared);
+        let ptr = webhub_protocol_tokens(prepared);
         assert!(
             !ptr.is_null(),
             "zero-length input should succeed, not return null"
         );
         let result = CStr::from_ptr(ptr).to_string_lossy().into_owned();
         assert_eq!(result, "");
-        webui_free(ptr);
-        webui_protocol_destroy(prepared);
+        webhub_free(ptr);
+        webhub_protocol_destroy(prepared);
     }
 }
 
@@ -612,7 +612,7 @@ fn protocol_tokens_zero_length_returns_empty_string() {
 fn protocol_create_invalid_protobuf_returns_null() {
     let garbage: &[u8] = &[0xFF, 0xFE, 0xFD];
     unsafe {
-        let prepared = webui_protocol_create(garbage.as_ptr(), garbage.len());
+        let prepared = webhub_protocol_create(garbage.as_ptr(), garbage.len());
         assert!(prepared.is_null());
         let err = last_error_string().expect("error should be set for bad protobuf");
         assert!(
@@ -634,26 +634,26 @@ fn build_protocol_with_hydration_keys(hydration_keys: &[&str]) -> Vec<u8> {
         "index.html".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<html><head>"),
-                WebUIFragment::signal("head_end".to_string(), true),
-                WebUIFragment::raw("</head><body>"),
-                WebUIFragment::component("client-card"),
-                WebUIFragment::signal("body_end".to_string(), true),
-                WebUIFragment::raw("</body></html>"),
+                webhubFragment::raw("<html><head>"),
+                webhubFragment::signal("head_end".to_string(), true),
+                webhubFragment::raw("</head><body>"),
+                webhubFragment::component("client-card"),
+                webhubFragment::signal("body_end".to_string(), true),
+                webhubFragment::raw("</body></html>"),
             ],
         },
     );
     fragments.insert(
         "client-card".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<p>client</p>")],
+            fragments: vec![webhubFragment::raw("<p>client</p>")],
         },
     );
-    let mut protocol = WebUIProtocol::new(fragments);
+    let mut protocol = webhubProtocol::new(fragments);
     protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
     protocol.components.insert(
         "client-card".to_string(),
-        webui_protocol::ComponentData {
+        webhub_protocol::ComponentData {
             hydration_mode: StateProjectionMode::Keys as i32,
             hydration_keys: hydration_keys
                 .iter()
@@ -670,8 +670,8 @@ fn handler_render_projects_state_to_component_hydration_keys() {
     let proto_bytes = build_protocol_with_hydration_keys(&["kept"]);
 
     unsafe {
-        let plugin_id = CString::new("webui").expect("static string");
-        let handler = webui_handler_create_with_plugin(plugin_id.as_ptr());
+        let plugin_id = CString::new("webhub").expect("static string");
+        let handler = webhub_handler_create_with_plugin(plugin_id.as_ptr());
         let prepared = prepare_protocol(&proto_bytes);
 
         let c_json =
@@ -679,7 +679,7 @@ fn handler_render_projects_state_to_component_hydration_keys() {
         let c_entry = CString::new("index.html").expect("static string");
         let c_path = CString::new("/").expect("static string");
 
-        let ptr = webui_handler_render(
+        let ptr = webhub_handler_render(
             handler,
             prepared,
             c_json.as_ptr(),
@@ -693,9 +693,9 @@ fn handler_render_projects_state_to_component_hydration_keys() {
         );
 
         let result = CStr::from_ptr(ptr).to_string_lossy().into_owned();
-        webui_free(ptr);
-        webui_protocol_destroy(prepared);
-        webui_handler_destroy(handler);
+        webhub_free(ptr);
+        webhub_protocol_destroy(prepared);
+        webhub_handler_destroy(handler);
 
         // Only the hydratable key reaches the bootstrap state block...
         assert!(
@@ -719,9 +719,9 @@ fn protocol_supports_repeated_full_renders() {
     let proto_bytes = build_protocol_with_hydration_keys(&["kept"]);
 
     unsafe {
-        let plugin_id = CString::new("webui").expect("static string");
-        let handler = webui_handler_create_with_plugin(plugin_id.as_ptr());
-        let prepared = webui_protocol_create(proto_bytes.as_ptr(), proto_bytes.len());
+        let plugin_id = CString::new("webhub").expect("static string");
+        let handler = webhub_handler_create_with_plugin(plugin_id.as_ptr());
+        let prepared = webhub_protocol_create(proto_bytes.as_ptr(), proto_bytes.len());
         assert!(
             !prepared.is_null(),
             "protocol preparation failed: {}",
@@ -733,7 +733,7 @@ fn protocol_supports_repeated_full_renders() {
         for expected in ["FIRST_LOADED", "SECOND_LOADED"] {
             let state = CString::new(format!(r#"{{"kept":"{expected}","dropped":"SECRET"}}"#))
                 .expect("state should not contain NUL");
-            let ptr = webui_handler_render(
+            let ptr = webhub_handler_render(
                 handler,
                 prepared,
                 state.as_ptr(),
@@ -746,33 +746,33 @@ fn protocol_supports_repeated_full_renders() {
                 last_error_string().unwrap_or_else(|| "<none>".to_string())
             );
             let rendered = CStr::from_ptr(ptr).to_string_lossy().into_owned();
-            webui_free(ptr);
+            webhub_free(ptr);
             assert!(rendered.contains(expected));
             assert!(!rendered.contains("SECRET"));
         }
 
-        webui_protocol_destroy(prepared);
-        webui_handler_destroy(handler);
+        webhub_protocol_destroy(prepared);
+        webhub_handler_destroy(handler);
     }
 }
 
 #[test]
 fn protocol_exposes_tokens() {
-    let protocol = WebUIProtocol::with_tokens(
+    let protocol = webhubProtocol::with_tokens(
         HashMap::new(),
         vec!["alpha".to_string(), "beta".to_string()],
     );
     let bytes = protocol.to_protobuf().expect("serialize protocol");
 
     unsafe {
-        let prepared = webui_protocol_create(bytes.as_ptr(), bytes.len());
+        let prepared = webhub_protocol_create(bytes.as_ptr(), bytes.len());
         assert!(!prepared.is_null());
 
-        let ptr = webui_protocol_tokens(prepared);
+        let ptr = webhub_protocol_tokens(prepared);
         assert!(!ptr.is_null());
         let tokens = CStr::from_ptr(ptr).to_string_lossy().into_owned();
-        webui_free(ptr);
-        webui_protocol_destroy(prepared);
+        webhub_free(ptr);
+        webhub_protocol_destroy(prepared);
 
         assert_eq!(tokens, "alpha\nbeta");
     }
@@ -781,6 +781,6 @@ fn protocol_exposes_tokens() {
 #[test]
 fn protocol_destroy_null_is_safe() {
     unsafe {
-        webui_protocol_destroy(std::ptr::null_mut());
+        webhub_protocol_destroy(std::ptr::null_mut());
     }
 }

@@ -12,10 +12,10 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use webui::{build, BuildOptions, CssStrategy, Plugin, Protocol, WebUIHandler};
-use webui_handler::plugin::webui::WebUIHydrationPlugin;
-use webui_handler::route_handler;
-use webui_handler::{RenderOptions, ResponseWriter};
+use webhub::{build, BuildOptions, CssStrategy, Plugin, Protocol, webhubHandler};
+use webhub_handler::plugin::webhub::webhubHydrationPlugin;
+use webhub_handler::route_handler;
+use webhub_handler::{RenderOptions, ResponseWriter};
 
 #[derive(Clone)]
 pub struct FrontendRuntime {
@@ -51,9 +51,9 @@ impl FrontendRuntime {
         // Production consumes the client build's manifest when present. Unit
         // tests deliberately build from source without generated client
         // artifacts, so their result cannot depend on stale local dist files.
-        let manifest_path = app_root.join("dist").join("webui-projection.json");
+        let manifest_path = app_root.join("dist").join("webhub-projection.json");
         let projection_manifests = if use_projection_manifest && manifest_path.is_file() {
-            vec![webui::ProjectionManifestSource::Path(manifest_path)]
+            vec![webhub::ProjectionManifestSource::Path(manifest_path)]
         } else {
             Vec::new()
         };
@@ -61,11 +61,11 @@ impl FrontendRuntime {
             app_dir,
             entry: "index.html".to_string(),
             css,
-            plugin: Some(Plugin::WebUI),
+            plugin: Some(Plugin::webhub),
             projection_manifests,
             ..BuildOptions::default()
         })
-        .with_context(|| "Failed to build the commerce WebUI protocol")?;
+        .with_context(|| "Failed to build the commerce webhub protocol")?;
 
         Ok(Self {
             css_files: build_result
@@ -87,7 +87,7 @@ impl FrontendRuntime {
     /// Stream the SSR HTML for `route_path` into `writer`. Used by the
     /// streaming response path to avoid materialising the full HTML in
     /// memory before sending the first byte to the client. The writer is
-    /// typically a [`webui::streaming::StreamingWriter`].
+    /// typically a [`webhub::streaming::StreamingWriter`].
     ///
     /// `head_inject` (optional) is HTML emitted at the structural
     /// `</head>` close — used here for per-request `<link
@@ -103,7 +103,7 @@ impl FrontendRuntime {
         head_inject: &str,
         writer: &mut W,
     ) -> Result<()> {
-        let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+        let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
         let opts = RenderOptions::new(&self.entry, route_path)
             .with_nonce(nonce)
             .with_head_inject(head_inject);
@@ -275,7 +275,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .map_or(0, |duration| duration.as_nanos());
         let root = std::env::temp_dir().join(format!(
-            "webui-commerce-asset-cache-{}-{unique}",
+            "webhub-commerce-asset-cache-{}-{unique}",
             std::process::id()
         ));
         let nested = root.join("nested");

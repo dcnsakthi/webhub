@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { WebUIElement, attr } from '@microsoft/webui-framework';
+import { webhubElement, attr } from '@microsoft/webhub-framework';
 
-export class MpCategoryNav extends WebUIElement {
+export class MpCategoryNav extends webhubElement {
   @attr({ attribute: 'all-active', mode: 'boolean' }) allActive = false;
   @attr({ attribute: 'current-label' }) currentCategoryLabel = 'All';
   mobileDropdown!: HTMLDetailsElement;

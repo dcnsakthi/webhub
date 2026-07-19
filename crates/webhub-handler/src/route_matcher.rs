@@ -8,7 +8,7 @@
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use webui_protocol::{web_ui_fragment::Fragment, WebUIProtocol};
+use webhub_protocol::{web_ui_fragment::Fragment, webhubProtocol};
 
 /// Result of matching a request path against a route path template.
 #[derive(Debug, Clone)]
@@ -48,7 +48,7 @@ pub(crate) struct CompiledRouteIndex {
 impl CompiledRouteIndex {
     /// Compile every authored route path in the protocol.
     #[must_use]
-    pub(crate) fn new(protocol: &WebUIProtocol) -> Self {
+    pub(crate) fn new(protocol: &webhubProtocol) -> Self {
         let mut patterns = HashMap::new();
         let mut pending = Vec::new();
 
@@ -356,7 +356,7 @@ pub fn compute_route_base(request_path: &str, consumed_segments: usize) -> Strin
 #[cfg(test)]
 mod tests {
     use super::*;
-    use webui_protocol::{FragmentList, WebUIFragment, WebUiFragmentRoute};
+    use webhub_protocol::{FragmentList, webhubFragment, webhubFragmentRoute};
 
     #[test]
     fn test_match_single_route_exact() {
@@ -749,22 +749,22 @@ mod tests {
 
     #[test]
     fn compiled_index_matches_relative_suffix_without_request_key() {
-        let child = WebUiFragmentRoute {
+        let child = webhubFragmentRoute {
             path: "topics/:topicId".to_string(),
             fragment_id: "topic-page".to_string(),
             exact: true,
             ..Default::default()
         };
-        let parent = WebUiFragmentRoute {
+        let parent = webhubFragmentRoute {
             path: "/sections/:sectionId".to_string(),
             fragment_id: "section-page".to_string(),
             children: vec![child],
             ..Default::default()
         };
-        let protocol = WebUIProtocol::new(HashMap::from([(
+        let protocol = webhubProtocol::new(HashMap::from([(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(parent)],
+                fragments: vec![webhubFragment::route_from(parent)],
             },
         )]));
         let index = CompiledRouteIndex::new(&protocol);

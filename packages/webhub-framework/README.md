@@ -1,18 +1,18 @@
-# `@microsoft/webui-framework`
+# `@microsoft/webhub-framework`
 
-Lightweight Web Component runtime for WebUI apps.
+Lightweight Web Component runtime for webhub apps.
 
-This package is the browser-side runtime used by `webui build --plugin=webui`. It provides:
+This package is the browser-side runtime used by `webhub build --plugin=webhub`. It provides:
 
-- `WebUIElement` for SSR hydration and client-created elements
+- `webhubElement` for SSR hydration and client-created elements
 - `@observable`, `@attr`, and `@volatile` decorators
 - direct DOM binding updates
 - light DOM or shadow DOM rendering (`--dom=light|shadow` flag)
 - SSR state seeding
 
-If you are building WebUI apps in this repo, this is the component model used by examples like `examples/app/todo-webui`, `examples/app/commerce`, and `examples/app/contact-book-manager`.
+If you are building webhub apps in this repo, this is the component model used by examples like `examples/app/todo-webhub`, `examples/app/commerce`, and `examples/app/contact-book-manager`.
 
-> 📖 **Full documentation at [microsoft.github.io/webui](https://microsoft.github.io/webui)**, see the [Interactivity Guide](https://microsoft.github.io/webui/guide/concepts/interactivity) for component authoring patterns. For framework internals (hydration, path resolution, reactive update model), see [RENDERING.md](./RENDERING.md).
+> 📖 **Full documentation at [microsoft.github.io/webhub](https://microsoft.github.io/webhub)**, see the [Interactivity Guide](https://microsoft.github.io/webhub/guide/concepts/interactivity) for component authoring patterns. For framework internals (hydration, path resolution, reactive update model), see [RENDERING.md](./RENDERING.md).
 
 ## Install
 
@@ -21,7 +21,7 @@ In this workspace:
 ```json
 {
   "dependencies": {
-    "@microsoft/webui-framework": "workspace:*"
+    "@microsoft/webhub-framework": "workspace:*"
   }
 }
 ```
@@ -29,7 +29,7 @@ In this workspace:
 Outside the workspace:
 
 ```bash
-pnpm add @microsoft/webui-framework
+pnpm add @microsoft/webhub-framework
 ```
 
 TypeScript must enable decorator emit:
@@ -46,16 +46,16 @@ TypeScript must enable decorator emit:
 ## Quick Example
 
 1. Author a component class in TypeScript
-2. Author a WebUI template in HTML
-3. Run `webui build --plugin=webui`
+2. Author a webhub template in HTML
+3. Run `webhub build --plugin=webhub`
 4. The runtime hydrates SSR output or creates client-side components using compiled path mapping
 
 ### `counter-card.ts`
 
 ```ts
-import { WebUIElement, attr, observable, volatile } from '@microsoft/webui-framework';
+import { webhubElement, attr, observable, volatile } from '@microsoft/webhub-framework';
 
-export class CounterCard extends WebUIElement {
+export class CounterCard extends webhubElement {
   @attr label = 'Clicks';
   @observable count = 0;
 
@@ -108,21 +108,21 @@ lifecycle code, imperative methods, or state that TypeScript code reads or
 mutates. `@observable` and `@attr` are optional; add them when JavaScript needs
 to access the value or when the value is part of the component's public API.
 
-### Build with the WebUI plugin
+### Build with the webhub plugin
 
 ```bash
-cargo run -p microsoft-webui-cli -- build ./src --out ./dist --plugin=webui
+cargo run -p microsoft-webhub-cli -- build ./src --out ./dist --plugin=webhub
 ```
 
-The WebUI plugin prepares component templates for the browser. Bundle your
-source browser entry directly. Import `@microsoft/webui-framework` from authored
+The webhub plugin prepares component templates for the browser. Bundle your
+source browser entry directly. Import `@microsoft/webhub-framework` from authored
 component modules. An app that stays static after SSR needs no framework
 browser import. Import the framework once when HTML-only components must accept
 browser state or participate in soft navigation.
 
 The plugin alone preserves full server state. To emit exact `@observable` and
 `@attr` state surfaces, run the application's bundler first with
-`@microsoft/webui/projection.js`, then pass its manifest to `webui build` with
+`@microsoft/webhub/projection.js`, then pass its manifest to `webhub build` with
 `--projection-manifest`. The manifest tooling is build-only; this runtime
 package does not depend on esbuild or TypeScript.
 
@@ -134,7 +134,7 @@ Property bindings use the `:` prefix to pass values directly to child DOM proper
 <profile-card :config="{{settings}}"></profile-card>
 ```
 
-For client-created component trees, WebUI applies initial property bindings
+For client-created component trees, webhub applies initial property bindings
 before child `connectedCallback` methods run. A child can read an initial
 parent-provided property in `connectedCallback`. If the parent value is not set,
 the child may initialize its own fallback there, and later parent updates still
@@ -144,12 +144,12 @@ During SSR hydration the framework trusts the server-rendered DOM and does not
 re-render it. An `@observable` written before hydration finishes — in a field
 initializer, the `constructor`, or before `super.connectedCallback()` — cannot
 update that DOM, so the write is dropped and the runtime logs a
-`[WebUI] Hydration mismatch` warning naming the properties. Seed such values in
+`[webhub] Hydration mismatch` warning naming the properties. Seed such values in
 the SSR state, or assign them after `super.connectedCallback()`. The warning is
 development-only and is dead-code-eliminated from production bundles via the
-`__WEBUI_DEV__` compile-time flag (on by default; `webui-press build` sets it to
+`__webhub_DEV__` compile-time flag (on by default; `webhub-press build` sets it to
 `false`). See the
-[Interactivity Guide](https://microsoft.github.io/webui/guide/concepts/interactivity#setting-observable-state-during-setup).
+[Interactivity Guide](https://microsoft.github.io/webhub/guide/concepts/interactivity#setting-observable-state-during-setup).
 
 ### DOM strategy (`--dom`)
 
@@ -172,7 +172,7 @@ better search-engine indexing.  Shadow DOM provides style encapsulation.
 
 ## API Reference
 
-### `WebUIElement`
+### `webhubElement`
 
 Base class for framework components.
 
@@ -187,9 +187,9 @@ In most components you do not call `$update()` directly. Property changes throug
 
 ### Static component assets
 
-`webui build --plugin=webui --emit-component-assets settings-dialog` emits
-`settings-dialog.webui.js` next to `protocol.bin`. Load the ESM asset before
-creating the component when you are not using `@microsoft/webui-router`:
+`webhub build --plugin=webhub --emit-component-assets settings-dialog` emits
+`settings-dialog.webhub.js` next to `protocol.bin`. Load the ESM asset before
+creating the component when you are not using `@microsoft/webhub-router`:
 
 ```ts
 import { settingsAssets } from './lazy-assets.js';
@@ -200,11 +200,11 @@ panelSlot.replaceChildren(await settingsAssets.create('settings-dialog'));
 
 ```ts
 // lazy-assets.ts
-import { defineComponentAssets } from '@microsoft/webui-framework/component-asset.js';
+import { defineComponentAssets } from '@microsoft/webhub-framework/component-asset.js';
 
 export const settingsAssets = defineComponentAssets({
   'settings-dialog': {
-    asset: '/settings-dialog.webui.js',
+    asset: '/settings-dialog.webhub.js',
     module: () => import('./settings-dialog/settings-dialog.js'),
     data: async () => await (await fetch('/settings-dialog-data.json')).json(),
   },
@@ -227,7 +227,7 @@ code reads or mutates. Values used only by the template do not need an
 `@observable` class field.
 
 ```ts
-class SearchPanel extends WebUIElement {
+class SearchPanel extends webhubElement {
   @observable open = false;
 
   toggle(): void {
@@ -241,7 +241,7 @@ class SearchPanel extends WebUIElement {
 Like `@observable` but also reflects to/from an HTML attribute (kebab-case).
 
 ```ts
-class ProductPrice extends WebUIElement {
+class ProductPrice extends webhubElement {
   @attr currency = 'USD';
   @attr({ attribute: 'amount-cents' }) amountCents = '0';
 }
@@ -259,7 +259,7 @@ Notes:
 Marks a computed getter that should be re-read whenever bindings access it.
 
 ```ts
-class CartSummary extends WebUIElement {
+class CartSummary extends webhubElement {
   @observable items: Array<{ count: number }> = [];
 
   @volatile
@@ -271,7 +271,7 @@ class CartSummary extends WebUIElement {
 
 ## Template Features
 
-The WebUI plugin supports these template features:
+The webhub plugin supports these template features:
 
 - text bindings: `{{title}}`
 - attribute bindings: `href="{{item.href}}"`
@@ -281,10 +281,10 @@ The WebUI plugin supports these template features:
 - repeats: `<for each="item in items">`
 
 Components that use `@event` must have authored `.ts` or `.js` code that
-defines a `WebUIElement` for the tag. HTML-only components do not provide
+defines a `webhubElement` for the tag. HTML-only components do not provide
 application event handlers.
 
-Example from `examples/app/todo-webui`:
+Example from `examples/app/todo-webhub`:
 
 ```html
 <h1>{{title}}</h1>
@@ -373,7 +373,7 @@ that validate these properties:
 Run benchmarks with:
 
 ```bash
-cd packages/webui-framework
+cd packages/webhub-framework
 npx playwright test tests/fixtures/bench/
 ```
 
@@ -403,7 +403,7 @@ When contributing to the runtime, avoid these patterns:
 │                      │     │   (Rust/Go/C#/…)      │      │                      │
 │  HTML template       │     │                       │      │  SSR HTML (light or  │
 │  + expressions       │────▶│  TemplateMeta (JSON)  │────▶│  shadow DOM) +       │
-│  + @if / @for        │     │  + state data         │      │  webui-data JSON     │
+│  + @if / @for        │     │  + state data         │      │  webhub-data JSON     │
 │                      │     │                       │      │                      │
 │  Outputs:            │     │  Renders:             │      │  Hydrates:           │
 │  • TemplateMeta      │     │  • Full HTML page     │      │  • Path-based DOM    │
@@ -432,7 +432,7 @@ flowchart LR
     subgraph Serve ["Server (Any Language)"]
         M --> R[Route Handler]
         S[State Data] --> R
-        R --> HTML["Full SSR HTML<br/>(shadow or light DOM)<br/>+ inert #webui-data"]
+        R --> HTML["Full SSR HTML<br/>(shadow or light DOM)<br/>+ inert #webhub-data"]
     end
 
     subgraph Browser ["Browser"]
@@ -480,7 +480,7 @@ graph TD
 ### SSR Hydration Path
 
 When the server renders a component, it emits HTML content (as a declarative
-shadow root or as light DOM children) along with an inert `#webui-data`
+shadow root or as light DOM children) along with an inert `#webhub-data`
 JSON payload.  The browser parses this DOM before any JavaScript runs.
 When the component's JS loads and `connectedCallback` fires, the framework
 uses compiled template paths to resolve SSR DOM nodes without any marker
@@ -493,7 +493,7 @@ sequenceDiagram
     participant CE as Custom Element
     participant FW as Framework
 
-    Server->>Browser: HTML (shadow or light DOM)<br/>+ inert #webui-data JSON
+    Server->>Browser: HTML (shadow or light DOM)<br/>+ inert #webhub-data JSON
     Browser->>Browser: Parse HTML → DOM exists
     Browser->>CE: Custom element upgrade
     CE->>CE: attributeChangedCallback (pre-existing attrs)
@@ -581,7 +581,7 @@ Compiled metadata:
 ### Condition references
 
 Conditions are emitted as `[functionIndex, paths]` references. The index points
-to a component-local closure in `window.__webui.templateFns[tagName]`, while
+to a component-local closure in `window.__webhub.templateFns[tagName]`, while
 `paths` lets the runtime build targeted reactive indexes without parsing
 function source.
 
@@ -651,8 +651,8 @@ sees `42` in the DOM before the component's JavaScript state exists. Without
 seeding, the first `$update()` would overwrite the SSR content with the wrong
 value.
 
-State seeding uses `window.__webui.state` loaded from the server-emitted
-`#webui-data` block. When the protocol contains projection metadata, only
+State seeding uses `window.__webhub.state` loaded from the server-emitted
+`#webhub-data` block. When the protocol contains projection metadata, only
 `@observable` and `@attr` keys from reachable authored components select
 initial state; HTML-only dormant components and authored template-only roots
 contribute no startup keys. Without projection metadata, the server preserves
@@ -661,7 +661,7 @@ directly to observable backing fields before any bindings are wired:
 
 ```mermaid
 flowchart LR
-    SCRIPT["&lt;script type='application/json' id='webui-data'&gt;<br/>{ state: { count: 42 } }"] --> APPLY["$applySSRState()"]
+    SCRIPT["&lt;script type='application/json' id='webhub-data'&gt;<br/>{ state: { count: 42 } }"] --> APPLY["$applySSRState()"]
     APPLY --> SEED["Write decorated backing fields"]
     SEED --> HYDRATE["$hydrate() — bindings match<br/>server-rendered DOM"]
 ```
@@ -718,7 +718,7 @@ are removed; new items are appended.
 On initial hydration, the repeat system walks existing SSR children and
 reconstructs collection instances by matching them against the compiled
 template via `$resolveSSR` path traversal.  State is already seeded from
-`window.__webui.state`, so repeat items reflect the server-rendered list
+`window.__webhub.state`, so repeat items reflect the server-rendered list
 without parsing marker comments.
 
 ---
@@ -802,12 +802,12 @@ This template-parallel traversal eliminates the need for any marker comments,
 
 The runtime exposes hydration timing via the Performance API:
 
-- Per component: `webui:hydrate:<tag>:start` / `webui:hydrate:<tag>:end`
-- Global: `webui:hydrate:total:start` / `webui:hydrate:total:end`
-- Window event: `webui:hydration-complete`
+- Per component: `webhub:hydrate:<tag>:start` / `webhub:hydrate:<tag>:end`
+- Global: `webhub:hydrate:total:start` / `webhub:hydrate:total:end`
+- Window event: `webhub:hydration-complete`
 
 ```ts
-window.addEventListener('webui:hydration-complete', () => {
+window.addEventListener('webhub:hydration-complete', () => {
   console.log('All initial framework components are hydrated.');
 });
 ```
@@ -816,14 +816,14 @@ window.addEventListener('webui:hydration-complete', () => {
 
 ## Where to Look Next
 
-- `examples/app/todo-webui`
+- `examples/app/todo-webhub`
 - `examples/app/contact-book-manager`
 - `examples/app/commerce`
 
 ## Package Development
 
 ```bash
-pnpm --dir packages/webui-framework build
-pnpm --dir packages/webui-framework typecheck
-pnpm --dir packages/webui-framework test
+pnpm --dir packages/webhub-framework build
+pnpm --dir packages/webhub-framework typecheck
+pnpm --dir packages/webhub-framework test
 ```

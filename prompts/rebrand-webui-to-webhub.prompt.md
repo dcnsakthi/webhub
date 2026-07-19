@@ -1,11 +1,11 @@
 ---
-description: "Rebrands this webui monorepo to webhub across Rust, npm, and .NET, then creates and pushes a new GitHub repository"
+description: "Rebrands this webhub monorepo to webhub across Rust, npm, and .NET, then creates and pushes a new GitHub repository"
 argument-hint: "[repoOwner=...] [repoName=webhub] [visibility={public|private}]"
 ---
 
-# Rebrand WebUI to WebHub
+# Rebrand webhub to WebHub
 
-Rename every `webui`/`WebUI` identifier in this monorepo to the equivalent `webhub`/`WebHub` form, validate the result builds cleanly, then create a new GitHub repository and push the rebranded codebase to it.
+Rename every `webhub`/`webhub` identifier in this monorepo to the equivalent `webhub`/`WebHub` form, validate the result builds cleanly, then create a new GitHub repository and push the rebranded codebase to it.
 
 ## Inputs
 
@@ -15,10 +15,10 @@ Rename every `webui`/`WebUI` identifier in this monorepo to the equivalent `webh
 
 ## Rebrand Log
 
-Create and update a `.copilot-tracking/sandbox/{{YYYY-MM-DD}}-webui-to-webhub-001/rebrand-log.md` file, progressively documenting:
+Create and update a `.copilot-tracking/sandbox/{{YYYY-MM-DD}}-webhub-to-webhub-001/rebrand-log.md` file, progressively documenting:
 
 * Every folder, file, and identifier renamed, grouped by ecosystem (Rust, npm, .NET, docs, CI).
-* Case-variant mappings applied (`webui`→`webhub`, `WebUI`→`WebHub`, `WEBUI`→`WEBHUB`, `Webui`→`Webhub`, `web-ui`→`web-hub`).
+* Case-variant mappings applied (`webhub`→`webhub`, `webhub`→`WebHub`, `webhub`→`WEBHUB`, `webhub`→`Webhub`, `web-ui`→`web-hub`).
 * Build and test validation results after each ecosystem's rename.
 * Any reference intentionally left unchanged (for example, third-party license text or external URLs) and why.
 * The final GitHub repository URL and push result.
@@ -27,24 +27,24 @@ Create and update a `.copilot-tracking/sandbox/{{YYYY-MM-DD}}-webui-to-webhub-00
 
 ### Step 1: Inventory References
 
-1. Search the workspace for all case variants of `webui` across file names, folder names, and file contents: `webui`, `WebUI`, `WEBUI`, `Webui`, `web-ui`.
-2. Group findings by ecosystem: Rust (`Cargo.toml` package names, crate folder names under `crates/`, workspace dependency entries), npm (`package.json` name fields under `packages/`, cross-package `dependencies`/`devDependencies`, `pnpm-workspace.yaml`), .NET (`dotnet/Microsoft.WebUI.sln`, `Directory.Build.props`/`.targets`, namespaces, assembly names, `Microsoft.WebUI.Runtime.*` project folders), docs (`DESIGN.md`, `README.md`, `docs/`), CI (`azure-pipelines-cd.yml`), and misc (`webui.code-workspace`, `.github/copilot-instructions.md`).
+1. Search the workspace for all case variants of `webhub` across file names, folder names, and file contents: `webhub`, `webhub`, `webhub`, `webhub`, `web-ui`.
+2. Group findings by ecosystem: Rust (`Cargo.toml` package names, crate folder names under `crates/`, workspace dependency entries), npm (`package.json` name fields under `packages/`, cross-package `dependencies`/`devDependencies`, `pnpm-workspace.yaml`), .NET (`dotnet/Microsoft.webhub.sln`, `Directory.Build.props`/`.targets`, namespaces, assembly names, `Microsoft.webhub.Runtime.*` project folders), docs (`DESIGN.md`, `README.md`, `docs/`), CI (`azure-pipelines-cd.yml`), and misc (`webhub.code-workspace`, `.github/copilot-instructions.md`).
 3. Record the inventory in the Rebrand Log before making changes.
 
 ### Step 2: Rename Folders and Files
 
-1. Rename crate folders under `crates/` from `webui*` to `webhub*`.
-2. Rename npm package folders under `packages/` from `webui*` to `webhub*`.
-3. Rename `.NET` project folders and the solution file from `Microsoft.WebUI.*` to `Microsoft.WebHub.*`, including `dotnet/Microsoft.WebUI.sln` and each `dotnet/runtime/Microsoft.WebUI.Runtime.*` folder.
-4. Rename `webui.code-workspace` to `webhub.code-workspace`.
+1. Rename crate folders under `crates/` from `webhub*` to `webhub*`.
+2. Rename npm package folders under `packages/` from `webhub*` to `webhub*`.
+3. Rename `.NET` project folders and the solution file from `Microsoft.webhub.*` to `Microsoft.WebHub.*`, including `dotnet/Microsoft.webhub.sln` and each `dotnet/runtime/Microsoft.webhub.Runtime.*` folder.
+4. Rename `webhub.code-workspace` to `webhub.code-workspace`.
 5. Update the Rebrand Log with every path renamed.
 
 ### Step 3: Replace Identifiers in File Contents
 
 1. Update `Cargo.toml` `[package] name` fields and every `[workspace.dependencies]` entry and per-crate dependency reference to match renamed crate names.
 2. Update each `package.json` `name` field and cross-package dependency references, then refresh `pnpm-lock.yaml` accordingly.
-3. Update .NET namespaces, assembly names, `<ProjectReference>` paths, and `Microsoft.WebUI.sln` project entries to the `WebHub` equivalents.
-4. Update prose and configuration references in `DESIGN.md`, `README.md`, `docs/`, `azure-pipelines-cd.yml`, and `.github/copilot-instructions.md`, preserving the original casing pattern for each match (`webui`→`webhub`, `WebUI`→`WebHub`, `WEBUI`→`WEBHUB`, `Webui`→`Webhub`, `web-ui`→`web-hub`).
+3. Update .NET namespaces, assembly names, `<ProjectReference>` paths, and `Microsoft.webhub.sln` project entries to the `WebHub` equivalents.
+4. Update prose and configuration references in `DESIGN.md`, `README.md`, `docs/`, `azure-pipelines-cd.yml`, and `.github/copilot-instructions.md`, preserving the original casing pattern for each match (`webhub`→`webhub`, `webhub`→`WebHub`, `webhub`→`WEBHUB`, `webhub`→`Webhub`, `web-ui`→`web-hub`).
 5. Leave third-party license text, external URLs, and unrelated matches unchanged; note any skipped match in the Rebrand Log with a reason.
 
 ### Step 4: Validate the Rebrand

@@ -3,22 +3,22 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::collections::HashMap;
 use std::hint::black_box;
-use webui_protocol::{
-    ComparisonOperator, ConditionExpr, FragmentList, LogicalOperator, WebUIFragment, WebUIProtocol,
+use webhub_protocol::{
+    ComparisonOperator, ConditionExpr, FragmentList, LogicalOperator, webhubFragment, webhubProtocol,
 };
 
 #[allow(dead_code)]
-fn create_test_protocol() -> WebUIProtocol {
+fn create_test_protocol() -> webhubProtocol {
     let mut fragments = HashMap::new();
 
     fragments.insert(
         "index.html".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("Hello, WebUI!\n"),
-                WebUIFragment::for_loop("person", "people", "for-1"),
-                WebUIFragment::signal("description", true),
-                WebUIFragment::if_cond(ConditionExpr::identifier("contact"), "if-1"),
+                webhubFragment::raw("Hello, webhub!\n"),
+                webhubFragment::for_loop("person", "people", "for-1"),
+                webhubFragment::signal("description", true),
+                webhubFragment::if_cond(ConditionExpr::identifier("contact"), "if-1"),
             ],
         },
     );
@@ -26,14 +26,14 @@ fn create_test_protocol() -> WebUIProtocol {
     fragments.insert(
         "for-1".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::signal("person.name", false)],
+            fragments: vec![webhubFragment::signal("person.name", false)],
         },
     );
 
     fragments.insert(
         "if-1".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::component("contact-card")],
+            fragments: vec![webhubFragment::component("contact-card")],
         },
     );
 
@@ -41,24 +41,24 @@ fn create_test_protocol() -> WebUIProtocol {
         "contact-card".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("Hello, "),
-                WebUIFragment::signal("name", false),
+                webhubFragment::raw("Hello, "),
+                webhubFragment::signal("name", false),
             ],
         },
     );
 
-    WebUIProtocol::new(fragments)
+    webhubProtocol::new(fragments)
 }
 
-fn create_simple_protocol() -> WebUIProtocol {
+fn create_simple_protocol() -> webhubProtocol {
     let mut fragments = HashMap::new();
 
     fragments.insert(
         "index.html".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("Hello, WebUI!\n"),
-                WebUIFragment::for_loop("person", "people", "for-1"),
+                webhubFragment::raw("Hello, webhub!\n"),
+                webhubFragment::for_loop("person", "people", "for-1"),
             ],
         },
     );
@@ -66,11 +66,11 @@ fn create_simple_protocol() -> WebUIProtocol {
     fragments.insert(
         "for-1".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::signal("person.name", false)],
+            fragments: vec![webhubFragment::signal("person.name", false)],
         },
     );
 
-    WebUIProtocol::new(fragments)
+    webhubProtocol::new(fragments)
 }
 
 fn serialize_protobuf_benchmark(c: &mut Criterion) {
@@ -86,7 +86,7 @@ fn deserialize_protobuf_benchmark(c: &mut Criterion) {
     let bytes = protocol.to_protobuf().expect("encode failed");
 
     c.bench_function("deserialize_protobuf", |b| {
-        b.iter(|| WebUIProtocol::from_protobuf(black_box(&bytes)))
+        b.iter(|| webhubProtocol::from_protobuf(black_box(&bytes)))
     });
 }
 
@@ -105,24 +105,24 @@ fn complex_condition_benchmark(c: &mut Criterion) {
     fragments.insert(
         "main".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::if_cond(nested, "then")],
+            fragments: vec![webhubFragment::if_cond(nested, "then")],
         },
     );
     fragments.insert(
         "then".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("ok")],
+            fragments: vec![webhubFragment::raw("ok")],
         },
     );
-    let protocol = WebUIProtocol::new(fragments);
+    let protocol = webhubProtocol::new(fragments);
     let bytes = protocol.to_protobuf().expect("encode failed");
 
     c.bench_function("deserialize_complex_condition", |b| {
-        b.iter(|| WebUIProtocol::from_protobuf(black_box(&bytes)))
+        b.iter(|| webhubProtocol::from_protobuf(black_box(&bytes)))
     });
 }
 
-fn create_medium_protocol() -> WebUIProtocol {
+fn create_medium_protocol() -> webhubProtocol {
     let mut fragments = HashMap::new();
 
     // Root page — head + body structure
@@ -130,11 +130,11 @@ fn create_medium_protocol() -> WebUIProtocol {
         "index.html".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>"),
-                WebUIFragment::signal("title", false),
-                WebUIFragment::raw("</title></head><body>"),
-                WebUIFragment::component("app"),
-                WebUIFragment::raw("<script src=\"/app.js\"></script></body></html>"),
+                webhubFragment::raw("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>"),
+                webhubFragment::signal("title", false),
+                webhubFragment::raw("</title></head><body>"),
+                webhubFragment::component("app"),
+                webhubFragment::raw("<script src=\"/app.js\"></script></body></html>"),
             ],
         },
     );
@@ -144,15 +144,15 @@ fn create_medium_protocol() -> WebUIProtocol {
         "app".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<div class=\"app\"><header><h1>"),
-                WebUIFragment::signal("title", false),
-                WebUIFragment::raw("</h1><span class=\"count\">"),
-                WebUIFragment::signal("remainingCount", false),
-                WebUIFragment::raw(" remaining</span></header><div class=\"input-row\"><input type=\"text\" placeholder=\"Add item...\"/><button>Add</button></div><ul class=\"list\">"),
-                WebUIFragment::for_loop("item", "items", "item-frag"),
-                WebUIFragment::raw("</ul>"),
-                WebUIFragment::if_cond(ConditionExpr::identifier("showFooter"), "footer-frag"),
-                WebUIFragment::raw("</div>"),
+                webhubFragment::raw("<div class=\"app\"><header><h1>"),
+                webhubFragment::signal("title", false),
+                webhubFragment::raw("</h1><span class=\"count\">"),
+                webhubFragment::signal("remainingCount", false),
+                webhubFragment::raw(" remaining</span></header><div class=\"input-row\"><input type=\"text\" placeholder=\"Add item...\"/><button>Add</button></div><ul class=\"list\">"),
+                webhubFragment::for_loop("item", "items", "item-frag"),
+                webhubFragment::raw("</ul>"),
+                webhubFragment::if_cond(ConditionExpr::identifier("showFooter"), "footer-frag"),
+                webhubFragment::raw("</div>"),
             ],
         },
     );
@@ -162,16 +162,16 @@ fn create_medium_protocol() -> WebUIProtocol {
         "item-frag".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<li"),
-                WebUIFragment::attribute("data-id", "item.id"),
-                WebUIFragment::attribute_template("class", "item-class-tmpl"),
-                WebUIFragment::raw(">"),
-                WebUIFragment::signal("item.title", false),
-                WebUIFragment::if_cond(
+                webhubFragment::raw("<li"),
+                webhubFragment::attribute("data-id", "item.id"),
+                webhubFragment::attribute_template("class", "item-class-tmpl"),
+                webhubFragment::raw(">"),
+                webhubFragment::signal("item.title", false),
+                webhubFragment::if_cond(
                     ConditionExpr::predicate("item.state", ComparisonOperator::Equal, "'done'"),
                     "done-badge",
                 ),
-                WebUIFragment::raw(
+                webhubFragment::raw(
                     "<button class=\"toggle\">✓</button><button class=\"delete\">✕</button></li>",
                 ),
             ],
@@ -183,8 +183,8 @@ fn create_medium_protocol() -> WebUIProtocol {
         "item-class-tmpl".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("todo-item "),
-                WebUIFragment::signal("item.state", false),
+                webhubFragment::raw("todo-item "),
+                webhubFragment::signal("item.state", false),
             ],
         },
     );
@@ -193,7 +193,7 @@ fn create_medium_protocol() -> WebUIProtocol {
     fragments.insert(
         "done-badge".to_string(),
         FragmentList {
-            fragments: vec![WebUIFragment::raw("<span class=\"badge done\">✓</span>")],
+            fragments: vec![webhubFragment::raw("<span class=\"badge done\">✓</span>")],
         },
     );
 
@@ -202,33 +202,33 @@ fn create_medium_protocol() -> WebUIProtocol {
         "footer-frag".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<footer><p>"),
-                WebUIFragment::signal("footerText", false),
-                WebUIFragment::raw("</p><a"),
-                WebUIFragment::attribute("href", "helpUrl"),
-                WebUIFragment::raw(">Help</a></footer>"),
+                webhubFragment::raw("<footer><p>"),
+                webhubFragment::signal("footerText", false),
+                webhubFragment::raw("</p><a"),
+                webhubFragment::attribute("href", "helpUrl"),
+                webhubFragment::raw(">Help</a></footer>"),
             ],
         },
     );
 
-    WebUIProtocol::new(fragments)
+    webhubProtocol::new(fragments)
 }
 
-fn create_large_protocol(component_count: usize) -> WebUIProtocol {
+fn create_large_protocol(component_count: usize) -> webhubProtocol {
     let mut fragments = HashMap::new();
 
     // Root: nav + main with all components
     let mut root_frags = Vec::with_capacity(component_count * 2 + 4);
-    root_frags.push(WebUIFragment::raw("<html><body><nav>"));
-    root_frags.push(WebUIFragment::for_loop("link", "navLinks", "nav-link-frag"));
-    root_frags.push(WebUIFragment::raw("</nav><main>"));
+    root_frags.push(webhubFragment::raw("<html><body><nav>"));
+    root_frags.push(webhubFragment::for_loop("link", "navLinks", "nav-link-frag"));
+    root_frags.push(webhubFragment::raw("</nav><main>"));
 
     for idx in 0..component_count {
         let frag_id = format!("panel-{idx}");
-        root_frags.push(WebUIFragment::component(&frag_id));
+        root_frags.push(webhubFragment::component(&frag_id));
     }
 
-    root_frags.push(WebUIFragment::raw("</main></body></html>"));
+    root_frags.push(webhubFragment::raw("</main></body></html>"));
 
     fragments.insert(
         "index.html".to_string(),
@@ -242,15 +242,15 @@ fn create_large_protocol(component_count: usize) -> WebUIProtocol {
         "nav-link-frag".to_string(),
         FragmentList {
             fragments: vec![
-                WebUIFragment::raw("<a"),
-                WebUIFragment::attribute("href", "link.url"),
-                WebUIFragment::attribute_boolean(
+                webhubFragment::raw("<a"),
+                webhubFragment::attribute("href", "link.url"),
+                webhubFragment::attribute_boolean(
                     "disabled",
                     ConditionExpr::identifier("link.disabled"),
                 ),
-                WebUIFragment::raw(">"),
-                WebUIFragment::signal("link.label", false),
-                WebUIFragment::raw("</a>"),
+                webhubFragment::raw(">"),
+                webhubFragment::signal("link.label", false),
+                webhubFragment::raw("</a>"),
             ],
         },
     );
@@ -265,13 +265,13 @@ fn create_large_protocol(component_count: usize) -> WebUIProtocol {
             panel_id,
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw(format!("<section class=\"panel\" data-idx=\"{idx}\">")),
-                    WebUIFragment::raw("<h3>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("</h3>"),
-                    WebUIFragment::component(&body_id),
-                    WebUIFragment::if_cond(ConditionExpr::identifier("showDetails"), &cond_id),
-                    WebUIFragment::raw("</section>"),
+                    webhubFragment::raw(format!("<section class=\"panel\" data-idx=\"{idx}\">")),
+                    webhubFragment::raw("<h3>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("</h3>"),
+                    webhubFragment::component(&body_id),
+                    webhubFragment::if_cond(ConditionExpr::identifier("showDetails"), &cond_id),
+                    webhubFragment::raw("</section>"),
                 ],
             },
         );
@@ -280,11 +280,11 @@ fn create_large_protocol(component_count: usize) -> WebUIProtocol {
             body_id,
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div class=\"panel-body\"><p>"),
-                    WebUIFragment::signal("description", false),
-                    WebUIFragment::raw("</p><span class=\"metric\">"),
-                    WebUIFragment::signal("metric", false),
-                    WebUIFragment::raw("</span></div>"),
+                    webhubFragment::raw("<div class=\"panel-body\"><p>"),
+                    webhubFragment::signal("description", false),
+                    webhubFragment::raw("</p><span class=\"metric\">"),
+                    webhubFragment::signal("metric", false),
+                    webhubFragment::raw("</span></div>"),
                 ],
             },
         );
@@ -293,15 +293,15 @@ fn create_large_protocol(component_count: usize) -> WebUIProtocol {
             cond_id,
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<details><summary>More</summary><p>"),
-                    WebUIFragment::signal("details", false),
-                    WebUIFragment::raw("</p></details>"),
+                    webhubFragment::raw("<details><summary>More</summary><p>"),
+                    webhubFragment::signal("details", false),
+                    webhubFragment::raw("</p></details>"),
                 ],
             },
         );
     }
 
-    WebUIProtocol::new(fragments)
+    webhubProtocol::new(fragments)
 }
 
 fn serialize_medium_benchmark(c: &mut Criterion) {
@@ -315,7 +315,7 @@ fn deserialize_medium_benchmark(c: &mut Criterion) {
     let protocol = create_medium_protocol();
     let bytes = protocol.to_protobuf().expect("encode failed");
     c.bench_function("deserialize_medium_protobuf", |b| {
-        b.iter(|| WebUIProtocol::from_protobuf(black_box(&bytes)))
+        b.iter(|| webhubProtocol::from_protobuf(black_box(&bytes)))
     });
 }
 
@@ -336,7 +336,7 @@ fn protocol_size_sweep_bench(c: &mut Criterion) {
         );
 
         group.bench_with_input(BenchmarkId::new("deserialize", count), &bytes, |b, data| {
-            b.iter(|| WebUIProtocol::from_protobuf(black_box(data)));
+            b.iter(|| webhubProtocol::from_protobuf(black_box(data)));
         });
     }
 

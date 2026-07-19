@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! WebUI Handler implementation for Rust.
+//! webhub Handler implementation for Rust.
 //!
-//! This crate provides functionality to process and render WebUI protocols
+//! This crate provides functionality to process and render webhub protocols
 //! into final HTML output based on provided data.
 
 pub mod css_module;
@@ -28,7 +28,7 @@ pub use html_encode::encode_safe;
 
 use plugin::BootstrapExtensionContext;
 use plugin::HandlerPlugin;
-use plugin::WebUiTemplatePayload;
+use plugin::webhubTemplatePayload;
 use route_matcher::CompiledRouteIndex;
 use serde::ser::SerializeMap;
 use serde::Serialize;
@@ -36,14 +36,14 @@ use serde_json::Value;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use thiserror::Error;
-use webui_expressions::{evaluate_with_resolver, ExpressionError};
-use webui_protocol::{
-    web_ui_fragment::Fragment, InitialStateStrategy, StateProjectionMode, WebUIFragment,
-    WebUIProtocol,
+use webhub_expressions::{evaluate_with_resolver, ExpressionError};
+use webhub_protocol::{
+    web_ui_fragment::Fragment, InitialStateStrategy, StateProjectionMode, webhubFragment,
+    webhubProtocol,
 };
-use webui_state::find_value_by_dotted_path_ref;
+use webhub_state::find_value_by_dotted_path_ref;
 
-/// Error types for the WebUI handler.
+/// Error types for the webhub handler.
 #[derive(Debug, Error)]
 pub enum HandlerError {
     #[error("Rendering error: {0}")]
@@ -62,7 +62,7 @@ pub enum HandlerError {
     TypeError(String),
 
     #[error("Protocol error: {0}")]
-    Protocol(#[from] webui_protocol::ProtocolError),
+    Protocol(#[from] webhub_protocol::ProtocolError),
 
     #[error("Evaluation error: {0}")]
     Evaluation(String),
@@ -117,7 +117,7 @@ pub struct RenderOptions<'a> {
     pub request_path: &'a str,
     /// Optional CSP nonce for inline `<script>` tags.
     /// When set, all inline scripts include `nonce="VALUE"` and a
-    /// `<meta name="webui-nonce">` tag is emitted for the client router.
+    /// `<meta name="webhub-nonce">` tag is emitted for the client router.
     pub nonce: Option<&'a str>,
     /// Optional HTML to emit immediately before the document's
     /// `</head>` close. Used for per-request `<link rel="preload">`
@@ -148,7 +148,7 @@ impl<'a> RenderOptions<'a> {
     }
 
     /// Set the CSP nonce for inline scripts. Pass an empty string to
-    /// disable (`None` semantics) — empty `<meta name="webui-nonce"
+    /// disable (`None` semantics) — empty `<meta name="webhub-nonce"
     /// content="">` would be browser-ignored noise.
     #[must_use]
     pub fn with_nonce(mut self, nonce: &'a str) -> Self {
@@ -168,7 +168,7 @@ impl<'a> RenderOptions<'a> {
     /// markers). Passing user-controlled or attacker-influenced content
     /// here is a direct cross-site scripting vulnerability. If your
     /// caller path may include untrusted data, escape with the host's
-    /// HTML escaper (e.g. [`webui_handler::encode_safe`](crate::encode_safe))
+    /// HTML escaper (e.g. [`webhub_handler::encode_safe`](crate::encode_safe))
     /// **before** calling this builder.
     #[must_use]
     pub fn with_head_inject(mut self, html: &'a str) -> Self {
@@ -192,17 +192,17 @@ impl<'a> RenderOptions<'a> {
     }
 }
 
-/// The main WebUI handler that processes protocols and renders them.
+/// The main webhub handler that processes protocols and renders them.
 ///
 /// The handler is stateless: plugin instances are created per-render from
 /// the stored factory function, allowing concurrent renders with `&self`.
-pub struct WebUIHandler {
+pub struct webhubHandler {
     plugin_factory: Option<fn() -> Box<dyn HandlerPlugin>>,
 }
 
-/// Context object for processing WebUI fragments
-struct WebUIProcessContext<'a> {
-    protocol: &'a WebUIProtocol,
+/// Context object for processing webhub fragments
+struct webhubProcessContext<'a> {
+    protocol: &'a webhubProtocol,
     state: &'a Value,
     writer: &'a mut dyn ResponseWriter,
     local_vars: HashMap<String, Value>,
@@ -224,7 +224,7 @@ struct WebUIProcessContext<'a> {
     plugin: Option<Box<dyn HandlerPlugin>>,
     /// Current position in the route tree for outlet-based rendering.
     /// Contains the children of the currently matched route fragment.
-    route_children: Vec<webui_protocol::WebUiFragmentRoute>,
+    route_children: Vec<webhub_protocol::webhubFragmentRoute>,
     /// Entry fragment ID — used to compute the initial inventory at head_end.
     /// Borrowed from `RenderOptions<'a>::entry_id` — zero-copy.
     entry_id: &'a str,
@@ -264,7 +264,7 @@ struct WebUIProcessContext<'a> {
     route_chain_index: usize,
 }
 
-struct WebUiBootstrap<'a> {
+struct webhubBootstrap<'a> {
     state: &'a Value,
     state_selection: StateSelection<'a>,
     chain: &'a [Value],
@@ -272,17 +272,17 @@ struct WebUiBootstrap<'a> {
     nonce: Option<&'a str>,
     css_hrefs: &'a [&'a str],
     style_specs: &'a [&'a str],
-    templates: &'a [WebUiTemplatePayload<'a>],
+    templates: &'a [webhubTemplatePayload<'a>],
 }
 
 /// Get the component attribute name, stripping `:` prefix and converting to camelCase.
 ///
-/// Uses `webui_protocol::attrs::attribute_to_camel` which handles irregular
+/// Uses `webhub_protocol::attrs::attribute_to_camel` which handles irregular
 /// attributes (multi-word ARIA and global HTML attributes like `readonly`,
 /// `tabindex`) via the shared lookup table.
 fn component_attr_name(name: &str) -> String {
     let stripped = name.strip_prefix(':').unwrap_or(name);
-    webui_protocol::attrs::attribute_to_camel(stripped)
+    webhub_protocol::attrs::attribute_to_camel(stripped)
 }
 
 /// Write a usize as decimal digits directly to the writer, avoiding `format!` allocation.
@@ -484,11 +484,11 @@ enum ComponentStateSurface {
 
 /// Select initial state for the components reachable on this request path.
 ///
-/// Non-WebUI protocols preserve full state without walking component surfaces.
-/// WebUI protocols project exact surfaces, while any unknown surface restores
+/// Non-webhub protocols preserve full state without walking component surfaces.
+/// webhub protocols project exact surfaces, while any unknown surface restores
 /// the full state for correctness.
 pub(crate) fn collect_hydration_state<'a, 'b>(
-    protocol: &'a WebUIProtocol,
+    protocol: &'a webhubProtocol,
     components: impl IntoIterator<Item = &'b str>,
 ) -> StateSelection<'a> {
     if protocol.initial_state_strategy != InitialStateStrategy::Components as i32 {
@@ -499,14 +499,14 @@ pub(crate) fn collect_hydration_state<'a, 'b>(
 
 /// Select state for client-created components reachable during navigation.
 pub(crate) fn collect_navigation_state<'a, 'b>(
-    protocol: &'a WebUIProtocol,
+    protocol: &'a webhubProtocol,
     components: impl IntoIterator<Item = &'b str>,
 ) -> StateSelection<'a> {
     collect_component_state(protocol, components, ComponentStateSurface::Navigation)
 }
 
 fn collect_component_state<'a, 'b>(
-    protocol: &'a WebUIProtocol,
+    protocol: &'a webhubProtocol,
     components: impl IntoIterator<Item = &'b str>,
     surface: ComponentStateSurface,
 ) -> StateSelection<'a> {
@@ -539,9 +539,9 @@ fn collect_component_state<'a, 'b>(
     StateSelection::Keys(keys)
 }
 
-fn write_webui_bootstrap(
+fn write_webhub_bootstrap(
     writer: &mut dyn ResponseWriter,
-    bootstrap: WebUiBootstrap<'_>,
+    bootstrap: webhubBootstrap<'_>,
 ) -> Result<()> {
     let mut wrote_field = false;
 
@@ -567,29 +567,29 @@ fn write_webui_bootstrap(
         .any(|template| !template.template_json.is_empty())
     {
         write_json_field_name(writer, &mut wrote_field, "templates")?;
-        write_webui_template_json_map(writer, bootstrap.templates)?;
+        write_webhub_template_json_map(writer, bootstrap.templates)?;
     }
     writer.write("}")
 }
 
-fn write_webui_data_block(
+fn write_webhub_data_block(
     writer: &mut dyn ResponseWriter,
-    bootstrap: WebUiBootstrap<'_>,
+    bootstrap: webhubBootstrap<'_>,
 ) -> Result<()> {
-    writer.write("<script type=\"application/json\" id=\"webui-data\"")?;
+    writer.write("<script type=\"application/json\" id=\"webhub-data\"")?;
     if let Some(nonce) = bootstrap.nonce {
         writer.write(" nonce=\"")?;
         writer.write(nonce)?;
         writer.write("\"")?;
     }
     writer.write(">")?;
-    write_webui_bootstrap(writer, bootstrap)?;
+    write_webhub_bootstrap(writer, bootstrap)?;
     writer.write("</script>\n")
 }
 
-fn write_webui_template_json_map(
+fn write_webhub_template_json_map(
     writer: &mut dyn ResponseWriter,
-    templates: &[WebUiTemplatePayload<'_>],
+    templates: &[webhubTemplatePayload<'_>],
 ) -> Result<()> {
     writer.write("{")?;
     let mut wrote = false;
@@ -631,15 +631,15 @@ where
     find_value_by_dotted_path_ref(path, state)
 }
 
-impl WebUIHandler {
-    /// Create a new WebUI handler with no plugin.
+impl webhubHandler {
+    /// Create a new webhub handler with no plugin.
     pub fn new() -> Self {
         Self {
             plugin_factory: None,
         }
     }
 
-    /// Create a new WebUI handler with a plugin factory.
+    /// Create a new webhub handler with a plugin factory.
     ///
     /// Each render call creates a fresh plugin instance from the factory,
     /// enabling concurrent renders with `&self`.
@@ -652,7 +652,7 @@ impl WebUIHandler {
     #[cfg(test)]
     fn handle(
         &self,
-        document: &WebUIProtocol,
+        document: &webhubProtocol,
         state: &Value,
         options: &RenderOptions<'_>,
         writer: &mut dyn ResponseWriter,
@@ -668,7 +668,7 @@ impl WebUIHandler {
     fn process_fragment_id(
         &self,
         fragment_id: &str,
-        context: &mut WebUIProcessContext,
+        context: &mut webhubProcessContext,
     ) -> Result<()> {
         if let Some(fragment_list) = context.protocol.fragments.get(fragment_id) {
             self.process_fragment(&fragment_list.fragments, context)
@@ -683,8 +683,8 @@ impl WebUIHandler {
     /// during rendering, while `state` contains the global application state.
     fn process_fragment(
         &self,
-        fragments: &[WebUIFragment],
-        context: &mut WebUIProcessContext,
+        fragments: &[webhubFragment],
+        context: &mut webhubProcessContext,
     ) -> Result<()> {
         // Pre-scan: find the best matching route among sibling routes by specificity.
         // This ensures `/contacts/add` (2 literals) beats `/contacts/:id` (1 literal).
@@ -736,9 +736,9 @@ impl WebUIHandler {
     /// Process an `<outlet />` directive.
     ///
     /// Matches children from the currently active route's `children` field
-    /// against the request path, renders the matched child `<webui-route>`
+    /// against the request path, renders the matched child `<webhub-route>`
     /// elements directly at this position (no wrapper element).
-    fn process_outlet(&self, context: &mut WebUIProcessContext) -> Result<()> {
+    fn process_outlet(&self, context: &mut webhubProcessContext) -> Result<()> {
         let mut children = std::mem::take(&mut context.route_children);
         if children.is_empty() {
             return Ok(());
@@ -790,8 +790,8 @@ impl WebUIHandler {
 
                 context.route_children = grandchildren;
 
-                // Emit matched <webui-route>
-                context.writer.write("<webui-route")?;
+                // Emit matched <webhub-route>
+                context.writer.write("<webhub-route")?;
                 if !matched_child.path.is_empty() {
                     context.writer.write(" path=\"")?;
                     context.writer.write(&matched_child.path)?;
@@ -819,7 +819,7 @@ impl WebUIHandler {
                 context.writer.write(">")?;
 
                 self.process_component(
-                    &webui_protocol::WebUIFragmentComponent {
+                    &webhub_protocol::webhubFragmentComponent {
                         fragment_id: comp.clone(),
                     },
                     context,
@@ -828,7 +828,7 @@ impl WebUIHandler {
                 context.writer.write("</")?;
                 context.writer.write(comp)?;
                 context.writer.write(">")?;
-                context.writer.write("</webui-route>")?;
+                context.writer.write("</webhub-route>")?;
 
                 context.route_base = saved_route_base;
                 context.route_children = saved_route_children;
@@ -839,7 +839,7 @@ impl WebUIHandler {
         for (idx, child) in children.iter().enumerate() {
             let is_matched = best.as_ref().is_some_and(|(bi, _)| *bi == idx);
             if !is_matched && !child.fragment_id.is_empty() {
-                context.writer.write("<webui-route")?;
+                context.writer.write("<webhub-route")?;
                 if !child.path.is_empty() {
                     context.writer.write(" path=\"")?;
                     context.writer.write(&child.path)?;
@@ -854,7 +854,7 @@ impl WebUIHandler {
                 route_renderer::write_route_pending_attrs(context.writer, child)?;
                 context
                     .writer
-                    .write(" style=\"display:none\"></webui-route>")?;
+                    .write(" style=\"display:none\"></webhub-route>")?;
             }
         }
 
@@ -875,7 +875,7 @@ impl WebUIHandler {
         &self,
         specifier: &str,
         css: &str,
-        context: &mut WebUIProcessContext,
+        context: &mut webhubProcessContext,
     ) -> Result<()> {
         let tag = crate::css_module::build_importmap_tag(specifier, css, context.nonce);
         context.writer.write(&tag)?;
@@ -893,8 +893,8 @@ impl WebUIHandler {
     /// SPA partial navigation.
     fn emit_css_module(
         &self,
-        component: &webui_protocol::WebUIFragmentComponent,
-        context: &mut WebUIProcessContext,
+        component: &webhub_protocol::webhubFragmentComponent,
+        context: &mut webhubProcessContext,
     ) -> Result<()> {
         if !context.rendered_components.contains(&component.fragment_id) {
             if let Some(css) = context
@@ -910,18 +910,18 @@ impl WebUIHandler {
         Ok(())
     }
 
-    /// Process a route fragment — renders `<webui-route>` with matched/hidden state.
+    /// Process a route fragment — renders `<webhub-route>` with matched/hidden state.
     fn process_route(
         &self,
-        route_frag: &webui_protocol::WebUiFragmentRoute,
+        route_frag: &webhub_protocol::webhubFragmentRoute,
         best_route: &Option<(String, route_matcher::RouteMatch)>,
-        context: &mut WebUIProcessContext,
+        context: &mut webhubProcessContext,
     ) -> Result<()> {
         let is_matched = best_route
             .as_ref()
             .is_some_and(|(best_key, _)| *best_key == route_frag.fragment_id);
 
-        context.writer.write("<webui-route")?;
+        context.writer.write("<webhub-route")?;
         if !route_frag.path.is_empty() {
             context.writer.write(" path=\"")?;
             context.writer.write(&route_frag.path)?;
@@ -957,7 +957,7 @@ impl WebUIHandler {
 
                 context.route_children = route_frag.children.clone();
 
-                let comp = webui_protocol::WebUIFragmentComponent {
+                let comp = webhub_protocol::webhubFragmentComponent {
                     fragment_id: route_frag.fragment_id.clone(),
                 };
 
@@ -981,15 +981,15 @@ impl WebUIHandler {
             context.writer.write(" style=\"display:none\">")?;
         }
 
-        context.writer.write("</webui-route>")?;
+        context.writer.write("</webhub-route>")?;
         Ok(())
     }
 
     /// Process a component fragment.
     fn process_component(
         &self,
-        component: &webui_protocol::WebUIFragmentComponent,
-        context: &mut WebUIProcessContext,
+        component: &webhub_protocol::webhubFragmentComponent,
+        context: &mut webhubProcessContext,
     ) -> Result<()> {
         // Emit the component's CSS module importmap into its light DOM
         // on first encounter (see `emit_css_module`).
@@ -1027,7 +1027,7 @@ impl WebUIHandler {
     }
 
     /// Resolve a dotted path value, checking local variables first, then global state.
-    fn resolve_value(&self, path: &str, context: &WebUIProcessContext<'_>) -> Option<Value> {
+    fn resolve_value(&self, path: &str, context: &webhubProcessContext<'_>) -> Option<Value> {
         resolve_value_from_sources(path, &context.local_vars, context.state).map(Cow::into_owned)
     }
 
@@ -1038,8 +1038,8 @@ impl WebUIHandler {
     /// Returns false if the condition references a missing value.
     fn evaluate_condition(
         &self,
-        condition: &webui_protocol::ConditionExpr,
-        context: &WebUIProcessContext,
+        condition: &webhub_protocol::ConditionExpr,
+        context: &webhubProcessContext,
     ) -> Result<bool> {
         let local_vars = &context.local_vars;
         let state = context.state;
@@ -1059,8 +1059,8 @@ impl WebUIHandler {
     /// Example: `for item in items` makes "item" available in the loop body.
     fn process_for_loop(
         &self,
-        for_loop: &webui_protocol::WebUIFragmentFor,
-        context: &mut WebUIProcessContext,
+        for_loop: &webhub_protocol::webhubFragmentFor,
+        context: &mut webhubProcessContext,
     ) -> Result<()> {
         let collection_name = &for_loop.collection;
 
@@ -1139,8 +1139,8 @@ impl WebUIHandler {
     /// If the value is not found in either scope, an empty string is returned.
     fn process_signal(
         &self,
-        signal: &webui_protocol::WebUIFragmentSignal,
-        context: &mut WebUIProcessContext,
+        signal: &webhub_protocol::webhubFragmentSignal,
+        context: &mut webhubProcessContext,
     ) -> Result<()> {
         // Hook: emit nonce meta and CSS <link> tags before </head>.
         // Guarded by `head_end_emitted` so a malformed protocol cannot
@@ -1150,7 +1150,7 @@ impl WebUIHandler {
             if let Some(nonce) = context.nonce {
                 context
                     .writer
-                    .write("<meta name=\"webui-nonce\" content=\"")?;
+                    .write("<meta name=\"webhub-nonce\" content=\"")?;
                 context
                     .writer
                     .write(&crate::html_encode::encode_safe(nonce))?;
@@ -1164,8 +1164,8 @@ impl WebUIHandler {
             //
             // Style and Module strategies emit their CSS during component
             // rendering (shadow-DOM template / importmap respectively).
-            let is_link = context.protocol.css_strategy() == webui_protocol::CssStrategy::Link;
-            let is_shadow = context.protocol.dom_strategy() == webui_protocol::DomStrategy::Shadow;
+            let is_link = context.protocol.css_strategy() == webhub_protocol::CssStrategy::Link;
+            let is_shadow = context.protocol.dom_strategy() == webhub_protocol::DomStrategy::Shadow;
 
             if is_link {
                 let (needed_components, _) =
@@ -1190,7 +1190,7 @@ impl WebUIHandler {
                             context.writer.write(href)?;
                             context
                                 .writer
-                                .write("\" as=\"style\" data-webui-ssr-preload=\"style\">")?;
+                                .write("\" as=\"style\" data-webhub-ssr-preload=\"style\">")?;
                         } else {
                             context.writer.write("<link rel=\"stylesheet\" href=\"")?;
                             context.writer.write(href)?;
@@ -1250,8 +1250,8 @@ impl WebUIHandler {
                     }
                 }
 
-                // Try to collect split WebUI template payloads. If the plugin
-                // returns None (non-WebUI templates, e.g. FAST), fall back to
+                // Try to collect split webhub template payloads. If the plugin
+                // returns None (non-webhub templates, e.g. FAST), fall back to
                 // separate emission.
                 let template_payloads = context
                     .plugin
@@ -1289,7 +1289,7 @@ impl WebUIHandler {
                     .collect();
 
                 // CSS hrefs emitted during SSR (Link-strategy components)
-                let is_link = context.protocol.css_strategy() == webui_protocol::CssStrategy::Link;
+                let is_link = context.protocol.css_strategy() == webhub_protocol::CssStrategy::Link;
                 let mut css_hrefs: Vec<&str> = Vec::new();
                 if is_link {
                     for name in &reachable {
@@ -1319,11 +1319,11 @@ impl WebUIHandler {
                     }
                 }
 
-                let empty_payloads: [WebUiTemplatePayload<'_>; 0] = [];
+                let empty_payloads: [webhubTemplatePayload<'_>; 0] = [];
                 let payloads = template_payloads.as_deref().unwrap_or(&empty_payloads);
-                write_webui_data_block(
+                write_webhub_data_block(
                     context.writer,
-                    WebUiBootstrap {
+                    webhubBootstrap {
                         state: context.state,
                         state_selection,
                         chain: &chain_json,
@@ -1336,8 +1336,8 @@ impl WebUIHandler {
                 )?;
 
                 // Let the active plugin emit any framework-specific executable
-                // side channel. FAST plugins default to no-op; WebUI installs
-                // templateFns. Client packages parse #webui-data lazily.
+                // side channel. FAST plugins default to no-op; webhub installs
+                // templateFns. Client packages parse #webhub-data lazily.
                 if let Some(ref plugin) = context.plugin {
                     plugin.emit_bootstrap_extension(
                         BootstrapExtensionContext {
@@ -1403,8 +1403,8 @@ impl WebUIHandler {
     /// Process an if condition fragment.
     fn process_if(
         &self,
-        if_cond: &webui_protocol::WebUIFragmentIf,
-        context: &mut WebUIProcessContext,
+        if_cond: &webhub_protocol::webhubFragmentIf,
+        context: &mut webhubProcessContext,
     ) -> Result<()> {
         let condition = if_cond
             .condition
@@ -1438,8 +1438,8 @@ impl WebUIHandler {
     /// Process an attribute fragment by rendering the attribute name/value pair.
     fn process_attribute(
         &self,
-        attr: &webui_protocol::WebUIFragmentAttribute,
-        context: &mut WebUIProcessContext,
+        attr: &webhub_protocol::webhubFragmentAttribute,
+        context: &mut webhubProcessContext,
     ) -> Result<()> {
         // Initialize component attribute accumulator on attrStart
         if attr.attr_start {
@@ -1541,7 +1541,7 @@ impl WebUIHandler {
     fn render_template_attr_value(
         &self,
         template_id: &str,
-        context: &WebUIProcessContext,
+        context: &webhubProcessContext,
     ) -> Result<String> {
         let fragments = context
             .protocol
@@ -1578,7 +1578,7 @@ impl WebUIHandler {
         if !document.fragments.contains_key(options.entry_id) {
             return Err(HandlerError::MissingFragment(options.entry_id.to_string()));
         }
-        let mut context = WebUIProcessContext {
+        let mut context = webhubProcessContext {
             protocol: document,
             state,
             writer,
@@ -1609,7 +1609,7 @@ impl WebUIHandler {
     }
 }
 
-impl Default for WebUIHandler {
+impl Default for webhubHandler {
     fn default() -> Self {
         Self::new()
     }
@@ -1626,12 +1626,12 @@ fn write_attr(writer: &mut dyn ResponseWriter, name: &str, value: &str) -> Resul
 
 #[cfg(test)]
 fn handle(
-    protocol: &WebUIProtocol,
+    protocol: &webhubProtocol,
     state: &Value,
     options: &RenderOptions<'_>,
     writer: &mut dyn ResponseWriter,
 ) -> Result<()> {
-    let handler = WebUIHandler::new();
+    let handler = webhubHandler::new();
     handler.handle(protocol, state, options, writer)
 }
 
@@ -1639,11 +1639,11 @@ fn handle(
 mod tests {
     use super::*;
     use std::cell::RefCell;
-    use webui_protocol::{
+    use webhub_protocol::{
         web_ui_fragment, ComparisonOperator, ConditionExpr, FragmentList, LogicalOperator,
-        WebUIFragmentAttribute,
+        webhubFragmentAttribute,
     };
-    use webui_test_utils::test_json;
+    use webhub_test_utils::test_json;
 
     // A simple test writer implementation
     struct TestWriter {
@@ -1687,11 +1687,11 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("Hello, WebUI!")],
+                fragments: vec![webhubFragment::raw("Hello, webhub!")],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
 
         // Create a test writer
@@ -1710,7 +1710,7 @@ mod tests {
         );
 
         // Check the output
-        assert_eq!(writer.get_content(), "Hello, WebUI!");
+        assert_eq!(writer.get_content(), "Hello, webhub!");
         assert!(writer.is_ended());
     }
 
@@ -1722,15 +1722,15 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Hello, "),
-                    WebUIFragment::signal("name", false),
-                    WebUIFragment::raw("!"),
+                    webhubFragment::raw("Hello, "),
+                    webhubFragment::signal("name", false),
+                    webhubFragment::raw("!"),
                 ],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
-        let state = test_json!({"name": "WebUI"});
+        let protocol = webhubProtocol::new(fragments);
+        let state = test_json!({"name": "webhub"});
 
         // Create a test writer
         let mut writer = TestWriter::new();
@@ -1748,7 +1748,7 @@ mod tests {
         );
 
         // Check the output
-        assert_eq!(writer.get_content(), "Hello, WebUI!");
+        assert_eq!(writer.get_content(), "Hello, webhub!");
         assert!(writer.is_ended());
     }
 
@@ -1760,8 +1760,8 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("People: "),
-                    WebUIFragment::for_loop("person", "people", "person-item"),
+                    webhubFragment::raw("People: "),
+                    webhubFragment::for_loop("person", "people", "person-item"),
                 ],
             },
         );
@@ -1770,13 +1770,13 @@ mod tests {
             "person-item".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::signal("person.name", false),
-                    WebUIFragment::raw(", "),
+                    webhubFragment::signal("person.name", false),
+                    webhubFragment::raw(", "),
                 ],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "people": [
                 {"name": "Alice"},
@@ -1813,12 +1813,12 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Status: "),
-                    WebUIFragment::if_cond(
-                        webui_protocol::ConditionExpr::identifier("isActive"),
+                    webhubFragment::raw("Status: "),
+                    webhubFragment::if_cond(
+                        webhub_protocol::ConditionExpr::identifier("isActive"),
                         "active-content",
                     ),
-                    WebUIFragment::raw("End"),
+                    webhubFragment::raw("End"),
                 ],
             },
         );
@@ -1826,11 +1826,11 @@ mod tests {
         fragments.insert(
             "active-content".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("Active")],
+                fragments: vec![webhubFragment::raw("Active")],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
 
         // Test with isActive = true
         let state_true = test_json!({"isActive": true});
@@ -1873,8 +1873,8 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Component: "),
-                    WebUIFragment::component("my-component"),
+                    webhubFragment::raw("Component: "),
+                    webhubFragment::component("my-component"),
                 ],
             },
         );
@@ -1882,11 +1882,11 @@ mod tests {
         fragments.insert(
             "my-component".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>Component Content</div>")],
+                fragments: vec![webhubFragment::raw("<div>Component Content</div>")],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
 
         // Create a test writer
@@ -1919,11 +1919,11 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("missing-component")],
+                fragments: vec![webhubFragment::component("missing-component")],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
 
         // Create a test writer
@@ -1954,14 +1954,14 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Hello, "),
-                    WebUIFragment::signal("missing_field", false),
-                    WebUIFragment::raw("!"),
+                    webhubFragment::raw("Hello, "),
+                    webhubFragment::signal("missing_field", false),
+                    webhubFragment::raw("!"),
                 ],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
 
         let mut writer = TestWriter::new();
@@ -1990,16 +1990,16 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<button"),
-                    WebUIFragment::attribute_boolean(
+                    webhubFragment::raw("<button"),
+                    webhubFragment::attribute_boolean(
                         "disabled",
                         ConditionExpr::identifier("isDisabled"),
                     ),
-                    WebUIFragment::raw(">Click</button>"),
+                    webhubFragment::raw(">Click</button>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"isDisabled": true});
         let mut writer = TestWriter::new();
         handle(
@@ -2019,16 +2019,16 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<button"),
-                    WebUIFragment::attribute_boolean(
+                    webhubFragment::raw("<button"),
+                    webhubFragment::attribute_boolean(
                         "disabled",
                         ConditionExpr::identifier("isDisabled"),
                     ),
-                    WebUIFragment::raw(">Click</button>"),
+                    webhubFragment::raw(">Click</button>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"isDisabled": false});
         let mut writer = TestWriter::new();
         handle(
@@ -2048,16 +2048,16 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<input type=\"checkbox\""),
-                    WebUIFragment::attribute_boolean(
+                    webhubFragment::raw("<input type=\"checkbox\""),
+                    webhubFragment::attribute_boolean(
                         "checked",
                         ConditionExpr::identifier("checked"),
                     ),
-                    WebUIFragment::raw(">"),
+                    webhubFragment::raw(">"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let mut writer = TestWriter::new();
         handle(
@@ -2077,20 +2077,20 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<input type=\"checkbox\""),
-                    WebUIFragment::attribute_boolean(
+                    webhubFragment::raw("<input type=\"checkbox\""),
+                    webhubFragment::attribute_boolean(
                         "checked",
                         ConditionExpr::identifier("checked"),
                     ),
-                    WebUIFragment::attribute_boolean(
+                    webhubFragment::attribute_boolean(
                         "disabled",
                         ConditionExpr::identifier("disabled"),
                     ),
-                    WebUIFragment::raw(">"),
+                    webhubFragment::raw(">"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"checked": true, "disabled": false});
         let mut writer = TestWriter::new();
         handle(
@@ -2112,13 +2112,13 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<input"),
-                    WebUIFragment::attribute("value", "inputValue"),
-                    WebUIFragment::raw(">"),
+                    webhubFragment::raw("<input"),
+                    webhubFragment::attribute("value", "inputValue"),
+                    webhubFragment::raw(">"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"inputValue": "Hello"});
         let mut writer = TestWriter::new();
         handle(
@@ -2138,13 +2138,13 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div name=\"test\""),
-                    WebUIFragment::attribute("handle", "number"),
-                    WebUIFragment::raw("></div>"),
+                    webhubFragment::raw("<div name=\"test\""),
+                    webhubFragment::attribute("handle", "number"),
+                    webhubFragment::raw("></div>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"number": 0});
         let mut writer = TestWriter::new();
         handle(
@@ -2169,13 +2169,13 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<a"),
-                    WebUIFragment::attribute("href", "value"),
-                    WebUIFragment::raw(">demo</a>"),
+                    webhubFragment::raw("<a"),
+                    webhubFragment::attribute("href", "value"),
+                    webhubFragment::raw(">demo</a>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"value": ["\" autofocus onfocus=alert(1) x=\""]});
         let mut writer = TestWriter::new();
         handle(
@@ -2208,13 +2208,13 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div"),
-                    WebUIFragment::attribute("data-cfg", "cfg"),
-                    WebUIFragment::raw("></div>"),
+                    webhubFragment::raw("<div"),
+                    webhubFragment::attribute("data-cfg", "cfg"),
+                    webhubFragment::raw("></div>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"cfg": {"key": "\" onfocus=alert(1) x=\""}});
         let mut writer = TestWriter::new();
         handle(
@@ -2245,9 +2245,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<input"),
-                    WebUIFragment::attribute_template("value", "attr-1"),
-                    WebUIFragment::raw(">"),
+                    webhubFragment::raw("<input"),
+                    webhubFragment::attribute_template("value", "attr-1"),
+                    webhubFragment::raw(">"),
                 ],
             },
         );
@@ -2255,12 +2255,12 @@ mod tests {
             "attr-1".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("hello "),
-                    WebUIFragment::signal("item", false),
+                    webhubFragment::raw("hello "),
+                    webhubFragment::signal("item", false),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"item": "world"});
         let mut writer = TestWriter::new();
         handle(
@@ -2282,12 +2282,12 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::signal("html", false),
-                    WebUIFragment::signal("html", true),
+                    webhubFragment::signal("html", false),
+                    webhubFragment::signal("html", true),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"html": "<strong>hi</strong>"});
         let mut writer = TestWriter::new();
         handle(
@@ -2312,9 +2312,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("outerItem", "outerItems", "outer"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("outerItem", "outerItems", "outer"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -2322,19 +2322,19 @@ mod tests {
             "outer".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("innerItem", "outerItem.innerItems", "inner"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("innerItem", "outerItem.innerItems", "inner"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
         fragments.insert(
             "inner".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<span>Inner</span>")],
+                fragments: vec![webhubFragment::raw("<span>Inner</span>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "outerItems": [
                 {"innerItems": [{"name": "A"}, {"name": "B"}]},
@@ -2362,9 +2362,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -2372,9 +2372,9 @@ mod tests {
             "outerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("innerItem", "outerItem.innerItems", "innerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("innerItem", "outerItem.innerItems", "innerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -2382,13 +2382,13 @@ mod tests {
             "innerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("innerItem.name", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("innerItem.name", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "outerItems": [
                 {"innerItems": [{"name": "Item1"}, {"name": "Item2"}]},
@@ -2416,9 +2416,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -2426,10 +2426,10 @@ mod tests {
             "outerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::signal("globalOuter", false),
-                    WebUIFragment::for_loop("innerItem", "outerItem.innerItems", "innerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::signal("globalOuter", false),
+                    webhubFragment::for_loop("innerItem", "outerItem.innerItems", "innerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -2437,14 +2437,14 @@ mod tests {
             "innerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("innerItem.name", false),
-                    WebUIFragment::signal("globalInner", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("innerItem.name", false),
+                    webhubFragment::signal("globalInner", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "globalOuter": "GO",
             "globalInner": "GI",
@@ -2475,13 +2475,13 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::for_loop("item", "items", "item-tpl")],
+                fragments: vec![webhubFragment::for_loop("item", "items", "item-tpl")],
             },
         );
         fragments.insert(
             "item-tpl".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::if_cond(
+                fragments: vec![webhubFragment::if_cond(
                     ConditionExpr::identifier("item.visible"),
                     "visible-tpl",
                 )],
@@ -2490,10 +2490,10 @@ mod tests {
         fragments.insert(
             "visible-tpl".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::signal("item.name", false)],
+                fragments: vec![webhubFragment::signal("item.name", false)],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"items": [{"name": "Show", "visible": true}, {"name": "Hide", "visible": false}]});
         let mut writer = TestWriter::new();
         handle(
@@ -2512,13 +2512,13 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::for_loop("item", "items", "item-tpl")],
+                fragments: vec![webhubFragment::for_loop("item", "items", "item-tpl")],
             },
         );
         fragments.insert(
             "item-tpl".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::if_cond(
+                fragments: vec![webhubFragment::if_cond(
                     ConditionExpr::identifier("item.flag"),
                     "show-tpl",
                 )],
@@ -2527,10 +2527,10 @@ mod tests {
         fragments.insert(
             "show-tpl".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("yes")],
+                fragments: vec![webhubFragment::raw("yes")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         // Global flag is true, but local item.flag is false for second item
         let state = test_json!({"flag": true, "items": [{"flag": true}, {"flag": false}]});
         let mut writer = TestWriter::new();
@@ -2553,10 +2553,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-comp"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-comp"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 value: "Attribute Title".into(),
                                 attr_start: true,
@@ -2565,9 +2565,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-comp"),
-                    WebUIFragment::raw("</my-comp>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-comp"),
+                    webhubFragment::raw("</my-comp>"),
                 ],
             },
         );
@@ -2575,13 +2575,13 @@ mod tests {
             "my-comp".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"title": "Global Title"});
         let mut writer = TestWriter::new();
         handle(
@@ -2604,10 +2604,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-comp"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-comp"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 template: "title-attr".into(),
                                 attr_start: true,
@@ -2615,9 +2615,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-comp"),
-                    WebUIFragment::raw("</my-comp>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-comp"),
+                    webhubFragment::raw("</my-comp>"),
                 ],
             },
         );
@@ -2625,8 +2625,8 @@ mod tests {
             "title-attr".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("hello "),
-                    WebUIFragment::signal("item", false),
+                    webhubFragment::raw("hello "),
+                    webhubFragment::signal("item", false),
                 ],
             },
         );
@@ -2634,13 +2634,13 @@ mod tests {
             "my-comp".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"item": "<world>"});
         let mut writer = TestWriter::new();
         handle(
@@ -2663,10 +2663,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-comp"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-comp"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "data-title".into(),
                                 template: "dt-attr".into(),
                                 attr_start: true,
@@ -2674,9 +2674,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-comp"),
-                    WebUIFragment::raw("</my-comp>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-comp"),
+                    webhubFragment::raw("</my-comp>"),
                 ],
             },
         );
@@ -2684,8 +2684,8 @@ mod tests {
             "dt-attr".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("prefix "),
-                    WebUIFragment::signal("item", false),
+                    webhubFragment::raw("prefix "),
+                    webhubFragment::signal("item", false),
                 ],
             },
         );
@@ -2693,13 +2693,13 @@ mod tests {
             "my-comp".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("dataTitle", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("dataTitle", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"item": "a&b"});
         let mut writer = TestWriter::new();
         handle(
@@ -2722,10 +2722,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-comp"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-comp"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: ":item".into(),
                                 value: "complexItem".into(),
                                 attr_start: true,
@@ -2734,9 +2734,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-comp"),
-                    WebUIFragment::raw("</my-comp>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-comp"),
+                    webhubFragment::raw("</my-comp>"),
                 ],
             },
         );
@@ -2744,15 +2744,15 @@ mod tests {
             "my-comp".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("item.foo", false),
-                    WebUIFragment::raw("</span><p>"),
-                    WebUIFragment::signal("item.bar", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("item.foo", false),
+                    webhubFragment::raw("</span><p>"),
+                    webhubFragment::signal("item.bar", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"complexItem": {"foo": 1, "bar": "true"}});
         let mut writer = TestWriter::new();
         handle(
@@ -2775,10 +2775,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<parent"),
-                    WebUIFragment {
+                    webhubFragment::raw("<parent"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "var".into(),
                                 value: "var".into(),
                                 attr_start: true,
@@ -2786,9 +2786,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("parent"),
-                    WebUIFragment::raw("</parent>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("parent"),
+                    webhubFragment::raw("</parent>"),
                 ],
             },
         );
@@ -2796,12 +2796,12 @@ mod tests {
             "parent".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Before: "),
-                    WebUIFragment::signal("var", false),
-                    WebUIFragment::raw("<child foo"),
-                    WebUIFragment {
+                    webhubFragment::raw("Before: "),
+                    webhubFragment::signal("var", false),
+                    webhubFragment::raw("<child foo"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "var".into(),
                                 value: "replaced".into(),
                                 raw_value: true,
@@ -2809,15 +2809,15 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("child"),
-                    WebUIFragment::raw("Label</child>After: "),
-                    WebUIFragment::signal("var", false),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("child"),
+                    webhubFragment::raw("Label</child>After: "),
+                    webhubFragment::signal("var", false),
                 ],
             },
         );
         fragments.insert("child".to_string(), FragmentList { fragments: vec![] });
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"var": "original"});
         let mut writer = TestWriter::new();
         handle(
@@ -2840,10 +2840,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-comp"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-comp"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "disabled".into(),
                                 attr_start: true,
                                 condition_tree: Some(ConditionExpr::identifier("isDisabled")),
@@ -2851,16 +2851,16 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-comp"),
-                    WebUIFragment::raw("</my-comp>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-comp"),
+                    webhubFragment::raw("</my-comp>"),
                 ],
             },
         );
         fragments.insert(
             "my-comp".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::if_cond(
+                fragments: vec![webhubFragment::if_cond(
                     ConditionExpr::identifier("disabled"),
                     "show",
                 )],
@@ -2869,10 +2869,10 @@ mod tests {
         fragments.insert(
             "show".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("disabled!")],
+                fragments: vec![webhubFragment::raw("disabled!")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"isDisabled": true});
         let mut writer = TestWriter::new();
         handle(
@@ -2896,10 +2896,10 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::signal("v", false)],
+                fragments: vec![webhubFragment::signal("v", false)],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"v": value});
         let mut writer = TestWriter::new();
         handle(
@@ -3007,16 +3007,16 @@ mod tests {
                 "index.html".to_string(),
                 FragmentList {
                     fragments: vec![
-                        WebUIFragment::raw("<input"),
-                        WebUIFragment::attribute_boolean(
+                        webhubFragment::raw("<input"),
+                        webhubFragment::attribute_boolean(
                             "checked",
                             ConditionExpr::identifier("checked"),
                         ),
-                        WebUIFragment::raw(">"),
+                        webhubFragment::raw(">"),
                     ],
                 },
             );
-            let protocol = WebUIProtocol::new(fragments);
+            let protocol = webhubProtocol::new(fragments);
             let state = test_json!({"checked": 1});
             let mut writer = TestWriter::new();
             handle(
@@ -3035,16 +3035,16 @@ mod tests {
                 "index.html".to_string(),
                 FragmentList {
                     fragments: vec![
-                        WebUIFragment::raw("<input"),
-                        WebUIFragment::attribute_boolean(
+                        webhubFragment::raw("<input"),
+                        webhubFragment::attribute_boolean(
                             "checked",
                             ConditionExpr::identifier("checked"),
                         ),
-                        WebUIFragment::raw(">"),
+                        webhubFragment::raw(">"),
                     ],
                 },
             );
-            let protocol = WebUIProtocol::new(fragments);
+            let protocol = webhubProtocol::new(fragments);
             let state = test_json!({"checked": "yes"});
             let mut writer = TestWriter::new();
             handle(
@@ -3063,16 +3063,16 @@ mod tests {
                 "index.html".to_string(),
                 FragmentList {
                     fragments: vec![
-                        WebUIFragment::raw("<input"),
-                        WebUIFragment::attribute_boolean(
+                        webhubFragment::raw("<input"),
+                        webhubFragment::attribute_boolean(
                             "checked",
                             ConditionExpr::identifier("checked"),
                         ),
-                        WebUIFragment::raw(">"),
+                        webhubFragment::raw(">"),
                     ],
                 },
             );
-            let protocol = WebUIProtocol::new(fragments);
+            let protocol = webhubProtocol::new(fragments);
             let state = test_json!({"checked": {}});
             let mut writer = TestWriter::new();
             handle(
@@ -3092,16 +3092,16 @@ mod tests {
                 "index.html".to_string(),
                 FragmentList {
                     fragments: vec![
-                        WebUIFragment::raw("<input"),
-                        WebUIFragment::attribute_boolean(
+                        webhubFragment::raw("<input"),
+                        webhubFragment::attribute_boolean(
                             "checked",
                             ConditionExpr::identifier("checked"),
                         ),
-                        WebUIFragment::raw(">"),
+                        webhubFragment::raw(">"),
                     ],
                 },
             );
-            let protocol = WebUIProtocol::new(fragments);
+            let protocol = webhubProtocol::new(fragments);
             let state = test_json!({"checked": "false"});
             let mut writer = TestWriter::new();
             handle(
@@ -3124,16 +3124,16 @@ mod tests {
                 "index.html".to_string(),
                 FragmentList {
                     fragments: vec![
-                        WebUIFragment::raw("<input"),
-                        WebUIFragment::attribute_boolean(
+                        webhubFragment::raw("<input"),
+                        webhubFragment::attribute_boolean(
                             "checked",
                             ConditionExpr::identifier("checked"),
                         ),
-                        WebUIFragment::raw(">"),
+                        webhubFragment::raw(">"),
                     ],
                 },
             );
-            let protocol = WebUIProtocol::new(fragments);
+            let protocol = webhubProtocol::new(fragments);
             let state = test_json!({"checked": 0});
             let mut writer = TestWriter::new();
             handle(
@@ -3152,16 +3152,16 @@ mod tests {
                 "index.html".to_string(),
                 FragmentList {
                     fragments: vec![
-                        WebUIFragment::raw("<input"),
-                        WebUIFragment::attribute_boolean(
+                        webhubFragment::raw("<input"),
+                        webhubFragment::attribute_boolean(
                             "checked",
                             ConditionExpr::identifier("checked"),
                         ),
-                        WebUIFragment::raw(">"),
+                        webhubFragment::raw(">"),
                     ],
                 },
             );
-            let protocol = WebUIProtocol::new(fragments);
+            let protocol = webhubProtocol::new(fragments);
             let state = test_json!({"checked": ""});
             let mut writer = TestWriter::new();
             handle(
@@ -3180,16 +3180,16 @@ mod tests {
                 "index.html".to_string(),
                 FragmentList {
                     fragments: vec![
-                        WebUIFragment::raw("<input"),
-                        WebUIFragment::attribute_boolean(
+                        webhubFragment::raw("<input"),
+                        webhubFragment::attribute_boolean(
                             "checked",
                             ConditionExpr::identifier("checked"),
                         ),
-                        WebUIFragment::raw(">"),
+                        webhubFragment::raw(">"),
                     ],
                 },
             );
-            let protocol = WebUIProtocol::new(fragments);
+            let protocol = webhubProtocol::new(fragments);
             let state = test_json!({"checked": false});
             let mut writer = TestWriter::new();
             handle(
@@ -3208,16 +3208,16 @@ mod tests {
                 "index.html".to_string(),
                 FragmentList {
                     fragments: vec![
-                        WebUIFragment::raw("<input"),
-                        WebUIFragment::attribute_boolean(
+                        webhubFragment::raw("<input"),
+                        webhubFragment::attribute_boolean(
                             "checked",
                             ConditionExpr::identifier("checked"),
                         ),
-                        WebUIFragment::raw(">"),
+                        webhubFragment::raw(">"),
                     ],
                 },
             );
-            let protocol = WebUIProtocol::new(fragments);
+            let protocol = webhubProtocol::new(fragments);
             let state = test_json!({});
             let mut writer = TestWriter::new();
             handle(
@@ -3238,16 +3238,16 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<button"),
-                    WebUIFragment::attribute_boolean(
+                    webhubFragment::raw("<button"),
+                    webhubFragment::attribute_boolean(
                         "disabled",
                         ConditionExpr::predicate("itemCount", ComparisonOperator::Equal, "5"),
                     ),
-                    WebUIFragment::raw(">Click</button>"),
+                    webhubFragment::raw(">Click</button>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"itemCount": 5});
         let mut writer = TestWriter::new();
         handle(
@@ -3267,16 +3267,16 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<button"),
-                    WebUIFragment::attribute_boolean(
+                    webhubFragment::raw("<button"),
+                    webhubFragment::attribute_boolean(
                         "disabled",
                         ConditionExpr::predicate("itemCount", ComparisonOperator::Equal, "5"),
                     ),
-                    WebUIFragment::raw(">Click</button>"),
+                    webhubFragment::raw(">Click</button>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"itemCount": 3});
         let mut writer = TestWriter::new();
         handle(
@@ -3298,10 +3298,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<parent-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<parent-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 template: "parent-title".into(),
                                 attr_start: true,
@@ -3309,9 +3309,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("parent-component"),
-                    WebUIFragment::raw("</parent-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("parent-component"),
+                    webhubFragment::raw("</parent-component>"),
                 ],
             },
         );
@@ -3319,8 +3319,8 @@ mod tests {
             "parent-title".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Hello "),
-                    WebUIFragment::signal("who", false),
+                    webhubFragment::raw("Hello "),
+                    webhubFragment::signal("who", false),
                 ],
             },
         );
@@ -3328,10 +3328,10 @@ mod tests {
             "parent-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<child-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<child-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 template: "child-title".into(),
                                 attr_start: true,
@@ -3339,9 +3339,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("child-component"),
-                    WebUIFragment::raw("</child-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("child-component"),
+                    webhubFragment::raw("</child-component>"),
                 ],
             },
         );
@@ -3349,8 +3349,8 @@ mod tests {
             "child-title".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Child of "),
-                    WebUIFragment::signal("title", false),
+                    webhubFragment::raw("Child of "),
+                    webhubFragment::signal("title", false),
                 ],
             },
         );
@@ -3358,13 +3358,13 @@ mod tests {
             "child-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"who": "<world>"});
         let mut writer = TestWriter::new();
         handle(
@@ -3387,10 +3387,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<parent-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<parent-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 template: "p-title".into(),
                                 attr_start: true,
@@ -3398,26 +3398,26 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("parent-component"),
-                    WebUIFragment::raw("</parent-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("parent-component"),
+                    webhubFragment::raw("</parent-component>"),
                 ],
             },
         );
         fragments.insert(
             "p-title".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("P:"), WebUIFragment::signal("p", false)],
+                fragments: vec![webhubFragment::raw("P:"), webhubFragment::signal("p", false)],
             },
         );
         fragments.insert(
             "parent-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<child-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<child-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 template: "c-title".into(),
                                 attr_start: true,
@@ -3425,9 +3425,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("child-component"),
-                    WebUIFragment::raw("</child-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("child-component"),
+                    webhubFragment::raw("</child-component>"),
                 ],
             },
         );
@@ -3435,10 +3435,10 @@ mod tests {
             "c-title".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("C("),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw(")-"),
-                    WebUIFragment::signal("cExtra", false),
+                    webhubFragment::raw("C("),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw(")-"),
+                    webhubFragment::signal("cExtra", false),
                 ],
             },
         );
@@ -3446,10 +3446,10 @@ mod tests {
             "child-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<grandchild-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<grandchild-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 value: "title".into(),
                                 attr_start: true,
@@ -3457,9 +3457,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("grandchild-component"),
-                    WebUIFragment::raw("</grandchild-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("grandchild-component"),
+                    webhubFragment::raw("</grandchild-component>"),
                 ],
             },
         );
@@ -3467,13 +3467,13 @@ mod tests {
             "grandchild-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"p": "<p>", "cExtra": "x&y"});
         let mut writer = TestWriter::new();
         handle(
@@ -3496,10 +3496,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<parent-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<parent-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 template: "parent-title-loop".into(),
                                 attr_start: true,
@@ -3507,9 +3507,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("parent-component"),
-                    WebUIFragment::raw("</parent-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("parent-component"),
+                    webhubFragment::raw("</parent-component>"),
                 ],
             },
         );
@@ -3517,25 +3517,25 @@ mod tests {
             "parent-title-loop".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Parent:"),
-                    WebUIFragment::signal("who", false),
+                    webhubFragment::raw("Parent:"),
+                    webhubFragment::signal("who", false),
                 ],
             },
         );
         fragments.insert(
             "parent-component".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::for_loop("item", "items", "child-loop")],
+                fragments: vec![webhubFragment::for_loop("item", "items", "child-loop")],
             },
         );
         fragments.insert(
             "child-loop".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<child-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<child-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 template: "child-title-loop".into(),
                                 attr_start: true,
@@ -3543,9 +3543,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("child-component"),
-                    WebUIFragment::raw("</child-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("child-component"),
+                    webhubFragment::raw("</child-component>"),
                 ],
             },
         );
@@ -3553,10 +3553,10 @@ mod tests {
             "child-title-loop".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("Hi "),
-                    WebUIFragment::signal("item.name", false),
-                    WebUIFragment::raw(" / "),
-                    WebUIFragment::signal("title", false),
+                    webhubFragment::raw("Hi "),
+                    webhubFragment::signal("item.name", false),
+                    webhubFragment::raw(" / "),
+                    webhubFragment::signal("title", false),
                 ],
             },
         );
@@ -3564,13 +3564,13 @@ mod tests {
             "child-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"who": "Bob", "items": [{"name": "A<1>"}, {"name": "B&2"}]});
         let mut writer = TestWriter::new();
         handle(
@@ -3593,10 +3593,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 template: "attr-title".into(),
                                 attr_start: true,
@@ -3604,9 +3604,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "data-title".into(),
                                 template: "attr-data-title".into(),
                                 attr_start: false,
@@ -3614,9 +3614,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "aria-label".into(),
                                 template: "attr-aria-label".into(),
                                 attr_start: false,
@@ -3624,45 +3624,45 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</my-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</my-component>"),
                 ],
             },
         );
         fragments.insert(
             "attr-title".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("T:"), WebUIFragment::signal("t", false)],
+                fragments: vec![webhubFragment::raw("T:"), webhubFragment::signal("t", false)],
             },
         );
         fragments.insert(
             "attr-data-title".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("D:"), WebUIFragment::signal("d", false)],
+                fragments: vec![webhubFragment::raw("D:"), webhubFragment::signal("d", false)],
             },
         );
         fragments.insert(
             "attr-aria-label".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("A:"), WebUIFragment::signal("a", false)],
+                fragments: vec![webhubFragment::raw("A:"), webhubFragment::signal("a", false)],
             },
         );
         fragments.insert(
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("|"),
-                    WebUIFragment::signal("dataTitle", false),
-                    WebUIFragment::raw("|"),
-                    WebUIFragment::signal("ariaLabel", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("|"),
+                    webhubFragment::signal("dataTitle", false),
+                    webhubFragment::raw("|"),
+                    webhubFragment::signal("ariaLabel", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"t": "<t&1>", "d": "d<2>", "a": "a&3"});
         let mut writer = TestWriter::new();
         handle(
@@ -3685,10 +3685,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 value: "Attribute Title".into(),
                                 raw_value: true,
@@ -3697,9 +3697,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</my-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</my-component>"),
                 ],
             },
         );
@@ -3707,13 +3707,13 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"title": "Global Title"});
         let mut writer = TestWriter::new();
         handle(
@@ -3735,17 +3735,17 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::for_loop("item", "items", "loop")],
+                fragments: vec![webhubFragment::for_loop("item", "items", "loop")],
             },
         );
         fragments.insert(
             "loop".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 value: "Attribute Title".into(),
                                 raw_value: true,
@@ -3754,9 +3754,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</my-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</my-component>"),
                 ],
             },
         );
@@ -3764,13 +3764,13 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"title": "Global Title", "items": [{"title": "Local Title"}]});
         let mut writer = TestWriter::new();
         handle(
@@ -3793,10 +3793,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "disabled".into(),
                                 attr_start: true,
                                 condition_tree: Some(ConditionExpr::identifier("isDisabled")),
@@ -3804,9 +3804,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "label".into(),
                                 value: "Component Label".into(),
                                 raw_value: true,
@@ -3815,9 +3815,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</my-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</my-component>"),
                 ],
             },
         );
@@ -3825,23 +3825,23 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::if_cond(
+                    webhubFragment::if_cond(
                         ConditionExpr::identifier("disabled"),
                         "disabledTemplate",
                     ),
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("label", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("label", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
         fragments.insert(
             "disabledTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>Disabled</div>")],
+                fragments: vec![webhubFragment::raw("<div>Disabled</div>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"isDisabled": true});
         let mut writer = TestWriter::new();
         handle(
@@ -3864,10 +3864,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "key-hyphen".into(),
                                 value: "Local Value".into(),
                                 raw_value: true,
@@ -3876,9 +3876,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</my-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</my-component>"),
                 ],
             },
         );
@@ -3886,13 +3886,13 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("keyHyphen", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("keyHyphen", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"keyHyphen": "Global Value"});
         let mut writer = TestWriter::new();
         handle(
@@ -3918,11 +3918,11 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<test-component"),
+                    webhubFragment::raw("<test-component"),
                     // Skipped: class
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "class".into(),
                                 value: "skippedClass".into(),
                                 attr_start: true,
@@ -3932,9 +3932,9 @@ mod tests {
                         )),
                     },
                     // Skipped: style
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "style".into(),
                                 value: "skippedStyle".into(),
                                 attr_skip: true,
@@ -3943,9 +3943,9 @@ mod tests {
                         )),
                     },
                     // Skipped: role
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "role".into(),
                                 value: "skippedRole".into(),
                                 attr_skip: true,
@@ -3954,9 +3954,9 @@ mod tests {
                         )),
                     },
                     // Skipped: data-testid (data-* prefix)
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "data-testid".into(),
                                 value: "skippedDataTestid".into(),
                                 attr_skip: true,
@@ -3965,9 +3965,9 @@ mod tests {
                         )),
                     },
                     // Skipped: aria-label (aria-* prefix)
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "aria-label".into(),
                                 value: "skippedAriaLabel".into(),
                                 attr_skip: true,
@@ -3976,18 +3976,18 @@ mod tests {
                         )),
                     },
                     // NOT skipped: title
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 value: "title".into(),
                                 ..Default::default()
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("test-component"),
-                    WebUIFragment::raw("</test-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("test-component"),
+                    webhubFragment::raw("</test-component>"),
                 ],
             },
         );
@@ -3995,23 +3995,23 @@ mod tests {
             "test-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("class", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("style", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("role", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("dataTestid", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("ariaLabel", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("class", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("style", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("role", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("dataTestid", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("ariaLabel", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "title": "Hello",
             "skippedClass": "my-class",
@@ -4046,10 +4046,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<parent-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<parent-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 value: "Parent Title".into(),
                                 raw_value: true,
@@ -4058,9 +4058,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("parent-component"),
-                    WebUIFragment::raw("</parent-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("parent-component"),
+                    webhubFragment::raw("</parent-component>"),
                 ],
             },
         );
@@ -4068,12 +4068,12 @@ mod tests {
             "parent-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<h1>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("</h1><child-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<h1>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("</h1><child-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 value: "title".into(),
                                 attr_start: true,
@@ -4081,9 +4081,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("child-component"),
-                    WebUIFragment::raw("</child-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("child-component"),
+                    webhubFragment::raw("</child-component>"),
                 ],
             },
         );
@@ -4091,13 +4091,13 @@ mod tests {
             "child-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<h2>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("</h2>"),
+                    webhubFragment::raw("<h2>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("</h2>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let mut writer = TestWriter::new();
         handle(
@@ -4120,10 +4120,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<parent-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<parent-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 value: "Parent Title".into(),
                                 raw_value: true,
@@ -4132,9 +4132,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("parent-component"),
-                    WebUIFragment::raw("</parent-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("parent-component"),
+                    webhubFragment::raw("</parent-component>"),
                 ],
             },
         );
@@ -4142,10 +4142,10 @@ mod tests {
             "parent-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<child-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<child-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 value: "Child Title".into(),
                                 raw_value: true,
@@ -4154,9 +4154,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("child-component"),
-                    WebUIFragment::raw("</child-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("child-component"),
+                    webhubFragment::raw("</child-component>"),
                 ],
             },
         );
@@ -4164,10 +4164,10 @@ mod tests {
             "child-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<grandchild-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<grandchild-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "title".into(),
                                 value: "title".into(),
                                 attr_start: true,
@@ -4175,9 +4175,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("grandchild-component"),
-                    WebUIFragment::raw("</grandchild-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("grandchild-component"),
+                    webhubFragment::raw("</grandchild-component>"),
                 ],
             },
         );
@@ -4185,13 +4185,13 @@ mod tests {
             "grandchild-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<h3>"),
-                    WebUIFragment::signal("title", false),
-                    WebUIFragment::raw("</h3>"),
+                    webhubFragment::raw("<h3>"),
+                    webhubFragment::signal("title", false),
+                    webhubFragment::raw("</h3>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let mut writer = TestWriter::new();
         handle(
@@ -4214,10 +4214,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: ":item".into(),
                                 value: "complexItem".into(),
                                 attr_start: true,
@@ -4226,9 +4226,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</my-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</my-component>"),
                 ],
             },
         );
@@ -4236,15 +4236,15 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("item.foo", false),
-                    WebUIFragment::raw("</span><p>"),
-                    WebUIFragment::signal("item.bar", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("item.foo", false),
+                    webhubFragment::raw("</span><p>"),
+                    webhubFragment::signal("item.bar", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"complexItem": {"foo": 1, "bar": "true"}});
         let mut writer = TestWriter::new();
         handle(
@@ -4266,7 +4266,7 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::for_loop(
+                fragments: vec![webhubFragment::for_loop(
                     "item",
                     "list.items",
                     "listTemplate",
@@ -4277,9 +4277,9 @@ mod tests {
             "listTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: ":item".into(),
                                 value: "item".into(),
                                 attr_start: true,
@@ -4288,7 +4288,7 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::component("item_component"),
+                    webhubFragment::component("item_component"),
                 ],
             },
         );
@@ -4296,13 +4296,13 @@ mod tests {
             "item_component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("item.name", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("item.name", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"list": {"items": [{"name": "Alice"}, {"name": "Bob"}]}});
         let mut writer = TestWriter::new();
         handle(
@@ -4321,7 +4321,7 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::for_loop(
+                fragments: vec![webhubFragment::for_loop(
                     "outer",
                     "data.outer",
                     "outerTemplate",
@@ -4331,7 +4331,7 @@ mod tests {
         fragments.insert(
             "outerTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::for_loop(
+                fragments: vec![webhubFragment::for_loop(
                     "middle",
                     "outer.middle",
                     "middleTemplate",
@@ -4341,7 +4341,7 @@ mod tests {
         fragments.insert(
             "middleTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::for_loop(
+                fragments: vec![webhubFragment::for_loop(
                     "inner",
                     "middle.inner",
                     "innerTemplate",
@@ -4352,10 +4352,10 @@ mod tests {
             "innerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<card"),
-                    WebUIFragment {
+                    webhubFragment::raw("<card"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: ":outer".into(),
                                 value: "outer".into(),
                                 attr_start: true,
@@ -4364,9 +4364,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: ":middle".into(),
                                 value: "middle".into(),
                                 attr_start: false,
@@ -4375,9 +4375,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment {
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: ":inner".into(),
                                 value: "inner".into(),
                                 attr_start: false,
@@ -4386,9 +4386,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("card_component"),
-                    WebUIFragment::raw("</card>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("card_component"),
+                    webhubFragment::raw("</card>"),
                 ],
             },
         );
@@ -4396,17 +4396,17 @@ mod tests {
             "card_component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("outer.label", false),
-                    WebUIFragment::raw(" / "),
-                    WebUIFragment::signal("middle.label", false),
-                    WebUIFragment::raw(" / "),
-                    WebUIFragment::signal("inner.label", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("outer.label", false),
+                    webhubFragment::raw(" / "),
+                    webhubFragment::signal("middle.label", false),
+                    webhubFragment::raw(" / "),
+                    webhubFragment::signal("inner.label", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"data": {"outer": [
             {"label": "Outer1", "middle": [{"label": "Middle1", "inner": [{"label": "Inner1A"}, {"label": "Inner1B"}]}]},
             {"label": "Outer2", "middle": [{"label": "Middle2", "inner": [{"label": "Inner2A"}]}]}
@@ -4434,10 +4434,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "disabled".into(),
                                 attr_start: true,
                                 condition_tree: Some(ConditionExpr::identifier("isDisabled")),
@@ -4445,9 +4445,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</my-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</my-component>"),
                 ],
             },
         );
@@ -4455,11 +4455,11 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::if_cond(
+                    webhubFragment::if_cond(
                         ConditionExpr::identifier("disabled"),
                         "disabledTemplate",
                     ),
-                    WebUIFragment::if_cond(
+                    webhubFragment::if_cond(
                         ConditionExpr::negated(ConditionExpr::identifier("disabled")),
                         "enabledTemplate",
                     ),
@@ -4469,16 +4469,16 @@ mod tests {
         fragments.insert(
             "disabledTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<span>Disabled</span>")],
+                fragments: vec![webhubFragment::raw("<span>Disabled</span>")],
             },
         );
         fragments.insert(
             "enabledTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<span>Enabled</span>")],
+                fragments: vec![webhubFragment::raw("<span>Enabled</span>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"isDisabled": true});
         let mut writer = TestWriter::new();
         handle(
@@ -4501,10 +4501,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<my-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<my-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "disabled".into(),
                                 attr_start: true,
                                 condition_tree: Some(ConditionExpr::identifier("isDisabled")),
@@ -4512,9 +4512,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</my-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</my-component>"),
                 ],
             },
         );
@@ -4522,11 +4522,11 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::if_cond(
+                    webhubFragment::if_cond(
                         ConditionExpr::identifier("disabled"),
                         "disabledTemplate",
                     ),
-                    WebUIFragment::if_cond(
+                    webhubFragment::if_cond(
                         ConditionExpr::negated(ConditionExpr::identifier("disabled")),
                         "enabledTemplate",
                     ),
@@ -4536,16 +4536,16 @@ mod tests {
         fragments.insert(
             "disabledTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<span>Disabled</span>")],
+                fragments: vec![webhubFragment::raw("<span>Disabled</span>")],
             },
         );
         fragments.insert(
             "enabledTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<span>Enabled</span>")],
+                fragments: vec![webhubFragment::raw("<span>Enabled</span>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"isDisabled": false});
         let mut writer = TestWriter::new();
         handle(
@@ -4568,10 +4568,10 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<parent-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<parent-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "disabled".into(),
                                 attr_start: true,
                                 condition_tree: Some(ConditionExpr::identifier("isDisabled")),
@@ -4579,9 +4579,9 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("parent-component"),
-                    WebUIFragment::raw("</parent-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("parent-component"),
+                    webhubFragment::raw("</parent-component>"),
                 ],
             },
         );
@@ -4589,14 +4589,14 @@ mod tests {
             "parent-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::if_cond(
+                    webhubFragment::if_cond(
                         ConditionExpr::identifier("disabled"),
                         "parentDisabledTemplate",
                     ),
-                    WebUIFragment::raw("<child-component"),
-                    WebUIFragment {
+                    webhubFragment::raw("<child-component"),
+                    webhubFragment {
                         fragment: Some(web_ui_fragment::Fragment::Attribute(
-                            WebUIFragmentAttribute {
+                            webhubFragmentAttribute {
                                 name: "disabled".into(),
                                 attr_start: true,
                                 condition_tree: Some(ConditionExpr::identifier("disabled")),
@@ -4604,27 +4604,27 @@ mod tests {
                             },
                         )),
                     },
-                    WebUIFragment::raw(">"),
-                    WebUIFragment::component("child-component"),
-                    WebUIFragment::raw("</child-component>"),
+                    webhubFragment::raw(">"),
+                    webhubFragment::component("child-component"),
+                    webhubFragment::raw("</child-component>"),
                 ],
             },
         );
         fragments.insert(
             "parentDisabledTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>Parent Disabled</div>")],
+                fragments: vec![webhubFragment::raw("<div>Parent Disabled</div>")],
             },
         );
         fragments.insert(
             "child-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::if_cond(
+                    webhubFragment::if_cond(
                         ConditionExpr::identifier("disabled"),
                         "childDisabledTemplate",
                     ),
-                    WebUIFragment::if_cond(
+                    webhubFragment::if_cond(
                         ConditionExpr::negated(ConditionExpr::identifier("disabled")),
                         "childEnabledTemplate",
                     ),
@@ -4634,19 +4634,19 @@ mod tests {
         fragments.insert(
             "childDisabledTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>Child Disabled</div>")],
+                fragments: vec![webhubFragment::raw("<div>Child Disabled</div>")],
             },
         );
         fragments.insert(
             "childEnabledTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>Child Enabled</div>")],
+                fragments: vec![webhubFragment::raw("<div>Child Enabled</div>")],
             },
         );
 
         // Test case 1: isDisabled = true
         {
-            let protocol = WebUIProtocol::new(fragments.clone());
+            let protocol = webhubProtocol::new(fragments.clone());
             let state = test_json!({"isDisabled": true});
             let mut writer = TestWriter::new();
             handle(
@@ -4664,7 +4664,7 @@ mod tests {
 
         // Test case 2: isDisabled = false
         {
-            let protocol = WebUIProtocol::new(fragments.clone());
+            let protocol = webhubProtocol::new(fragments.clone());
             let state = test_json!({"isDisabled": false});
             let mut writer = TestWriter::new();
             handle(
@@ -4694,19 +4694,19 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<custom-element>"),
-                    WebUIFragment::component("custom-element"),
-                    WebUIFragment::raw("</custom-element>"),
+                    webhubFragment::raw("<custom-element>"),
+                    webhubFragment::component("custom-element"),
+                    webhubFragment::raw("</custom-element>"),
                 ],
             },
         );
         fragments.insert(
             "custom-element".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>Custom Element</div>")],
+                fragments: vec![webhubFragment::raw("<div>Custom Element</div>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let mut writer = TestWriter::new();
         handle(
@@ -4730,19 +4730,19 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<custom-element appearance=\"subtle\">"),
-                    WebUIFragment::component("custom-element"),
-                    WebUIFragment::raw("Hello World</custom-element>"),
+                    webhubFragment::raw("<custom-element appearance=\"subtle\">"),
+                    webhubFragment::component("custom-element"),
+                    webhubFragment::raw("Hello World</custom-element>"),
                 ],
             },
         );
         fragments.insert(
             "custom-element".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<slot></slot>")],
+                fragments: vec![webhubFragment::raw("<slot></slot>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let mut writer = TestWriter::new();
         handle(
@@ -4766,47 +4766,47 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("item", "items", "templateRepeat"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("item", "items", "templateRepeat"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
         fragments.insert(
             "custom-button".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<slot></slot>")],
+                fragments: vec![webhubFragment::raw("<slot></slot>")],
             },
         );
         fragments.insert(
             "custom-element".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<custom-child>"),
-                    WebUIFragment::component("custom-child"),
-                    WebUIFragment::raw("</custom-child><slot></slot>"),
+                    webhubFragment::raw("<custom-child>"),
+                    webhubFragment::component("custom-child"),
+                    webhubFragment::raw("</custom-child><slot></slot>"),
                 ],
             },
         );
         fragments.insert(
             "custom-child".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<h1>Hello World!</h1>")],
+                fragments: vec![webhubFragment::raw("<h1>Hello World!</h1>")],
             },
         );
         fragments.insert(
             "templateRepeat".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<custom-element>"),
-                    WebUIFragment::component("custom-element"),
-                    WebUIFragment::raw("<custom-button>"),
-                    WebUIFragment::component("custom-button"),
-                    WebUIFragment::raw("Ok</custom-button></custom-element>"),
+                    webhubFragment::raw("<custom-element>"),
+                    webhubFragment::component("custom-element"),
+                    webhubFragment::raw("<custom-button>"),
+                    webhubFragment::component("custom-button"),
+                    webhubFragment::raw("Ok</custom-button></custom-element>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"items": [{"name": "Item1"}]});
         let mut writer = TestWriter::new();
         handle(
@@ -4832,22 +4832,22 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::if_cond(
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::if_cond(
                         ConditionExpr::predicate("x", ComparisonOperator::GreaterThan, "5"),
                         "if-1",
                     ),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
         fragments.insert(
             "if-1".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<span>If 1</span>")],
+                fragments: vec![webhubFragment::raw("<span>If 1</span>")],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
 
         // True case: x = 10 > 5
         let state_true = test_json!({"x": 10});
@@ -4881,9 +4881,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("item", "items", "template1"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("item", "items", "template1"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -4891,9 +4891,9 @@ mod tests {
             "template1".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::if_cond(ConditionExpr::identifier("item.flag"), "ifBlock"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::if_cond(ConditionExpr::identifier("item.flag"), "ifBlock"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -4901,13 +4901,13 @@ mod tests {
             "ifBlock".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("item.label", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("item.label", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "flag": false,
             "items": [
@@ -4937,9 +4937,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("item", "items", "template1"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("item", "items", "template1"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -4947,9 +4947,9 @@ mod tests {
             "template1".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::if_cond(ConditionExpr::identifier("item.flag"), "ifBlock"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::if_cond(ConditionExpr::identifier("item.flag"), "ifBlock"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -4957,13 +4957,13 @@ mod tests {
             "ifBlock".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("item.label", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("item.label", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "item": {"flag": true},
             "items": [
@@ -4994,26 +4994,26 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::for_loop("item", "items", "static")],
+                fragments: vec![webhubFragment::for_loop("item", "items", "static")],
             },
         );
         fragments.insert(
             "static".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div expanded=\""),
-                    WebUIFragment::signal("item.expanded", false),
-                    WebUIFragment::raw("\" class=\""),
-                    WebUIFragment::signal("testScenario", false),
-                    WebUIFragment::raw("\"><span>"),
-                    WebUIFragment::signal("item.name", false),
-                    WebUIFragment::raw("</span>"),
-                    WebUIFragment::for_loop("item", "item.children", "static"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div expanded=\""),
+                    webhubFragment::signal("item.expanded", false),
+                    webhubFragment::raw("\" class=\""),
+                    webhubFragment::signal("testScenario", false),
+                    webhubFragment::raw("\"><span>"),
+                    webhubFragment::signal("item.name", false),
+                    webhubFragment::raw("</span>"),
+                    webhubFragment::for_loop("item", "item.children", "static"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "testScenario": "RecursiveTemplatesWithGlobalState",
             "items": [
@@ -5048,9 +5048,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("item", "items", "templateComponent"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("item", "items", "templateComponent"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5058,9 +5058,9 @@ mod tests {
             "templateComponent".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<component-tag>"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</component-tag>"),
+                    webhubFragment::raw("<component-tag>"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</component-tag>"),
                 ],
             },
         );
@@ -5068,13 +5068,13 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("name", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("name", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"items": [{"name": "Item1"}, {"name": "Item2"}]});
         let mut writer = TestWriter::new();
         handle(
@@ -5097,9 +5097,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5107,11 +5107,11 @@ mod tests {
             "outerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<section>"),
-                    WebUIFragment::signal("globalPrefix", false),
-                    WebUIFragment::signal("outerItem.outerLabel", false),
-                    WebUIFragment::for_loop("innerItem", "outerItem.innerItems", "innerTemplate"),
-                    WebUIFragment::raw("</section>"),
+                    webhubFragment::raw("<section>"),
+                    webhubFragment::signal("globalPrefix", false),
+                    webhubFragment::signal("outerItem.outerLabel", false),
+                    webhubFragment::for_loop("innerItem", "outerItem.innerItems", "innerTemplate"),
+                    webhubFragment::raw("</section>"),
                 ],
             },
         );
@@ -5119,16 +5119,16 @@ mod tests {
             "innerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("globalPrefix", false),
-                    WebUIFragment::signal("outerItem.outerLabel", false),
-                    WebUIFragment::raw(": "),
-                    WebUIFragment::signal("innerItem.innerLabel", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("globalPrefix", false),
+                    webhubFragment::signal("outerItem.outerLabel", false),
+                    webhubFragment::raw(": "),
+                    webhubFragment::signal("innerItem.innerLabel", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "globalPrefix": "Prefix: ",
             "outerItems": [
@@ -5157,9 +5157,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("item", "items", "templateComponent"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("item", "items", "templateComponent"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5167,9 +5167,9 @@ mod tests {
             "templateComponent".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<component-tag>"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</component-tag>"),
+                    webhubFragment::raw("<component-tag>"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</component-tag>"),
                 ],
             },
         );
@@ -5177,15 +5177,15 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("name", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("globalSuffix", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("name", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("globalSuffix", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state =
             test_json!({"globalSuffix": "Global", "items": [{"name": "Item1"}, {"name": "Item2"}]});
         let mut writer = TestWriter::new();
@@ -5209,9 +5209,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("item", "items", "templateComponent"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("item", "items", "templateComponent"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5219,9 +5219,9 @@ mod tests {
             "templateComponent".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<component-tag>"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</component-tag>"),
+                    webhubFragment::raw("<component-tag>"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</component-tag>"),
                 ],
             },
         );
@@ -5229,15 +5229,15 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("item.name", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("globalSuffix", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("item.name", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("globalSuffix", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state =
             test_json!({"globalSuffix": "Global", "items": [{"name": "Item1"}, {"name": "Item2"}]});
         let mut writer = TestWriter::new();
@@ -5261,9 +5261,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("item", "items", "template1"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("item", "items", "template1"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5271,13 +5271,13 @@ mod tests {
             "template1".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("name", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("name", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({"name": "GlobalName", "items": [{"name": "LocalName1"}, {"name": "LocalName2"}]});
         let mut writer = TestWriter::new();
         handle(
@@ -5300,9 +5300,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5310,14 +5310,14 @@ mod tests {
             "outerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<section>"),
-                    WebUIFragment::signal("globalPrefix", false),
-                    WebUIFragment::signal("outerItem.outerLabel", false),
-                    WebUIFragment::if_cond(
+                    webhubFragment::raw("<section>"),
+                    webhubFragment::signal("globalPrefix", false),
+                    webhubFragment::signal("outerItem.outerLabel", false),
+                    webhubFragment::if_cond(
                         ConditionExpr::identifier("outerItem.include"),
                         "ifTemplate",
                     ),
-                    WebUIFragment::raw("</section>"),
+                    webhubFragment::raw("</section>"),
                 ],
             },
         );
@@ -5325,9 +5325,9 @@ mod tests {
             "ifTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("innerItem", "outerItem.innerItems", "innerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("innerItem", "outerItem.innerItems", "innerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5335,15 +5335,15 @@ mod tests {
             "innerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("globalSuffix", false),
-                    WebUIFragment::raw(": "),
-                    WebUIFragment::signal("innerItem.innerLabel", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("globalSuffix", false),
+                    webhubFragment::raw(": "),
+                    webhubFragment::signal("innerItem.innerLabel", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "globalPrefix": "Prefix: ",
             "globalSuffix": "Suffix",
@@ -5374,9 +5374,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5384,15 +5384,15 @@ mod tests {
             "outerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<section>"),
-                    WebUIFragment::signal("globalPrefix", false),
-                    WebUIFragment::signal("outerItem.label", false),
-                    WebUIFragment::for_loop(
+                    webhubFragment::raw("<section>"),
+                    webhubFragment::signal("globalPrefix", false),
+                    webhubFragment::signal("outerItem.label", false),
+                    webhubFragment::for_loop(
                         "middleItem",
                         "outerItem.middleItems",
                         "middleTemplate",
                     ),
-                    WebUIFragment::raw("</section>"),
+                    webhubFragment::raw("</section>"),
                 ],
             },
         );
@@ -5400,12 +5400,12 @@ mod tests {
             "middleTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::if_cond(
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::if_cond(
                         ConditionExpr::identifier("outerItem.active"),
                         "ifTemplate",
                     ),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5413,13 +5413,13 @@ mod tests {
             "ifTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("middleItem.value", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("middleItem.value", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "globalPrefix": "GP-",
             "outerItems": [
@@ -5449,9 +5449,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("outerItem", "outerItems", "outerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5459,10 +5459,10 @@ mod tests {
             "outerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<section>"),
-                    WebUIFragment::signal("outerItem.label", false),
-                    WebUIFragment::for_loop("innerItem", "outerItem.innerItems", "innerTemplate"),
-                    WebUIFragment::raw("</section>"),
+                    webhubFragment::raw("<section>"),
+                    webhubFragment::signal("outerItem.label", false),
+                    webhubFragment::for_loop("innerItem", "outerItem.innerItems", "innerTemplate"),
+                    webhubFragment::raw("</section>"),
                 ],
             },
         );
@@ -5470,12 +5470,12 @@ mod tests {
             "innerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<article>"),
-                    WebUIFragment::if_cond(
+                    webhubFragment::raw("<article>"),
+                    webhubFragment::if_cond(
                         ConditionExpr::identifier("innerItem.show"),
                         "ifTemplate",
                     ),
-                    WebUIFragment::raw("</article>"),
+                    webhubFragment::raw("</article>"),
                 ],
             },
         );
@@ -5483,13 +5483,13 @@ mod tests {
             "ifTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("innerItem.detail", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("innerItem.detail", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "outerItems": [
                 {"label": "Outer1", "innerItems": [{"detail": "Detail1", "show": true}, {"detail": "Detail2", "show": false}]},
@@ -5517,9 +5517,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("item", "items", "template1"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("item", "items", "template1"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5527,19 +5527,19 @@ mod tests {
             "template1".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("item.name", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("item.globalValue", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("item.localOnly", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("item.otherVal", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("item.name", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("item.globalValue", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("item.localOnly", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("item.otherVal", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "item": {"globalValue": "GLOBAL", "otherVal": "other"},
             "items": [
@@ -5568,9 +5568,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("item", "items", "templateComponent"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("item", "items", "templateComponent"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5578,9 +5578,9 @@ mod tests {
             "templateComponent".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<component-tag>"),
-                    WebUIFragment::component("my-component"),
-                    WebUIFragment::raw("</component-tag>"),
+                    webhubFragment::raw("<component-tag>"),
+                    webhubFragment::component("my-component"),
+                    webhubFragment::raw("</component-tag>"),
                 ],
             },
         );
@@ -5588,19 +5588,19 @@ mod tests {
             "my-component".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<span>"),
-                    WebUIFragment::signal("name", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("item.globalValue", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("localOnly", false),
-                    WebUIFragment::raw("-"),
-                    WebUIFragment::signal("item.otherVal", false),
-                    WebUIFragment::raw("</span>"),
+                    webhubFragment::raw("<span>"),
+                    webhubFragment::signal("name", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("item.globalValue", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("localOnly", false),
+                    webhubFragment::raw("-"),
+                    webhubFragment::signal("item.otherVal", false),
+                    webhubFragment::raw("</span>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "item": {"globalValue": "GLOBAL", "otherVal": "other"},
             "items": [
@@ -5629,9 +5629,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("outer", "list.outer_items", "outerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("outer", "list.outer_items", "outerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5639,16 +5639,16 @@ mod tests {
             "outerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<section>"),
-                    WebUIFragment::for_loop("inner_item", "outer.inner_items", "innerTemplate"),
-                    WebUIFragment::raw("</section>"),
+                    webhubFragment::raw("<section>"),
+                    webhubFragment::for_loop("inner_item", "outer.inner_items", "innerTemplate"),
+                    webhubFragment::raw("</section>"),
                 ],
             },
         );
         fragments.insert(
             "innerTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::if_cond(
+                fragments: vec![webhubFragment::if_cond(
                     ConditionExpr::identifier("inner_item.flag"),
                     "ifInner",
                 )],
@@ -5658,13 +5658,13 @@ mod tests {
             "ifInner".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("inner_item.value", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("inner_item.value", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "list": {"outer_items": [{"inner_items": [{"flag": true, "value": "X"}, {"flag": false, "value": "Y"}]}]},
             "inner_item": {"flag": false}
@@ -5690,9 +5690,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("outer", "list.outer_items", "outerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("outer", "list.outer_items", "outerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5700,16 +5700,16 @@ mod tests {
             "outerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<section>"),
-                    WebUIFragment::for_loop("inner_item", "outer.inner_items", "innerTemplate"),
-                    WebUIFragment::raw("</section>"),
+                    webhubFragment::raw("<section>"),
+                    webhubFragment::for_loop("inner_item", "outer.inner_items", "innerTemplate"),
+                    webhubFragment::raw("</section>"),
                 ],
             },
         );
         fragments.insert(
             "innerTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::if_cond(
+                fragments: vec![webhubFragment::if_cond(
                     ConditionExpr::identifier("inner_item.flag"),
                     "ifInner",
                 )],
@@ -5719,13 +5719,13 @@ mod tests {
             "ifInner".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("inner_item.value", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("inner_item.value", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "list": {"outer_items": [{"inner_items": [{"value": "X"}, {"value": "Y"}]}]},
             "inner_item": {"flag": true}
@@ -5751,9 +5751,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>"),
-                    WebUIFragment::for_loop("outer", "list.outerItems", "outerTemplate"),
-                    WebUIFragment::raw("</div>"),
+                    webhubFragment::raw("<div>"),
+                    webhubFragment::for_loop("outer", "list.outerItems", "outerTemplate"),
+                    webhubFragment::raw("</div>"),
                 ],
             },
         );
@@ -5761,17 +5761,17 @@ mod tests {
             "outerTemplate".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<section>"),
-                    WebUIFragment::signal("outer.outerLabel", false),
-                    WebUIFragment::for_loop("inner", "outer.innerItems", "innerTemplate"),
-                    WebUIFragment::raw("</section>"),
+                    webhubFragment::raw("<section>"),
+                    webhubFragment::signal("outer.outerLabel", false),
+                    webhubFragment::for_loop("inner", "outer.innerItems", "innerTemplate"),
+                    webhubFragment::raw("</section>"),
                 ],
             },
         );
         fragments.insert(
             "innerTemplate".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::if_cond(
+                fragments: vec![webhubFragment::if_cond(
                     ConditionExpr::compound(
                         ConditionExpr::identifier("outer.active"),
                         LogicalOperator::And,
@@ -5789,13 +5789,13 @@ mod tests {
             "ifInner".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<p>"),
-                    WebUIFragment::signal("inner.value", false),
-                    WebUIFragment::raw("</p>"),
+                    webhubFragment::raw("<p>"),
+                    webhubFragment::signal("inner.value", false),
+                    webhubFragment::raw("</p>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "globalLimit": 10,
             "list": {"outerItems": [
@@ -5820,8 +5820,8 @@ mod tests {
 
     // ── Route-aware rendering tests ─────────────────────────────────────
 
-    fn make_route_protocol() -> WebUIProtocol {
-        use webui_protocol::WebUiFragmentRoute;
+    fn make_route_protocol() -> webhubProtocol {
+        use webhub_protocol::webhubFragmentRoute;
 
         let mut fragments = HashMap::new();
 
@@ -5830,15 +5830,15 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<h1>Shell</h1>"),
-                    WebUIFragment::route_from(WebUiFragmentRoute {
+                    webhubFragment::raw("<h1>Shell</h1>"),
+                    webhubFragment::route_from(webhubFragmentRoute {
                         path: "/".into(),
                         fragment_id: "dash-page".into(),
                         exact: true,
                         keep_alive: false,
                         ..Default::default()
                     }),
-                    WebUIFragment::route_from(WebUiFragmentRoute {
+                    webhubFragment::route_from(webhubFragmentRoute {
                         path: "/contacts/:id".into(),
                         fragment_id: "detail-page".into(),
                         exact: true,
@@ -5853,7 +5853,7 @@ mod tests {
         fragments.insert(
             "dash-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Dashboard</p>")],
+                fragments: vec![webhubFragment::raw("<p>Dashboard</p>")],
             },
         );
 
@@ -5861,30 +5861,30 @@ mod tests {
         fragments.insert(
             "detail-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Detail</p>")],
+                fragments: vec![webhubFragment::raw("<p>Detail</p>")],
             },
         );
 
-        WebUIProtocol::new(fragments)
+        webhubProtocol::new(fragments)
     }
 
-    fn make_nested_route_protocol() -> WebUIProtocol {
-        use webui_protocol::WebUiFragmentRoute;
+    fn make_nested_route_protocol() -> webhubProtocol {
+        use webhub_protocol::webhubFragmentRoute;
 
         let mut fragments = HashMap::new();
 
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/".into(),
                     fragment_id: "app-shell".into(),
                     exact: false,
-                    children: vec![WebUiFragmentRoute {
+                    children: vec![webhubFragmentRoute {
                         path: "sections/:id".into(),
                         fragment_id: "section-comp".into(),
                         exact: false,
-                        children: vec![WebUiFragmentRoute {
+                        children: vec![webhubFragmentRoute {
                             path: "topics/:topicId".into(),
                             fragment_id: "topic-comp".into(),
                             exact: true,
@@ -5905,8 +5905,8 @@ mod tests {
             "app-shell".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<h1>Shell</h1>"),
-                    WebUIFragment::outlet(),
+                    webhubFragment::raw("<h1>Shell</h1>"),
+                    webhubFragment::outlet(),
                 ],
             },
         );
@@ -5915,8 +5915,8 @@ mod tests {
             "section-comp".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<h2>Section</h2>"),
-                    WebUIFragment::outlet(),
+                    webhubFragment::raw("<h2>Section</h2>"),
+                    webhubFragment::outlet(),
                 ],
             },
         );
@@ -5924,11 +5924,11 @@ mod tests {
         fragments.insert(
             "topic-comp".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Topic content</p>")],
+                fragments: vec![webhubFragment::raw("<p>Topic content</p>")],
             },
         );
 
-        WebUIProtocol::new(fragments)
+        webhubProtocol::new(fragments)
     }
 
     #[test]
@@ -5972,7 +5972,7 @@ mod tests {
 
         // Dashboard route should be visible (active, no display:none)
         assert!(
-            html.contains("<webui-route path=\"/\""),
+            html.contains("<webhub-route path=\"/\""),
             "dashboard route should exist"
         );
         assert!(
@@ -6001,7 +6001,7 @@ mod tests {
 
         // Detail route should be hidden and empty (no content rendered)
         assert!(
-            html.contains("<webui-route path=\"/contacts/:id\""),
+            html.contains("<webhub-route path=\"/contacts/:id\""),
             "detail route element should exist"
         );
         // The non-matched route should have display:none and no inner content
@@ -6013,7 +6013,7 @@ mod tests {
             "non-matched route should be hidden: {after_detail}"
         );
         // Should NOT contain the component's rendered content
-        let detail_end = after_detail.find("</webui-route>").expect("closing tag");
+        let detail_end = after_detail.find("</webhub-route>").expect("closing tag");
         let detail_body = &after_detail[..detail_end];
         assert!(
             !detail_body.contains("<detail-page>"),
@@ -6050,7 +6050,7 @@ mod tests {
             after_dash.contains("style=\"display:none\">"),
             "dashboard should be hidden when detail matches: {after_dash}"
         );
-        let dash_end = after_dash.find("</webui-route>").expect("closing tag");
+        let dash_end = after_dash.find("</webhub-route>").expect("closing tag");
         let dash_body = &after_dash[..dash_end];
         assert!(
             !dash_body.contains("<dash-page>"),
@@ -6098,14 +6098,14 @@ mod tests {
         )
         .unwrap();
         let html = writer.get_content();
-        // component attribute should be emitted on webui-route
+        // component attribute should be emitted on webhub-route
         assert!(
             html.contains("component=\"dash-page\""),
-            "component attr should be on webui-route: {html}"
+            "component attr should be on webhub-route: {html}"
         );
         assert!(
             html.contains("component=\"detail-page\""),
-            "component attr should be on webui-route: {html}"
+            "component attr should be on webhub-route: {html}"
         );
     }
 
@@ -6140,10 +6140,10 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_routes_render_webui_route_as_light_dom() {
+    fn test_nested_routes_render_webhub_route_as_light_dom() {
         let protocol = make_nested_route_protocol();
         let state = test_json!({"title": "Test"});
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut writer = TestWriter::new();
 
         handler
@@ -6161,10 +6161,10 @@ mod tests {
             html.contains("component=\"app-shell\"") && html.contains("active>"),
             "root route should be active: {html}"
         );
-        // webui-route should NOT have shadow DOM — it's a light DOM structural element
+        // webhub-route should NOT have shadow DOM — it's a light DOM structural element
         assert!(
             !html.contains("<template shadowrootmode"),
-            "webui-route should be light DOM (no shadow template): {html}"
+            "webhub-route should be light DOM (no shadow template): {html}"
         );
     }
 
@@ -6172,7 +6172,7 @@ mod tests {
     fn test_nested_routes_render_outlet_as_light_dom() {
         let protocol = make_nested_route_protocol();
         let state = test_json!({"title": "Test"});
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut writer = TestWriter::new();
 
         handler
@@ -6186,15 +6186,15 @@ mod tests {
 
         let html = writer.get_content();
 
-        // No <webui-outlet> wrapper — routes render directly at outlet position
+        // No <webhub-outlet> wrapper — routes render directly at outlet position
         assert!(
-            !html.contains("<webui-outlet>"),
-            "should not contain webui-outlet wrapper: {html}"
+            !html.contains("<webhub-outlet>"),
+            "should not contain webhub-outlet wrapper: {html}"
         );
         // Route elements should be in the output directly
         assert!(
-            html.contains("<webui-route"),
-            "should contain webui-route elements: {html}"
+            html.contains("<webhub-route"),
+            "should contain webhub-route elements: {html}"
         );
     }
 
@@ -6202,7 +6202,7 @@ mod tests {
     fn test_nested_routes_match_child_at_outlet() {
         let protocol = make_nested_route_protocol();
         let state = test_json!({"title": "Test"});
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut writer = TestWriter::new();
 
         handler
@@ -6230,7 +6230,7 @@ mod tests {
     fn test_nested_routes_three_levels_deep() {
         let protocol = make_nested_route_protocol();
         let state = test_json!({"title": "Test"});
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut writer = TestWriter::new();
 
         handler
@@ -6268,7 +6268,7 @@ mod tests {
     fn test_nested_routes_nonmatched_siblings_hidden() {
         let protocol = make_nested_route_protocol();
         let state = test_json!({"title": "Test"});
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut writer = TestWriter::new();
 
         handler
@@ -6292,7 +6292,7 @@ mod tests {
     fn test_nested_routes_root_only() {
         let protocol = make_nested_route_protocol();
         let state = test_json!({"title": "Test"});
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut writer = TestWriter::new();
 
         handler
@@ -6333,26 +6333,26 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body><div>".to_string()),
-                    WebUIFragment::component("my-card"),
-                    WebUIFragment::raw("A".to_string()),
-                    WebUIFragment::component("my-card"),
-                    WebUIFragment::raw("B</div>".to_string()),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body><div>".to_string()),
+                    webhubFragment::component("my-card"),
+                    webhubFragment::raw("A".to_string()),
+                    webhubFragment::component("my-card"),
+                    webhubFragment::raw("B</div>".to_string()),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "my-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw(template.to_string())],
+                fragments: vec![webhubFragment::raw(template.to_string())],
             },
         );
 
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol
             .components
             .entry("my-card".to_string())
@@ -6407,17 +6407,17 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("my-card")],
+                fragments: vec![webhubFragment::component("my-card")],
             },
         );
         fragments.insert(
             "my-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw(r#"<p>hello</p>"#.to_string())],
+                fragments: vec![webhubFragment::raw(r#"<p>hello</p>"#.to_string())],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let mut writer = TestWriter::new();
 
@@ -6447,23 +6447,23 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body>".to_string()),
-                    WebUIFragment::component("my-card"),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body>".to_string()),
+                    webhubFragment::component("my-card"),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "my-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw(template.to_string())],
+                fragments: vec![webhubFragment::raw(template.to_string())],
             },
         );
 
         // No component css populated — simulates Link/Style strategy
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let mut writer = TestWriter::new();
 
@@ -6498,25 +6498,25 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body><my-card>".to_string()),
-                    WebUIFragment::component("my-card"),
-                    WebUIFragment::raw("</my-card></body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body><my-card>".to_string()),
+                    webhubFragment::component("my-card"),
+                    webhubFragment::raw("</my-card></body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "my-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw(
+                fragments: vec![webhubFragment::raw(
                     "<template shadowrootmode=\"open\"><style>.card{color:red}</style><div>card</div></template>"
                         .to_string(),
                 )],
             },
         );
 
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let mut writer = TestWriter::new();
 
@@ -6553,26 +6553,26 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body><my-card>".to_string()),
-                    WebUIFragment::component("my-card"),
-                    WebUIFragment::raw("</my-card>".to_string()),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body><my-card>".to_string()),
+                    webhubFragment::component("my-card"),
+                    webhubFragment::raw("</my-card>".to_string()),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "my-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>card</div>".to_string())],
+                fragments: vec![webhubFragment::raw("<div>card</div>".to_string())],
             },
         );
 
-        let mut protocol = WebUIProtocol::new(fragments);
-        protocol.set_css_strategy(webui_protocol::CssStrategy::Link);
-        protocol.set_dom_strategy(webui_protocol::DomStrategy::Light);
+        let mut protocol = webhubProtocol::new(fragments);
+        protocol.set_css_strategy(webhub_protocol::CssStrategy::Link);
+        protocol.set_dom_strategy(webhub_protocol::DomStrategy::Light);
 
         let comp = protocol
             .components
@@ -6617,41 +6617,41 @@ mod tests {
     #[test]
     fn test_link_strategy_shadow_dom_emits_preload_in_head() {
         // Shadow DOM + Link strategy: handler emits <link rel="preload">
-        // with data-webui-ssr-preload in <head>. No stylesheet — the shadow
+        // with data-webhub-ssr-preload in <head>. No stylesheet — the shadow
         // root template already contains <link rel="stylesheet">.
         let mut fragments = HashMap::new();
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body><o-loading-state>".to_string()),
-                    WebUIFragment::component("o-loading-state"),
-                    WebUIFragment::raw("</o-loading-state><my-card>".to_string()),
-                    WebUIFragment::component("my-card"),
-                    WebUIFragment::raw("</my-card>".to_string()),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body><o-loading-state>".to_string()),
+                    webhubFragment::component("o-loading-state"),
+                    webhubFragment::raw("</o-loading-state><my-card>".to_string()),
+                    webhubFragment::component("my-card"),
+                    webhubFragment::raw("</my-card>".to_string()),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "o-loading-state".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>loading</div>".to_string())],
+                fragments: vec![webhubFragment::raw("<div>loading</div>".to_string())],
             },
         );
         fragments.insert(
             "my-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>card</div>".to_string())],
+                fragments: vec![webhubFragment::raw("<div>card</div>".to_string())],
             },
         );
 
-        let mut protocol = WebUIProtocol::new(fragments);
-        protocol.set_css_strategy(webui_protocol::CssStrategy::Link);
-        protocol.set_dom_strategy(webui_protocol::DomStrategy::Shadow);
+        let mut protocol = webhubProtocol::new(fragments);
+        protocol.set_css_strategy(webhub_protocol::CssStrategy::Link);
+        protocol.set_dom_strategy(webhub_protocol::DomStrategy::Shadow);
 
         let comp1 = protocol
             .components
@@ -6682,16 +6682,16 @@ mod tests {
         let head_end = html.find("</head>").expect("</head> missing");
         let head_section = &html[..head_end];
 
-        // Both preload hints must be present with data-webui-ssr-preload attr
+        // Both preload hints must be present with data-webhub-ssr-preload attr
         assert!(
             head_section.contains(
-                r#"<link rel="preload" href="o-loading-state.css" as="style" data-webui-ssr-preload="style">"#
+                r#"<link rel="preload" href="o-loading-state.css" as="style" data-webhub-ssr-preload="style">"#
             ),
             "Missing preload for o-loading-state.css in <head>: {html}"
         );
         assert!(
             head_section.contains(
-                r#"<link rel="preload" href="my-card.css" as="style" data-webui-ssr-preload="style">"#
+                r#"<link rel="preload" href="my-card.css" as="style" data-webhub-ssr-preload="style">"#
             ),
             "Missing preload for my-card.css in <head>: {html}"
         );
@@ -6713,34 +6713,34 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body><z-widget>".to_string()),
-                    WebUIFragment::component("z-widget"),
-                    WebUIFragment::raw("</z-widget><a-widget>".to_string()),
-                    WebUIFragment::component("a-widget"),
-                    WebUIFragment::raw("</a-widget>".to_string()),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body><z-widget>".to_string()),
+                    webhubFragment::component("z-widget"),
+                    webhubFragment::raw("</z-widget><a-widget>".to_string()),
+                    webhubFragment::component("a-widget"),
+                    webhubFragment::raw("</a-widget>".to_string()),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "z-widget".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>z</div>".to_string())],
+                fragments: vec![webhubFragment::raw("<div>z</div>".to_string())],
             },
         );
         fragments.insert(
             "a-widget".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>a</div>".to_string())],
+                fragments: vec![webhubFragment::raw("<div>a</div>".to_string())],
             },
         );
 
-        let mut protocol = WebUIProtocol::new(fragments);
-        protocol.set_css_strategy(webui_protocol::CssStrategy::Link);
-        protocol.set_dom_strategy(webui_protocol::DomStrategy::Light);
+        let mut protocol = webhubProtocol::new(fragments);
+        protocol.set_css_strategy(webhub_protocol::CssStrategy::Link);
+        protocol.set_dom_strategy(webhub_protocol::DomStrategy::Light);
 
         let z = protocol
             .components
@@ -6795,23 +6795,23 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body><my-card>".to_string()),
-                    WebUIFragment::component("my-card"),
-                    WebUIFragment::raw("</my-card>".to_string()),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body><my-card>".to_string()),
+                    webhubFragment::component("my-card"),
+                    webhubFragment::raw("</my-card>".to_string()),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "my-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw(r#"<p>hi</p>"#.to_string())],
+                fragments: vec![webhubFragment::raw(r#"<p>hi</p>"#.to_string())],
             },
         );
 
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol
             .components
             .entry("my-card".to_string())
@@ -6859,23 +6859,23 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body>".to_string()),
-                    WebUIFragment::route("/", "dash-page"),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body>".to_string()),
+                    webhubFragment::route("/", "dash-page"),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "dash-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw(template.to_string())],
+                fragments: vec![webhubFragment::raw(template.to_string())],
             },
         );
 
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         let comp = protocol
             .components
             .entry("dash-page".to_string())
@@ -6914,32 +6914,32 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body>".to_string()),
-                    WebUIFragment::component("has-css"),
-                    WebUIFragment::component("no-css"),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body>".to_string()),
+                    webhubFragment::component("has-css"),
+                    webhubFragment::component("no-css"),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "has-css".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>styled</p>".to_string())],
+                fragments: vec![webhubFragment::raw("<p>styled</p>".to_string())],
             },
         );
         fragments.insert(
             "no-css".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>plain</p>".to_string())],
+                fragments: vec![webhubFragment::raw("<p>plain</p>".to_string())],
             },
         );
 
-        let mut protocol = WebUIProtocol::new(fragments);
-        protocol.set_css_strategy(webui_protocol::CssStrategy::Link);
-        protocol.set_dom_strategy(webui_protocol::DomStrategy::Light);
+        let mut protocol = webhubProtocol::new(fragments);
+        protocol.set_css_strategy(webhub_protocol::CssStrategy::Link);
+        protocol.set_dom_strategy(webhub_protocol::DomStrategy::Light);
 
         // Only has-css has an external stylesheet (Link strategy)
         protocol
@@ -6951,8 +6951,8 @@ mod tests {
         let state = test_json!({});
         let mut writer = TestWriter::new();
 
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(crate::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(crate::plugin::webhub::webhubHydrationPlugin::new())
         });
         handler
             .handle(
@@ -6988,13 +6988,13 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body><app-shell>".to_string()),
-                    WebUIFragment::component("app-shell"),
-                    WebUIFragment::raw("</app-shell>".to_string()),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body><app-shell>".to_string()),
+                    webhubFragment::component("app-shell"),
+                    webhubFragment::raw("</app-shell>".to_string()),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
@@ -7003,8 +7003,8 @@ mod tests {
             "app-shell".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<div>Shell</div>".to_string()),
-                    WebUIFragment::component("cart-panel"),
+                    webhubFragment::raw("<div>Shell</div>".to_string()),
+                    webhubFragment::component("cart-panel"),
                 ],
             },
         );
@@ -7013,9 +7013,9 @@ mod tests {
             "cart-panel".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<aside>".to_string()),
-                    WebUIFragment::if_cond(ConditionExpr::identifier("hasItems"), "cart-items"),
-                    WebUIFragment::raw("</aside>".to_string()),
+                    webhubFragment::raw("<aside>".to_string()),
+                    webhubFragment::if_cond(ConditionExpr::identifier("hasItems"), "cart-items"),
+                    webhubFragment::raw("</aside>".to_string()),
                 ],
             },
         );
@@ -7023,17 +7023,17 @@ mod tests {
         fragments.insert(
             "cart-items".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("product-card")],
+                fragments: vec![webhubFragment::component("product-card")],
             },
         );
         fragments.insert(
             "product-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>Card</div>".to_string())],
+                fragments: vec![webhubFragment::raw("<div>Card</div>".to_string())],
             },
         );
 
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
         for name in ["app-shell", "cart-panel", "product-card"] {
             let comp = protocol.components.entry(name.to_string()).or_default();
@@ -7052,8 +7052,8 @@ mod tests {
         let state = test_json!({ "hasItems": false });
         let mut writer = TestWriter::new();
 
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(crate::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(crate::plugin::webhub::webhubHydrationPlugin::new())
         });
         handler
             .handle(
@@ -7067,8 +7067,8 @@ mod tests {
         let html = writer.get_content();
 
         assert!(
-            html.contains(r#"<script type="application/json" id="webui-data">"#),
-            "non-executable SSR metadata should be emitted in the webui-data block: {html}"
+            html.contains(r#"<script type="application/json" id="webhub-data">"#),
+            "non-executable SSR metadata should be emitted in the webhub-data block: {html}"
         );
         assert!(
             html.contains(r#""state":{"hasItems":false}"#),
@@ -7079,16 +7079,16 @@ mod tests {
             "SSR inventory should live in the JSON data block: {html}"
         );
         assert!(
-            !html.contains("window.__webui={\""),
-            "executable bootstrap must not embed the window.__webui JSON literal: {html}"
+            !html.contains("window.__webhub={\""),
+            "executable bootstrap must not embed the window.__webhub JSON literal: {html}"
         );
         assert!(
-            !html.contains(r#"document.getElementById("webui-data")"#),
-            "SSR must not parse webui-data; client packages own that lazy load: {html}"
+            !html.contains(r#"document.getElementById("webhub-data")"#),
+            "SSR must not parse webhub-data; client packages own that lazy load: {html}"
         );
         assert!(
-            !html.contains("window.__webui=w;"),
-            "executable bootstrap must not replace existing window.__webui registrations: {html}"
+            !html.contains("window.__webhub=w;"),
+            "executable bootstrap must not replace existing window.__webhub registrations: {html}"
         );
         assert!(
             !html.contains("w.templateFns={\""),
@@ -7143,23 +7143,23 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body>".to_string()),
-                    WebUIFragment::route("/", "dash-page"),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body>".to_string()),
+                    webhubFragment::route("/", "dash-page"),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "dash-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw(template.to_string())],
+                fragments: vec![webhubFragment::raw(template.to_string())],
             },
         );
 
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         let comp = protocol
             .components
             .entry("dash-page".to_string())
@@ -7191,27 +7191,27 @@ mod tests {
     fn test_unrendered_css_module_emits_nonce_attribute_when_nonce_set() {
         // Body-end emission path for reachable-but-unrendered components
         // (the second site touched by the patch). Triggered via a false
-        // `<if>` block under hydration; requires the WebUI plugin so the
+        // `<if>` block under hydration; requires the webhub plugin so the
         // body_end hook executes.
         let mut fragments = HashMap::new();
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body><app-shell>".to_string()),
-                    WebUIFragment::component("app-shell"),
-                    WebUIFragment::raw("</app-shell>".to_string()),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body><app-shell>".to_string()),
+                    webhubFragment::component("app-shell"),
+                    webhubFragment::raw("</app-shell>".to_string()),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::if_cond(
+                fragments: vec![webhubFragment::if_cond(
                     ConditionExpr::identifier("hasItems"),
                     "cart-items",
                 )],
@@ -7220,17 +7220,17 @@ mod tests {
         fragments.insert(
             "cart-items".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::component("product-card")],
+                fragments: vec![webhubFragment::component("product-card")],
             },
         );
         fragments.insert(
             "product-card".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<div>Card</div>".to_string())],
+                fragments: vec![webhubFragment::raw("<div>Card</div>".to_string())],
             },
         );
 
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         for name in ["app-shell", "product-card"] {
             let comp = protocol.components.entry(name.to_string()).or_default();
             comp.template_json = format!(r#"{{"h":"<div class=\"{name}\"></div>"}}"#);
@@ -7242,8 +7242,8 @@ mod tests {
         let state = test_json!({ "hasItems": false });
         let mut writer = TestWriter::new();
 
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(crate::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(crate::plugin::webhub::webhubHydrationPlugin::new())
         });
         handler
             .handle(
@@ -7271,18 +7271,18 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><body><style>".to_string()),
-                    WebUIFragment::signal("tokens.light", true),
-                    WebUIFragment::raw("</style>".to_string()),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><body><style>".to_string()),
+                    webhubFragment::signal("tokens.light", true),
+                    webhubFragment::raw("</style>".to_string()),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<span>shell</span>".to_string())],
+                fragments: vec![webhubFragment::raw("<span>shell</span>".to_string())],
             },
         );
         let index_fragments = fragments
@@ -7290,8 +7290,8 @@ mod tests {
             .expect("index fixture should exist");
         index_fragments
             .fragments
-            .insert(1, WebUIFragment::component("app-shell"));
-        let mut protocol = WebUIProtocol::new(fragments);
+            .insert(1, webhubFragment::component("app-shell"));
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
         // Only `name` is a hydration key. `tokens` is a server-only field
         // (used above to resolve SSR CSS variables) and is NOT in the component
@@ -7299,7 +7299,7 @@ mod tests {
         // so projection MUST keep it out of the client state block.
         protocol.components.insert(
             "app-shell".to_string(),
-            webui_protocol::ComponentData {
+            webhub_protocol::ComponentData {
                 hydration_mode: StateProjectionMode::Keys as i32,
                 hydration_keys: vec!["name".to_string()],
                 ..Default::default()
@@ -7312,8 +7312,8 @@ mod tests {
             }
         });
         let mut writer = TestWriter::new();
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(crate::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(crate::plugin::webhub::webhubHydrationPlugin::new())
         });
         handler.handle(
             &protocol,
@@ -7338,19 +7338,19 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><body>"),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>"),
+                    webhubFragment::raw("<html><body>"),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "client": "visible",
             "serverOnly": "also preserved",
         });
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(crate::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(crate::plugin::webhub::webhubHydrationPlugin::new())
         });
         let mut writer = TestWriter::new();
         handler.handle(
@@ -7372,24 +7372,24 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><body>"),
-                    WebUIFragment::component("app-shell"),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>"),
+                    webhubFragment::raw("<html><body>"),
+                    webhubFragment::component("app-shell"),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>"),
                 ],
             },
         );
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Shell</p>")],
+                fragments: vec![webhubFragment::raw("<p>Shell</p>")],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
         protocol.components.insert(
             "app-shell".to_string(),
-            webui_protocol::ComponentData {
+            webhub_protocol::ComponentData {
                 hydration_mode: StateProjectionMode::All as i32,
                 ..Default::default()
             },
@@ -7398,8 +7398,8 @@ mod tests {
             "known": "value",
             "possiblyInherited": "must not be dropped",
         });
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(crate::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(crate::plugin::webhub::webhubHydrationPlugin::new())
         });
         let mut writer = TestWriter::new();
         handler.handle(
@@ -7421,27 +7421,27 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><body>"),
-                    WebUIFragment::component("app-shell"),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>"),
+                    webhubFragment::raw("<html><body>"),
+                    webhubFragment::component("app-shell"),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>"),
                 ],
             },
         );
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Shell</p>")],
+                fragments: vec![webhubFragment::raw("<p>Shell</p>")],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
         let state = test_json!({
             "known": "value",
             "serverOnly": "must not be dropped",
         });
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(crate::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(crate::plugin::webhub::webhubHydrationPlugin::new())
         });
         let mut writer = TestWriter::new();
         handler.handle(
@@ -7463,24 +7463,24 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><body>"),
-                    WebUIFragment::component("app-shell"),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>"),
+                    webhubFragment::raw("<html><body>"),
+                    webhubFragment::component("app-shell"),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>"),
                 ],
             },
         );
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Shell</p>")],
+                fragments: vec![webhubFragment::raw("<p>Shell</p>")],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
         protocol.components.insert(
             "app-shell".to_string(),
-            webui_protocol::ComponentData {
+            webhub_protocol::ComponentData {
                 hydration_mode: i32::MAX,
                 ..Default::default()
             },
@@ -7489,8 +7489,8 @@ mod tests {
             "known": "value",
             "serverOnly": "must not be dropped",
         });
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(crate::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(crate::plugin::webhub::webhubHydrationPlugin::new())
         });
         let mut writer = TestWriter::new();
         handler.handle(
@@ -7507,10 +7507,10 @@ mod tests {
 
     #[test]
     fn legacy_navigation_keys_with_default_mode_remain_keyed() {
-        let mut protocol = WebUIProtocol::new(HashMap::new());
+        let mut protocol = webhubProtocol::new(HashMap::new());
         protocol.components.insert(
             "app-shell".to_string(),
-            webui_protocol::ComponentData {
+            webhub_protocol::ComponentData {
                 navigation_keys: vec!["selected".to_string()],
                 ..Default::default()
             },
@@ -7529,20 +7529,20 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><body>".to_string()),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><body>".to_string()),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
         let state = test_json!({
             "title": "Legacy state",
             "serverOnly": "preserved",
         });
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(crate::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(crate::plugin::webhub::webhubHydrationPlugin::new())
         });
 
         let mut writer = TestWriter::new();
@@ -7565,24 +7565,24 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><body>"),
-                    WebUIFragment::component("items-page"),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>"),
+                    webhubFragment::raw("<html><body>"),
+                    webhubFragment::component("items-page"),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>"),
                 ],
             },
         );
         fragments.insert(
             "items-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Items</p>")],
+                fragments: vec![webhubFragment::raw("<p>Items</p>")],
             },
         );
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
         protocol.components.insert(
             "items-page".to_string(),
-            webui_protocol::ComponentData {
+            webhub_protocol::ComponentData {
                 template_json: r#"{"h":"<p>Items</p>","th":1}"#.into(),
                 navigation_mode: StateProjectionMode::Keys as i32,
                 navigation_keys: vec!["items".into()],
@@ -7593,8 +7593,8 @@ mod tests {
             "items": ["STATE_SENTINEL"],
             "serverOnly": "SECRET_SENTINEL",
         });
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(crate::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(crate::plugin::webhub::webhubHydrationPlugin::new())
         });
         let mut writer = TestWriter::new();
 
@@ -7686,42 +7686,42 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><body>"),
-                    WebUIFragment::route_from(webui_protocol::WebUiFragmentRoute {
+                    webhubFragment::raw("<html><body>"),
+                    webhubFragment::route_from(webhub_protocol::webhubFragmentRoute {
                         path: "/".to_string(),
                         fragment_id: "home-page".to_string(),
                         exact: true,
                         ..Default::default()
                     }),
-                    WebUIFragment::route_from(webui_protocol::WebUiFragmentRoute {
+                    webhubFragment::route_from(webhub_protocol::webhubFragmentRoute {
                         path: "/admin".to_string(),
                         fragment_id: "admin-page".to_string(),
                         exact: true,
                         ..Default::default()
                     }),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>"),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>"),
                 ],
             },
         );
         fragments.insert(
             "home-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Home</p>")],
+                fragments: vec![webhubFragment::raw("<p>Home</p>")],
             },
         );
         fragments.insert(
             "admin-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Admin</p>")],
+                fragments: vec![webhubFragment::raw("<p>Admin</p>")],
             },
         );
 
-        let mut protocol = WebUIProtocol::new(fragments);
+        let mut protocol = webhubProtocol::new(fragments);
         protocol.initial_state_strategy = InitialStateStrategy::Components as i32;
         protocol.components.insert(
             "home-page".to_string(),
-            webui_protocol::ComponentData {
+            webhub_protocol::ComponentData {
                 template_json: "{}".to_string(),
                 hydration_mode: StateProjectionMode::Keys as i32,
                 hydration_keys: vec!["homeTitle".to_string()],
@@ -7730,7 +7730,7 @@ mod tests {
         );
         protocol.components.insert(
             "admin-page".to_string(),
-            webui_protocol::ComponentData {
+            webhub_protocol::ComponentData {
                 template_json: "{}".to_string(),
                 hydration_mode: StateProjectionMode::Keys as i32,
                 hydration_keys: vec!["adminToken".to_string()],
@@ -7741,8 +7741,8 @@ mod tests {
             "homeTitle": "Welcome",
             "adminToken": "TOP_SECRET_SENTINEL",
         });
-        let handler = WebUIHandler::with_plugin(|| {
-            Box::new(crate::plugin::webui::WebUIHydrationPlugin::new())
+        let handler = webhubHandler::with_plugin(|| {
+            Box::new(crate::plugin::webhub::webhubHydrationPlugin::new())
         });
         let mut writer = TestWriter::new();
         handler.handle(
@@ -7803,20 +7803,20 @@ mod tests {
 
     // ── allowed_query SSR emission tests ─────────────────────────────
 
-    fn make_query_route_protocol() -> WebUIProtocol {
-        use webui_protocol::WebUiFragmentRoute;
+    fn make_query_route_protocol() -> webhubProtocol {
+        use webhub_protocol::webhubFragmentRoute;
 
         let mut fragments = HashMap::new();
 
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::route_from(WebUiFragmentRoute {
+                fragments: vec![webhubFragment::route_from(webhubFragmentRoute {
                     path: "/".into(),
                     fragment_id: "app-shell".into(),
                     exact: false,
                     children: vec![
-                        WebUiFragmentRoute {
+                        webhubFragmentRoute {
                             path: "compose".into(),
                             fragment_id: "compose-page".into(),
                             exact: true,
@@ -7824,7 +7824,7 @@ mod tests {
                             keep_alive: false,
                             ..Default::default()
                         },
-                        WebUiFragmentRoute {
+                        webhubFragmentRoute {
                             path: "settings".into(),
                             fragment_id: "settings-page".into(),
                             exact: true,
@@ -7841,30 +7841,30 @@ mod tests {
         fragments.insert(
             "app-shell".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<h1>App</h1>"), WebUIFragment::outlet()],
+                fragments: vec![webhubFragment::raw("<h1>App</h1>"), webhubFragment::outlet()],
             },
         );
         fragments.insert(
             "compose-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Compose</p>")],
+                fragments: vec![webhubFragment::raw("<p>Compose</p>")],
             },
         );
         fragments.insert(
             "settings-page".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw("<p>Settings</p>")],
+                fragments: vec![webhubFragment::raw("<p>Settings</p>")],
             },
         );
 
-        WebUIProtocol::new(fragments)
+        webhubProtocol::new(fragments)
     }
 
     #[test]
     fn test_matched_route_omits_query_attr_from_dom() {
         let protocol = make_query_route_protocol();
         let state = test_json!({});
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut writer = TestWriter::new();
 
         handler
@@ -7888,7 +7888,7 @@ mod tests {
     fn test_nonmatched_route_omits_query_attr_from_dom() {
         let protocol = make_query_route_protocol();
         let state = test_json!({});
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut writer = TestWriter::new();
 
         handler
@@ -7912,7 +7912,7 @@ mod tests {
     fn test_route_without_query_has_no_query_attr() {
         let protocol = make_query_route_protocol();
         let state = test_json!({});
-        let handler = WebUIHandler::new();
+        let handler = webhubHandler::new();
         let mut writer = TestWriter::new();
 
         handler
@@ -7940,21 +7940,21 @@ mod tests {
     //    InjectingStreamingWriter approach with structural signal-based
     //    injection) ───────────────────────────────────────────────────
 
-    fn build_head_body_protocol() -> WebUIProtocol {
+    fn build_head_body_protocol() -> webhubProtocol {
         let mut fragments = HashMap::new();
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head><title>x</title>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw("</head><body>hello".to_string()),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head><title>x</title>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw("</head><body>hello".to_string()),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
-        WebUIProtocol::new(fragments)
+        webhubProtocol::new(fragments)
     }
 
     #[test]
@@ -8060,17 +8060,17 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head><title>x</title>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::raw(
+                    webhubFragment::raw("<html><head><title>x</title>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::raw(
                         "</head><body><!-- </body> </head> --><p>hi</p>".to_string(),
                     ),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let mut writer = TestWriter::new();
         let opts = RenderOptions::new("index.html", "/")
@@ -8133,18 +8133,18 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("<html><head>".to_string()),
-                    WebUIFragment::signal("head_end", true),
-                    WebUIFragment::signal("head_end", true), // duplicate
-                    WebUIFragment::signal("head_end", true), // triplicate
-                    WebUIFragment::raw("</head><body>".to_string()),
-                    WebUIFragment::signal("body_end", true),
-                    WebUIFragment::signal("body_end", true), // duplicate
-                    WebUIFragment::raw("</body></html>".to_string()),
+                    webhubFragment::raw("<html><head>".to_string()),
+                    webhubFragment::signal("head_end", true),
+                    webhubFragment::signal("head_end", true), // duplicate
+                    webhubFragment::signal("head_end", true), // triplicate
+                    webhubFragment::raw("</head><body>".to_string()),
+                    webhubFragment::signal("body_end", true),
+                    webhubFragment::signal("body_end", true), // duplicate
+                    webhubFragment::raw("</body></html>".to_string()),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let mut writer = TestWriter::new();
         let opts = RenderOptions::new("index.html", "/")
@@ -8173,12 +8173,12 @@ mod tests {
         fragments.insert(
             "index.html".to_string(),
             FragmentList {
-                fragments: vec![WebUIFragment::raw(
+                fragments: vec![webhubFragment::raw(
                     "<my-component>hi</my-component>".to_string(),
                 )],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({});
         let mut writer = TestWriter::new();
         let opts = RenderOptions::new("index.html", "/")
@@ -8194,13 +8194,13 @@ mod tests {
     /// Coverage-19: the handler's `&self` is shared across threads.
     /// Two concurrent renders with different inject values must NOT
     /// cross-contaminate (each thread sees only its own inject).
-    /// Per-render mutable state lives on the `WebUIProcessContext`,
+    /// Per-render mutable state lives on the `webhubProcessContext`,
     /// which is stack-allocated per call.
     #[test]
     fn concurrent_renders_with_different_injects_do_not_cross_contaminate() {
         let protocol = std::sync::Arc::new(build_head_body_protocol());
         let state = std::sync::Arc::new(test_json!({}));
-        let handler = std::sync::Arc::new(WebUIHandler::new());
+        let handler = std::sync::Arc::new(webhubHandler::new());
 
         const N_THREADS: usize = 16;
         let mut handles = Vec::with_capacity(N_THREADS);
@@ -8277,8 +8277,8 @@ mod tests {
         let opts = RenderOptions::new("index.html", "/").with_nonce("");
         handle(&protocol, &state, &opts, &mut writer).unwrap();
         assert!(
-            !writer.get_content().contains("webui-nonce"),
-            "empty nonce must not emit <meta name=\"webui-nonce\">"
+            !writer.get_content().contains("webhub-nonce"),
+            "empty nonce must not emit <meta name=\"webhub-nonce\">"
         );
     }
 
@@ -8313,8 +8313,8 @@ mod tests {
         handle(&protocol, &state, &opts_with_empty_nonce, &mut writer).unwrap();
         let html = writer.get_content();
         assert!(
-            !html.contains("webui-nonce"),
-            "field-bypass empty nonce must not emit `<meta name=\"webui-nonce\">`"
+            !html.contains("webhub-nonce"),
+            "field-bypass empty nonce must not emit `<meta name=\"webhub-nonce\">`"
         );
         assert!(
             !html.contains("nonce=\"\""),
@@ -8373,9 +8373,9 @@ mod tests {
             "index.html".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("["),
-                    WebUIFragment::for_loop("item", "outer", "outer_body"),
-                    WebUIFragment::raw("]"),
+                    webhubFragment::raw("["),
+                    webhubFragment::for_loop("item", "outer", "outer_body"),
+                    webhubFragment::raw("]"),
                 ],
             },
         );
@@ -8383,12 +8383,12 @@ mod tests {
             "outer_body".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("(O="),
-                    WebUIFragment::signal("item.tag", false),
-                    WebUIFragment::for_loop("item", "inner", "inner_body"),
-                    WebUIFragment::raw(",O="),
-                    WebUIFragment::signal("item.tag", false),
-                    WebUIFragment::raw(")"),
+                    webhubFragment::raw("(O="),
+                    webhubFragment::signal("item.tag", false),
+                    webhubFragment::for_loop("item", "inner", "inner_body"),
+                    webhubFragment::raw(",O="),
+                    webhubFragment::signal("item.tag", false),
+                    webhubFragment::raw(")"),
                 ],
             },
         );
@@ -8396,13 +8396,13 @@ mod tests {
             "inner_body".to_string(),
             FragmentList {
                 fragments: vec![
-                    WebUIFragment::raw("[I="),
-                    WebUIFragment::signal("item.tag", false),
-                    WebUIFragment::raw("]"),
+                    webhubFragment::raw("[I="),
+                    webhubFragment::signal("item.tag", false),
+                    webhubFragment::raw("]"),
                 ],
             },
         );
-        let protocol = WebUIProtocol::new(fragments);
+        let protocol = webhubProtocol::new(fragments);
         let state = test_json!({
             "outer": [{"tag": "A"}, {"tag": "B"}],
             "inner": [{"tag": "X"}, {"tag": "Y"}],

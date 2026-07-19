@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-//! Renders the demo shell — itself a WebUI app at `examples/demo/src/` —
-//! using the in-process `webui::build` + `WebUIHandler` pipeline.
+//! Renders the demo shell — itself a webhub app at `examples/demo/src/` —
+//! using the in-process `webhub::build` + `webhubHandler` pipeline.
 //!
 //! The shell's protocol is compiled once at startup. Each request renders
 //! the cached protocol against a fresh JSON state derived from the
@@ -13,9 +13,9 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use webui::{build, BuildOptions, Plugin, Protocol};
-use webui_handler::plugin::webui::WebUIHydrationPlugin;
-use webui_handler::{RenderOptions, ResponseWriter, WebUIHandler};
+use webhub::{build, BuildOptions, Plugin, Protocol};
+use webhub_handler::plugin::webhub::webhubHydrationPlugin;
+use webhub_handler::{RenderOptions, ResponseWriter, webhubHandler};
 
 use crate::registry::AppEntry;
 
@@ -44,7 +44,7 @@ impl ShellState {
         let result = build(BuildOptions {
             app_dir: src_dir,
             entry: "index.html".to_string(),
-            plugin: Some(Plugin::WebUI),
+            plugin: Some(Plugin::webhub),
             ..BuildOptions::default()
         })
         .map_err(|e| anyhow::anyhow!("Failed to build shell protocol: {e}"))?;
@@ -102,12 +102,12 @@ struct StringWriter {
 }
 
 impl ResponseWriter for StringWriter {
-    fn write(&mut self, content: &str) -> webui_handler::Result<()> {
+    fn write(&mut self, content: &str) -> webhub_handler::Result<()> {
         self.buf.push_str(content);
         Ok(())
     }
 
-    fn end(&mut self) -> webui_handler::Result<()> {
+    fn end(&mut self) -> webhub_handler::Result<()> {
         Ok(())
     }
 }
@@ -139,7 +139,7 @@ pub(crate) async fn shell_page(
     let mut writer = StringWriter {
         buf: String::with_capacity(8 * 1024),
     };
-    let handler = WebUIHandler::with_plugin(|| Box::new(WebUIHydrationPlugin::new()));
+    let handler = webhubHandler::with_plugin(|| Box::new(webhubHydrationPlugin::new()));
     let opts = RenderOptions::new("index.html", "/");
 
     if let Err(e) = handler.render(&shell.protocol, &state, &opts, &mut writer) {

@@ -24,7 +24,7 @@ fn cookie_secret() -> &'static [u8] {
             std::env::var("CART_COOKIE_SECRET")
                 .unwrap_or_else(|_| {
                     if cfg!(test) {
-                        "webui-commerce-demo-test-secret".to_string()
+                        "webhub-commerce-demo-test-secret".to_string()
                     } else {
                         eprintln!(
                             "CART_COOKIE_SECRET not set — generating a random session-scoped key"

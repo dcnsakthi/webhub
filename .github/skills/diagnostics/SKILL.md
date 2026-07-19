@@ -7,7 +7,7 @@ description: Error handling and build-time diagnostics conventions - Result-not-
 
 Use this skill whenever you add, change, or review an error path: a build-time
 authoring error, a parser/handler failure, a CLI validation error, or anything
-surfaced to a host (FFI/WASM/Node) or a tool/agent. WebUI errors must be
+surfaced to a host (FFI/WASM/Node) or a tool/agent. webhub errors must be
 **recoverable**, **actionable**, and **machine-consumable** — for humans and AI
 agents alike.
 
@@ -39,8 +39,8 @@ workspace-wide (`clippy.toml` `disallowed-macros`). Tests opt out with
 
 | Crate kind | Error type |
 |-----------|-----------|
-| Library (`webui-parser`, `webui-handler`, `webui-expressions`, `webui-state`, `webui-protocol`, `webui-ffi`) | Custom `enum` via `thiserror`. |
-| Binary (`webui-cli`, `xtask`) | `anyhow` for orchestration; a typed `enum` when callers must branch on the cause (e.g. `webui-cli`'s `CliError` for hints + exit codes). |
+| Library (`webhub-parser`, `webhub-handler`, `webhub-expressions`, `webhub-state`, `webhub-protocol`, `webhub-ffi`) | Custom `enum` via `thiserror`. |
+| Binary (`webhub-cli`, `xtask`) | `anyhow` for orchestration; a typed `enum` when callers must branch on the cause (e.g. `webhub-cli`'s `CliError` for hints + exit codes). |
 
 - Each error layer's `Display` describes **only its own level**; the `#[source]`
   chain carries the rest, so `anyhow`'s `{:#}` never double-prints. Provide a
@@ -51,7 +51,7 @@ workspace-wide (`clippy.toml` `disallowed-macros`). Tests opt out with
 ## 3 - Authoring errors are structured `Diagnostic`s
 
 Every "the developer wrote invalid template syntax" mistake is returned as
-`ParserError::Template(Box<Diagnostic>)` (`crates/webui-parser/src/diagnostic.rs`),
+`ParserError::Template(Box<Diagnostic>)` (`crates/webhub-parser/src/diagnostic.rs`),
 so all build errors render identically. A `Diagnostic` carries:
 
 - **`code`** — a stable, machine-readable identifier (e.g. `invalid-for-each`).
@@ -88,12 +88,12 @@ present it. Never embed ANSI in library output or in any machine/host channel.
 
 | Consumer | Gets |
 |----------|------|
-| `webui-cli` (terminal) | Reads `Diagnostic` fields and colorizes with `console::style()` — the **only** approved styling method (see copilot-instructions "Terminal output styling"). |
-| FFI / WASM / Node | The plain `Display` text through their native error channel (`webui_last_error`, `JsValue`, `napi::Error`). |
+| `webhub-cli` (terminal) | Reads `Diagnostic` fields and colorizes with `console::style()` — the **only** approved styling method (see copilot-instructions "Terminal output styling"). |
+| FFI / WASM / Node | The plain `Display` text through their native error channel (`webhub_last_error`, `JsValue`, `napi::Error`). |
 | Browser / tools (dev-server live-reload, SSE, `console.error`) | **Plain** text. ANSI renders as garbage and breaks single-line SSE frames. |
 
 When one value feeds both a terminal and a non-terminal channel, split it:
-`webui-dev-server`'s `RebuildError { display, message }` carries a colorized
+`webhub-dev-server`'s `RebuildError { display, message }` carries a colorized
 `display` for the reporter and a plain `message` for the browser.
 
 Per-line color: when colorizing multi-line output, style **each line
@@ -101,7 +101,7 @@ independently** (open + close the SGR span within the line). A single span that
 straddles newlines bleeds when the line is later re-prefixed (e.g. `[server]`
 under `xtask dev`).
 
-## 6 - Machine-readable output and exit codes (`webui-cli`)
+## 6 - Machine-readable output and exit codes (`webhub-cli`)
 
 For editors, CI, and AI/agent tooling:
 
@@ -111,7 +111,7 @@ For editors, CI, and AI/agent tooling:
   Branch on the stable `code`, not the human `message`. Build the object with
   the `serde_json::Map` API, **not** the `json!` macro (it `unwrap`s internally
   and trips `disallowed_methods`).
-- Exit codes follow BSD `sysexits.h` (`webui-cli`'s `error::exit_code`):
+- Exit codes follow BSD `sysexits.h` (`webhub-cli`'s `error::exit_code`):
   `65` data/authoring error, `66` missing input, `69` port in use, `74` I/O,
   `2` usage (clap), `1` otherwise.
 - Replace fragile `err_msg.contains("...")` dispatch with typed errors that own

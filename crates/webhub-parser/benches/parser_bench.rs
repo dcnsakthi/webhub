@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::hint::black_box;
-use webui_parser::{plugin::fast_v2::FastV2ParserPlugin, CssStrategy, HtmlParser};
+use webhub_parser::{plugin::fast_v2::FastV2ParserPlugin, CssStrategy, HtmlParser};
 
 fn build_simple_template() -> String {
     let mut html = String::with_capacity(256);
@@ -92,7 +92,7 @@ fn build_style_heavy_template(blocks: usize) -> String {
         html.push_str("<style>");
         html.push_str(".c");
         html.push_str(&idx.to_string());
-        html.push_str(" { color: var(--webui-color);");
+        html.push_str(" { color: var(--webhub-color);");
         html.push_str(" background: linear-gradient(#111, #222);");
         html.push_str(" padding: 8px; margin: 4px; }");
         html.push_str("</style>");
@@ -112,7 +112,7 @@ fn build_todo_app_template() -> String {
     html.push_str(
         ".header { display: flex; justify-content: space-between; align-items: center; } ",
     );
-    html.push_str(".count { color: var(--webui-muted); font-size: 14px; }</style>\n");
+    html.push_str(".count { color: var(--webhub-muted); font-size: 14px; }</style>\n");
     html.push_str("</head>\n<body>\n");
     html.push_str("<div class=\"container\">\n");
     html.push_str("  <div class=\"header\">\n");
@@ -155,12 +155,12 @@ fn build_component_template() -> String {
     html.push_str("<template shadowrootmode=\"open\">\n");
     html.push_str("<style>:host { display: block; } ");
     html.push_str(
-        ".card { border: 1px solid var(--webui-border); border-radius: 8px; padding: 16px; } ",
+        ".card { border: 1px solid var(--webhub-border); border-radius: 8px; padding: 16px; } ",
     );
     html.push_str(".card-header { font-weight: bold; margin-bottom: 8px; } ");
-    html.push_str(".card-body { color: var(--webui-text); } ");
+    html.push_str(".card-body { color: var(--webhub-text); } ");
     html.push_str(
-        ".card-footer { margin-top: 12px; font-size: 12px; color: var(--webui-muted); }</style>\n",
+        ".card-footer { margin-top: 12px; font-size: 12px; color: var(--webhub-muted); }</style>\n",
     );
     html.push_str("<div class=\"card {{variant}}\">\n");
     html.push_str("  <div class=\"card-header\">{{title}}</div>\n");
@@ -323,7 +323,7 @@ fn parser_with_bench_components() -> HtmlParser {
 }
 
 fn parser_with_bench_components_and_options(
-    options: impl Into<webui_parser::ParserOptions>,
+    options: impl Into<webhub_parser::ParserOptions>,
 ) -> HtmlParser {
     let mut parser = HtmlParser::with_options(options);
     register_bench_components(&mut parser);
@@ -339,7 +339,7 @@ fn parser_with_bench_components_and_fast_plugin() -> HtmlParser {
 fn register_bench_components(parser: &mut HtmlParser) {
     let registry = parser.component_registry_mut();
     registry
-        .register_component(webui_parser::ComponentRegistration::new(
+        .register_component(webhub_parser::ComponentRegistration::new(
             "x-bench-button",
             "<slot></slot>",
             None,
@@ -347,7 +347,7 @@ fn register_bench_components(parser: &mut HtmlParser) {
         ))
         .unwrap_or_else(|error| panic!("failed to register x-bench-button: {error}"));
     registry
-        .register_component(webui_parser::ComponentRegistration::new(
+        .register_component(webhub_parser::ComponentRegistration::new(
             "x-card",
             "<slot></slot>",
             None,
@@ -355,7 +355,7 @@ fn register_bench_components(parser: &mut HtmlParser) {
         ))
         .unwrap_or_else(|error| panic!("failed to register x-card: {error}"));
     registry
-        .register_component(webui_parser::ComponentRegistration::new(
+        .register_component(webhub_parser::ComponentRegistration::new(
             "x-panel",
             "<slot></slot>",
             None,
@@ -363,7 +363,7 @@ fn register_bench_components(parser: &mut HtmlParser) {
         ))
         .unwrap_or_else(|error| panic!("failed to register x-panel: {error}"));
     registry
-        .register_component(webui_parser::ComponentRegistration::new(
+        .register_component(webhub_parser::ComponentRegistration::new(
             "x-banner",
             "<slot></slot>",
             None,
@@ -371,7 +371,7 @@ fn register_bench_components(parser: &mut HtmlParser) {
         ))
         .unwrap_or_else(|error| panic!("failed to register x-banner: {error}"));
     registry
-        .register_component(webui_parser::ComponentRegistration::new(
+        .register_component(webhub_parser::ComponentRegistration::new(
             "x-dialog",
             "<slot></slot>",
             None,
@@ -379,7 +379,7 @@ fn register_bench_components(parser: &mut HtmlParser) {
         ))
         .unwrap_or_else(|error| panic!("failed to register x-dialog: {error}"));
     registry
-        .register_component(webui_parser::ComponentRegistration::new(
+        .register_component(webhub_parser::ComponentRegistration::new(
             "x-item",
             "<slot></slot>",
             None,
@@ -387,7 +387,7 @@ fn register_bench_components(parser: &mut HtmlParser) {
         ))
         .unwrap_or_else(|error| panic!("failed to register x-item: {error}"));
     registry
-        .register_component(webui_parser::ComponentRegistration::new(
+        .register_component(webhub_parser::ComponentRegistration::new(
             "x-stats-card",
             "<slot></slot>",
             None,

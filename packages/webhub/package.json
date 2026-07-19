@@ -1,15 +1,15 @@
 {
-  "name": "@microsoft/webui",
-  "description": "WebUI — high-performance server-side rendering framework. Build-time protocol compiler and streaming renderer.",
+  "name": "@microsoft/webhub",
+  "description": "webhub — high-performance server-side rendering framework. Build-time protocol compiler and streaming renderer.",
   "license": "MIT",
   "version": "0.0.18",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/microsoft/webui.git"
+    "url": "https://github.com/microsoft/webhub.git"
   },
   "bin": {
-    "webui": "bin/webui"
+    "webhub": "bin/webhub"
   },
   "files": [
     "bin/",
@@ -49,12 +49,12 @@
     }
   },
   "optionalDependencies": {
-    "@microsoft/webui-darwin-arm64": "workspace:*",
-    "@microsoft/webui-darwin-x64": "workspace:*",
-    "@microsoft/webui-linux-arm64": "workspace:*",
-    "@microsoft/webui-linux-x64": "workspace:*",
-    "@microsoft/webui-win32-arm64": "workspace:*",
-    "@microsoft/webui-win32-x64": "workspace:*"
+    "@microsoft/webhub-darwin-arm64": "workspace:*",
+    "@microsoft/webhub-darwin-x64": "workspace:*",
+    "@microsoft/webhub-linux-arm64": "workspace:*",
+    "@microsoft/webhub-linux-x64": "workspace:*",
+    "@microsoft/webhub-win32-arm64": "workspace:*",
+    "@microsoft/webhub-win32-x64": "workspace:*"
   },
   "peerDependencies": {
     "esbuild": "^0.28.1",
