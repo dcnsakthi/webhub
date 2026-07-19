@@ -137,13 +137,3 @@ webhub is still in active development. We are not accepting unsolicited pull req
 | Report a documentation need | [Choose an issue template](https://github.com/microsoft/webhub/issues/new/choose) |
 | Get support guidance | [`SUPPORT.md`](SUPPORT.md) |
 | Report a security issue | [`SECURITY.md`](SECURITY.md) |
-
-This project has adopted the [Microsoft Open Source Code of Conduct](CODE_OF_CONDUCT.md).
-
-## Trademarks
-
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft trademarks or logos is subject to [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general). Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship. Any use of third-party trademarks or logos is subject to those third party policies.
-
-## License
-
-MIT
