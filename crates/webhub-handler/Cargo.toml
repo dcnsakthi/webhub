@@ -1,0 +1,38 @@
+[package]
+name = "microsoft-webui-handler"
+description = "Core rust handler for WebUI framework"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+keywords = ["webui", "rendering", "ssr", "templates", "server-side"]
+categories = ["web-programming", "template-engine"]
+
+[lib]
+name = "webui_handler"
+
+[dependencies]
+microsoft-webui-protocol = { path = "../webui-protocol", version = "0.0.18" }
+microsoft-webui-expressions = { path = "../webui-expressions", version = "0.0.18" }
+microsoft-webui-state = { path = "../webui-state", version = "0.0.18" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+microsoft-webui-test-utils = { path = "../webui-test-utils", version = "0.0.18" }
+criterion = { workspace = true }
+
+[[bench]]
+name = "handler_bench"
+harness = false
+
+[[bench]]
+name = "bootstrap_state_bench"
+harness = false
+
+[lints]
+workspace = true

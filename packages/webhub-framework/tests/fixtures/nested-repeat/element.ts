@@ -1,0 +1,86 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+import { WebUIElement, observable } from '../../../src/index.js';
+
+interface NestedRepeatValue {
+  value: string;
+  disabled: boolean;
+}
+
+interface NestedRepeatGroup {
+  name: string;
+  values: NestedRepeatValue[];
+}
+
+export class TestNestedRepeat extends WebUIElement {
+  @observable groups: NestedRepeatGroup[] = [];
+
+  loadGroups(): void {
+    this.groups = [
+      {
+        name: 'Color',
+        values: [
+          { value: 'Black', disabled: false },
+          { value: 'Blue', disabled: true },
+        ],
+      },
+      {
+        name: 'Size',
+        values: [
+          { value: 'S', disabled: false },
+          { value: 'M', disabled: false },
+        ],
+      },
+    ];
+  }
+
+  /** Re-set groups with new objects to trigger nested reconciliation. */
+  updateGroups(): void {
+    this.groups = this.groups.map((group) => ({
+      name: group.name,
+      values: group.values.map((v) => ({
+        value: v.value,
+        disabled: v.disabled,
+      })),
+    }));
+  }
+
+  /** Add a value to the first group to test growing inner lists. */
+  growFirstGroup(): void {
+    if (this.groups.length === 0) return;
+    const first = this.groups[0];
+    this.groups = [
+      {
+        name: first.name,
+        values: [
+          ...first.values.map((v) => ({ value: v.value, disabled: v.disabled })),
+          { value: 'Red', disabled: false },
+        ],
+      },
+      ...this.groups.slice(1).map((g) => ({
+        name: g.name,
+        values: g.values.map((v) => ({ value: v.value, disabled: v.disabled })),
+      })),
+    ];
+  }
+
+  /** Remove a value from the first group to test shrinking inner lists. */
+  shrinkFirstGroup(): void {
+    if (this.groups.length === 0 || this.groups[0].values.length === 0) return;
+    const first = this.groups[0];
+    this.groups = [
+      {
+        name: first.name,
+        values: first.values.slice(1).map((v) => ({ value: v.value, disabled: v.disabled })),
+      },
+      ...this.groups.slice(1).map((g) => ({
+        name: g.name,
+        values: g.values.map((v) => ({ value: v.value, disabled: v.disabled })),
+      })),
+    ];
+  }
+}
+
+TestNestedRepeat.define('test-nested-repeat');
+

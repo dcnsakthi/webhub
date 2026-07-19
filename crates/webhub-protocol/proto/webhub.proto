@@ -1,0 +1,259 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+syntax = "proto3";
+
+package webui;
+
+// Per-component metadata keyed by tag name.
+message ComponentData {
+  // Non-WebUI client-side template payload.
+  // FAST plugins store complete <f-template> HTML here.
+  string template = 1;
+  // Component CSS content for the Module strategy.
+  // Contains the full CSS content when CssStrategy::Module is active.
+  // Empty for Link and Style strategies (CSS is handled via <link> tags
+  // or inline <style> tags baked into raw fragments by the parser).
+  string css = 2;
+  // External stylesheet href for the Link CSS strategy.
+  // Set to e.g. "/my-card.css" when the component has a CSS file and the
+  // build used CssStrategy::Link. Empty for Style/Module strategies and
+  // for components without CSS.
+  // The handler uses css_strategy and dom_strategy on WebUIProtocol to
+  // decide what to emit in <head>:
+  //   Link + Shadow → <link rel="preload"> (shadow root has the stylesheet)
+  //   Link + Light  → <link rel="stylesheet"> (no shadow root to host it)
+  string css_href = 3;
+  // WebUI plugin JSON-safe component metadata.
+  // Stored separately from executable condition closures so handlers can emit
+  // the static metadata in application/json data blocks.
+  string template_json = 4;
+  // WebUI plugin component-local JavaScript condition closure array.
+  // Empty when the component has no conditions or boolean attributes.
+  string template_functions = 5;
+  // Exact @observable + @attr property keys when hydration_mode is KEYS.
+  // Existing SSR host attributes take precedence; bootstrap state fills
+  // attribute-backed properties that were not materialized on the host.
+  // Template roots already exist in the trusted SSR DOM and do not enter
+  // initial state solely because a component has authored browser code.
+  // Sorted and deduplicated; empty for NONE and ALL.
+  repeated string hydration_keys = 6;
+  // Exact partial-navigation keys when navigation_mode is KEYS. Authored
+  // components use @observable + @attr property keys plus template roots.
+  // Scriptless compiled templates include only their template roots.
+  // Sorted and deduplicated; empty for NONE and ALL.
+  repeated string navigation_keys = 7;
+  // How initial hydration state is selected for this component.
+  StateProjectionMode hydration_mode = 8;
+  // How partial-navigation state is selected for this component.
+  StateProjectionMode navigation_mode = 9;
+}
+
+// Build-wide initial-state behavior.
+enum InitialStateStrategy {
+  // Emit the complete state object. Used by default and non-WebUI plugins.
+  INITIAL_STATE_STRATEGY_FULL = 0;
+  // Select state from reachable WebUI component surfaces.
+  INITIAL_STATE_STRATEGY_COMPONENTS = 1;
+}
+
+// Per-component state selection.
+enum StateProjectionMode {
+  // The component is known not to consume state through this channel.
+  STATE_PROJECTION_MODE_NONE = 0;
+  // Select the component's explicit sorted key list.
+  STATE_PROJECTION_MODE_KEYS = 1;
+  // The complete surface is unknown, so preserve correctness with full state.
+  STATE_PROJECTION_MODE_ALL = 2;
+}
+
+// CSS delivery strategy chosen at build time.
+enum CssStrategy {
+  CSS_STRATEGY_LINK = 0;
+  CSS_STRATEGY_STYLE = 1;
+  CSS_STRATEGY_MODULE = 2;
+}
+
+// DOM encapsulation strategy chosen at build time.
+enum DomStrategy {
+  DOM_STRATEGY_SHADOW = 0;
+  DOM_STRATEGY_LIGHT = 1;
+}
+
+// Root protocol containing all fragment records and build metadata.
+message WebUIProtocol {
+  map<string, FragmentList> fragments = 1;
+  // Sorted, deduplicated CSS custom property names used across all components
+  // and entry page styles (e.g., "colorBrandBackground", "spacingMedium").
+  // Only usage via var(--name) is included; local definitions are excluded.
+  repeated string tokens = 2;
+  // Per-component data keyed by tag name (f-template + CSS).
+  map<string, ComponentData> components = 3;
+  // Build-wide CSS delivery strategy. Determines how the handler emits
+  // CSS-related tags in <head> for components with css_href.
+  CssStrategy css_strategy = 4;
+  // Build-wide DOM encapsulation strategy. Combined with css_strategy to
+  // decide preload vs stylesheet emission.
+  DomStrategy dom_strategy = 5;
+  // Whether initial SSR metadata contains full state or WebUI component
+  // projection. Partial-navigation state remains component-driven.
+  InitialStateStrategy initial_state_strategy = 6;
+}
+
+// A list of fragments (needed because protobuf maps cannot have repeated values directly).
+message FragmentList {
+  repeated WebUIFragment fragments = 1;
+}
+
+// A single fragment — one of several types.
+message WebUIFragment {
+  oneof fragment {
+    WebUIFragmentRaw raw = 1;
+    WebUIFragmentComponent component = 2;
+    WebUIFragmentFor for_loop = 3;
+    WebUIFragmentSignal signal = 4;
+    WebUIFragmentIf if_cond = 5;
+    WebUIFragmentAttribute attribute = 6;
+    WebUIFragmentPlugin plugin = 7;
+    WebUIFragmentRoute route = 8;
+    WebUIFragmentOutlet outlet = 9;
+  }
+}
+
+// Declarative route definition linking a URL path template to a component.
+// Nested routes are expressed via repeated children.
+message WebUIFragmentRoute {
+  string path = 1;
+  string fragment_id = 2;
+  bool exact = 3;
+  // Nested child routes rendered at the component's <outlet />.
+  repeated WebUIFragmentRoute children = 4;
+  // Comma-separated allowlist of query parameters forwarded as attributes.
+  // Empty string means no query params are forwarded (deny-by-default).
+  string allowed_query = 5;
+  // When true, the router preserves the mounted component instance across
+  // navigations instead of destroying and recreating it. Opt-in per route.
+  bool keep_alive = 6;
+  // Cache tag templates for this route (e.g. "thread:{threadId}", "inbox").
+  // Placeholders like {param} are resolved at render time with actual param values.
+  repeated string cache_tags = 7;
+  // Invalidation tag templates (e.g. "inbox", "thread:{threadId}").
+  // After a mutation action on this route, these tags are auto-invalidated.
+  // Supports {param} placeholders resolved at render time.
+  repeated string invalidates = 8;
+  // Component tag name for the pending/loading UI (e.g. "mail-skeleton").
+  // Validated at build time — build fails if the component does not exist.
+  string pending_component = 9;
+  // Component tag name for the error boundary UI (e.g. "error-page").
+  // Validated at build time — build fails if the component does not exist.
+  string error_component = 10;
+}
+
+// Outlet placeholder — marks where matched child route content renders.
+// Components use this to indicate where nested route children are rendered.
+message WebUIFragmentOutlet {}
+
+// Opaque plugin-specific data passed from parser plugin to handler plugin.
+// WebUI framework does not interpret this data — it is a pass-through conduit.
+// Each parser/handler plugin pair defines its own binary contract for the data field.
+message WebUIFragmentPlugin {
+  bytes data = 1;
+}
+
+// Static text or HTML content.
+message WebUIFragmentRaw {
+  string value = 1;
+}
+
+// Reference to a reusable component fragment.
+message WebUIFragmentComponent {
+  string fragment_id = 1;
+}
+
+// Loop directive iterating over a collection.
+message WebUIFragmentFor {
+  string item = 1;
+  string collection = 2;
+  string fragment_id = 3;
+}
+
+// Dynamic data binding via signal.
+message WebUIFragmentSignal {
+  string value = 1;
+  bool raw = 2;
+}
+
+// Conditional rendering fragment.
+message WebUIFragmentIf {
+  ConditionExpr condition = 1;
+  string fragment_id = 2;
+}
+
+// Dynamic attribute binding.
+message WebUIFragmentAttribute {
+  string name = 1;
+  // For simple dynamic attrs, the signal name.
+  string value = 2;
+  // For mixed (template) attrs, the sub-stream ID.
+  string template = 3;
+  // True for :-prefixed complex attributes.
+  bool complex = 4;
+  // True for the first dynamic attribute on a component element.
+  bool attr_start = 5;
+  // True for skipped attributes (class, style, role, data-*, aria-*).
+  bool attr_skip = 6;
+  // True for static attribute values on components.
+  bool raw_value = 7;
+  // For ?-prefixed boolean attributes, the condition tree.
+  ConditionExpr condition_tree = 8;
+}
+
+// A condition expression tree.
+message ConditionExpr {
+  oneof expr {
+    Predicate predicate = 1;
+    NotCondition not = 2;
+    CompoundCondition compound = 3;
+    IdentifierCondition identifier = 4;
+  }
+}
+
+// Simple comparison predicate.
+message Predicate {
+  string left = 1;
+  ComparisonOperator operator = 2;
+  string right = 3;
+}
+
+// Negation wrapper.
+message NotCondition {
+  ConditionExpr condition = 1;
+}
+
+// Two conditions joined by a logical operator.
+message CompoundCondition {
+  ConditionExpr left = 1;
+  LogicalOperator op = 2;
+  ConditionExpr right = 3;
+}
+
+// Single identifier (variable name).
+message IdentifierCondition {
+  string value = 1;
+}
+
+enum LogicalOperator {
+  LOGICAL_OPERATOR_UNSPECIFIED = 0;
+  AND = 1;
+  OR = 2;
+}
+
+enum ComparisonOperator {
+  COMPARISON_OPERATOR_UNSPECIFIED = 0;
+  GREATER_THAN = 1;
+  LESS_THAN = 2;
+  EQUAL = 3;
+  NOT_EQUAL = 4;
+  GREATER_THAN_OR_EQUAL = 5;
+  LESS_THAN_OR_EQUAL = 6;
+}

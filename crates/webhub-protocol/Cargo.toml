@@ -1,0 +1,41 @@
+[package]
+name = "microsoft-webui-protocol"
+description = "Core protocol definitions for WebUI framework"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+keywords = ["webui", "protocol", "protobuf", "binary", "serialization"]
+categories = ["encoding", "web-programming"]
+exclude = ["build.rs"]
+
+[lib]
+name = "webui_protocol"
+
+[features]
+# Enable to regenerate src/gen_webui.rs from proto/webui.proto via prost-build.
+# Off by default so crates.io consumers don't pull in prost-build.
+regenerate-proto = ["dep:prost-build"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+prost = { workspace = true }
+sha2 = { workspace = true }
+
+[build-dependencies]
+prost-build = { workspace = true, optional = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "protocol_bench"
+harness = false
+
+[lints]
+workspace = true

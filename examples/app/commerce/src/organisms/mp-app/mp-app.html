@@ -1,0 +1,37 @@
+<template shadowrootmode="open"
+  shadowrootadoptedstylesheets="mp-app"
+  @toggle-cart="{onToggleCart()}"
+  @toggle-mobile-menu="{onToggleMobileMenu()}"
+  @commerce-cart-state="{onCommerceCartState(e)}"
+  @cart-closed="{onCartClosed()}"
+>
+  <mp-navbar
+    store-name="{{storeName}}"
+    search-query="{{searchQuery}}"
+    cart-href="{{cartHref}}"
+    :cart-items="{{cartItems}}"
+    :nav-categories="{{navCategories}}"
+  ></mp-navbar>
+  <mp-mobile-menu
+    w-ref="{mobileMenu}"
+    search-query="{{searchQuery}}"
+    :nav-categories="{{navCategories}}"
+  ></mp-mobile-menu>
+
+  <div class="content-shell">
+    <main class="route-surface">
+      <outlet />
+    </main>
+  </div>
+
+  <mp-cart-panel
+    subtotal="{{subtotal}}"
+    taxes="{{taxes}}"
+    cart-open="{{cartOpen}}"
+    cart-close-href="{{cartCloseHref}}"
+    current-path="{{currentPath}}"
+    :cart-items="{{cartItems}}"
+  ></mp-cart-panel>
+
+  <mp-footer></mp-footer>
+</template>

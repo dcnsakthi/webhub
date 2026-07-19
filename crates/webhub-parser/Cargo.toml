@@ -1,0 +1,46 @@
+[package]
+name = "microsoft-webui-parser"
+description = "Core parser for WebUI framework"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+keywords = ["webui", "parser", "html", "templates", "ssr"]
+categories = ["parser-implementations", "template-engine", "web-programming"]
+
+[lib]
+name = "webui_parser"
+
+[features]
+default = ["fs"]
+fs = ["walkdir"]
+cli = ["clap"]
+
+[package.metadata.cargo-shear]
+# `clap` is used only via `cfg_attr(feature = "cli", derive(clap::ValueEnum))`
+# attribute macros; cargo-shear doesn't expand macros by default and so
+# reports a false positive without `--expand`.
+ignored = ["clap"]
+
+[dependencies]
+microsoft-webui-protocol = { path = "../webui-protocol", version = "0.0.18" }
+microsoft-webui-tokens = { path = "../webui-tokens", version = "0.0.18" }
+thiserror = { workspace = true }
+html-escape = { workspace = true }
+walkdir = { workspace = true, optional = true }
+clap = { workspace = true, optional = true }
+sha2 = { workspace = true }
+
+[dev-dependencies]
+microsoft-webui-test-utils = { path = "../webui-test-utils", version = "0.0.18" }
+criterion = { workspace = true }
+
+[[bench]]
+name = "parser_bench"
+harness = false
+
+[lints]
+workspace = true

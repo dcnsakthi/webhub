@@ -1,0 +1,24 @@
+{
+  "name": "@webui/docs",
+  "version": "0.1.0",
+  "description": "WebUI Framework Documentation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "cargo run -p microsoft-webui-press -- build",
+    "start": "cargo run -p microsoft-webui-press -- serve"
+  },
+  "dependencies": {
+    "@codemirror/commands": "catalog:",
+    "@codemirror/lang-css": "catalog:",
+    "@codemirror/lang-html": "catalog:",
+    "@codemirror/lang-json": "catalog:",
+    "@codemirror/language": "catalog:",
+    "@codemirror/state": "catalog:",
+    "@codemirror/theme-one-dark": "catalog:",
+    "@codemirror/view": "catalog:",
+    "@microsoft/webui": "workspace:*",
+    "@microsoft/webui-framework": "workspace:*",
+    "esbuild": "catalog:"
+  }
+}

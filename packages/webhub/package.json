@@ -1,0 +1,76 @@
+{
+  "name": "@microsoft/webui",
+  "description": "WebUI — high-performance server-side rendering framework. Build-time protocol compiler and streaming renderer.",
+  "license": "MIT",
+  "version": "0.0.18",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/webui.git"
+  },
+  "bin": {
+    "webui": "bin/webui"
+  },
+  "files": [
+    "bin/",
+    "dist/index.*",
+    "dist/install.*",
+    "dist/platform.*",
+    "dist/projection/",
+    "wasm/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "postbuild": "node dist/install.js",
+    "postinstall": "node --input-type=module -e \"try{await import('./dist/install.js')}catch{}\"",
+    "test": "tsc --project tsconfig.test.json && node --test dist/test/integration.test.js dist/test/projection-cli-fallback.test.js dist/test/projection-conformance.test.js dist/test/projection-compiler.test.js dist/test/projection-esbuild.test.js dist/test/projection-peers.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./platform.js": {
+      "import": {
+        "types": "./dist/platform.d.ts",
+        "default": "./dist/platform.js"
+      }
+    },
+    "./projection.js": {
+      "import": {
+        "types": "./dist/projection/index.d.ts",
+        "default": "./dist/projection/index.js"
+      }
+    }
+  },
+  "optionalDependencies": {
+    "@microsoft/webui-darwin-arm64": "workspace:*",
+    "@microsoft/webui-darwin-x64": "workspace:*",
+    "@microsoft/webui-linux-arm64": "workspace:*",
+    "@microsoft/webui-linux-x64": "workspace:*",
+    "@microsoft/webui-win32-arm64": "workspace:*",
+    "@microsoft/webui-win32-x64": "workspace:*"
+  },
+  "peerDependencies": {
+    "esbuild": "^0.28.1",
+    "typescript": "^6.0.3"
+  },
+  "peerDependenciesMeta": {
+    "esbuild": {
+      "optional": true
+    },
+    "typescript": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "esbuild": "catalog:",
+    "typescript": "catalog:"
+  }
+}

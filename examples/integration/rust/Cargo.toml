@@ -1,0 +1,18 @@
+[package]
+name = "webui-rust-example"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "webui-rust-example"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = { workspace = true }
+microsoft-webui-protocol = { path = "../../../crates/webui-protocol" }
+microsoft-webui-handler = { path = "../../../crates/webui-handler" }
+anyhow = { workspace = true }
+
+[lints]
+workspace = true

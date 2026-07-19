@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "WebWorker"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "types": []
+  },
+  "include": [
+    "src/payload.ts",
+    "src/service-worker.ts",
+    "src/wasm/handler/*.d.ts"
+  ]
+}

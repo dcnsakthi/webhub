@@ -1,0 +1,23 @@
+node_modules/
+dist/
+dist-test/
+bin/
+obj/
+target/
+docs/.vitepress/cache/
+.history/
+.turbo/
+.memory/
+test-results/
+
+# Staged native binaries (populated by cargo xtask publish-stage)
+dotnet/runtimes/
+packages/*/webui.node
+publish/
+*.nupkg
+.last
+packages/webui/bin/webui
+packages/webui/bin/webui.exe
+
+# Built from source by PR FFI checks.
+crates/webui-ffi/tests/fixtures/protocol.bin

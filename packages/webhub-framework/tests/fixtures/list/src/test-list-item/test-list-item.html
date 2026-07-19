@@ -1,0 +1,7 @@
+<article class="item">
+  <button class="toggle" @click="{onToggle()}">Toggle</button>
+  <span class="title">{{title}}</span>
+  <if condition="state == 'done'">
+    <span class="done">Done</span>
+  </if>
+</article>

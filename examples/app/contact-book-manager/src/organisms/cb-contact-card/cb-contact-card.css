@@ -1,0 +1,90 @@
+:host {
+  display: block;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-m);
+  padding: var(--spacing-m) 18px;
+  border-bottom: 1px solid var(--color-neutral-150);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.card:hover {
+  background: var(--color-neutral-100);
+}
+
+.card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-neutral-950);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fav-star {
+  font-size: var(--font-size-xs);
+}
+
+.fav-star::before {
+  content: '\2B50';
+}
+
+.email {
+  font-size: var(--font-size-s);
+  color: var(--color-neutral-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phone {
+  font-size: var(--font-size-s);
+  color: var(--color-neutral-400);
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-round);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatar-initials {
+  color: var(--color-white);
+  font-size: var(--font-size-m);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.badge {
+  font-size: var(--font-size-xs);
+  padding: 2px var(--spacing-m);
+  border-radius: var(--border-radius-xl);
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-700);
+  white-space: nowrap;
+  flex-shrink: 0;
+}

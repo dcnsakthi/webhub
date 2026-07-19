@@ -1,0 +1,143 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ── Phase 1: Lint (fast, fail-fast) ────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+        with:
+          skip-build: 'true'
+          rust-components: clippy, rustfmt
+
+      - name: License headers
+        run: cargo xtask license-headers
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Deny (licenses & advisories)
+        run: |
+          cargo install --locked cargo-deny || true
+          cargo deny check
+
+  # ── Phase 2: Test (Ubuntu) ─────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+        with:
+          skip-build: 'true'
+
+      - name: Test
+        run: cargo test --workspace
+
+  # ── Phase 2: Build (Linux + macOS + Windows) ────────────────────────
+  build-linux:
+    name: Build (Linux)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+        with:
+          shared-cache-key: ubuntu-build
+
+  build-macos:
+    name: Build (macOS)
+    runs-on: macos-latest-large
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+
+  build-windows:
+    name: Build (Windows)
+    runs-on: windows-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+
+  # ── Phase 3: E2E (Ubuntu, after Linux build) ───────────────────────
+  e2e:
+    name: E2E (Ubuntu)
+    runs-on: ubuntu-latest
+    needs: build-linux
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+        with:
+          shared-cache-key: ubuntu-build
+          cache-on-failure: 'true'
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: cargo xtask e2e
+
+      - name: Regenerate baselines (on failure)
+        if: failure()
+        run: cargo xtask e2e --update-snapshots
+
+      - name: Upload updated baselines (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-updated-baselines
+          path: |
+            examples/app/*/tests/*.spec.ts-snapshots/
+            packages/*/tests/*.spec.ts-snapshots/
+          retention-days: 7
+
+      - name: Upload test results (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: |
+            examples/app/*/test-results/
+            packages/*/test-results/
+          retention-days: 7
+
+  # ── Phase 2: WASM (Ubuntu) ─────────────────────────────────────────
+  wasm:
+    name: WASM
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-wasm
+
+  # ── Phase 2: Docs ─────────────────────────────────────────────────
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    needs: build-linux
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+        with:
+          shared-cache-key: ubuntu-build
+
+      - name: Build docs
+        run: pnpm --filter @webui/docs... build

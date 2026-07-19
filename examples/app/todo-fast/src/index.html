@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html dir="{{textdirection}}" lang="{{language}}">
+
+<head>
+  <meta charset="utf-8">
+  <base href="{{basePath}}">
+  <title>{{title}}</title>
+  <style>
+    :root {
+      /*{{{tokens.light}}}*/
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        /*{{{tokens.dark}}}*/
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family-base);
+      max-width: 640px;
+      margin: 0 auto;
+      padding: var(--spacing-xxxl);
+      background: var(--color-neutral-100);
+      color: var(--color-neutral-800);
+    }
+  </style>
+</head>
+
+<body>
+  <todo-app title="{{title}}"></todo-app>
+
+  <script type="module" src="./index.js"></script>
+</body>
+
+</html>

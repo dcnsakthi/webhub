@@ -1,0 +1,149 @@
+<div class="pg">
+  <div class="editor-pane">
+    <div class="tab-bar">
+      <div class="tab-strip">
+        <for each="file in files">
+          <div
+            class="tab"
+            ?active="{{file.active}}"
+            ?data-editing="{{file.editing}}"
+            title="{{file.name}}"
+            data-name="{{file.name}}"
+            role="button"
+            tabindex="0"
+            @click="{selectTab(e)}"
+            @dblclick="{startFileRename(e)}"
+            @keydown="{onTabKeydown(e)}"
+          >
+            <span class="tab-icon tab-icon-html" aria-hidden="true">
+              <svg viewBox="0 0 16 16" focusable="false">
+                <rect class="tab-icon-bg" x="1.5" y="1.5" width="13" height="13" rx="4"></rect>
+                <path class="tab-icon-mark" d="M6.3 5.2 3.8 8l2.5 2.8M9.7 5.2 12.2 8l-2.5 2.8"></path>
+              </svg>
+            </span>
+            <span class="tab-icon tab-icon-css" aria-hidden="true">
+              <svg viewBox="0 0 16 16" focusable="false">
+                <rect class="tab-icon-bg" x="1.5" y="1.5" width="13" height="13" rx="4"></rect>
+                <path class="tab-icon-mark" d="M4.2 5.2h7.6M4.2 8h6.5M4.2 10.8h5"></path>
+              </svg>
+            </span>
+            <span class="tab-icon tab-icon-json" aria-hidden="true">
+              <svg viewBox="0 0 16 16" focusable="false">
+                <rect class="tab-icon-bg" x="1.5" y="1.5" width="13" height="13" rx="4"></rect>
+                <path class="tab-icon-mark" d="M6.1 4.2c-1.1 0-1.6.5-1.6 1.6v.8c0 .8-.4 1.2-1.1 1.4.7.2 1.1.6 1.1 1.4v.8c0 1.1.5 1.6 1.6 1.6M9.9 4.2c1.1 0 1.6.5 1.6 1.6v.8c0 .8.4 1.2 1.1 1.4-.7.2-1.1.6-1.1 1.4v.8c0 1.1-.5 1.6-1.6 1.6"></path>
+              </svg>
+            </span>
+            <if condition="file.editing">
+              <span class="tab-rename-sizer">{{file.editValue}}</span>
+              <input
+                class="tab-rename-input"
+                type="text"
+                value="{{file.editValue}}"
+                placeholder="{{file.placeholder}}"
+                spellcheck="false"
+                aria-label="File name"
+                @click="{stopTabEvent(e)}"
+                @dblclick="{stopTabEvent(e)}"
+                @input="{onFileEditInput(e)}"
+                @keydown="{onFileEditKey(e)}"
+                @blur="{saveFileEdit(e)}"
+              />
+            </if>
+            <if condition="!file.editing">
+              <span class="tab-name">{{file.name}}</span>
+              <if condition="!file.locked">
+                <button
+                  class="tab-close-btn"
+                  type="button"
+                  title="Close file"
+                  data-name="{{file.name}}"
+                  @click="{closeFile(e)}"
+                  @dblclick="{stopTabEvent(e)}"
+                >
+                  ×
+                </button>
+              </if>
+            </if>
+          </div>
+        </for>
+      </div>
+      <button class="tab-add-btn" type="button" title="New file" @click="{openNewFileInput()}">+</button>
+    </div>
+    <div class="editor-wrap" w-ref="{editorWrap}"></div>
+  </div>
+  <div class="panel-divider"></div>
+  <div class="preview-pane">
+    <div class="preview-header">
+      <div class="preview-header-left">
+        <span class="preview-title">Preview</span>
+        <span class="preview-badge {{previewBadgeState}}">{{previewBadge}}</span>
+      </div>
+      <div class="preview-actions">
+        <div class="preview-stats">
+          <if condition="hasStats">
+            <span class="stat-badge build">Build {{buildMs}}ms</span>
+            <span class="stat-badge render">Render {{renderMs}}ms</span>
+          </if>
+        </div>
+        <button class="share-btn" type="button" @click="{sharePlayground()}">Share</button>
+      </div>
+    </div>
+    <iframe sandbox="allow-scripts" class="preview-frame" srcdoc="{{previewSrcdoc}}"></iframe>
+    <if condition="hasError">
+      <div
+        class="error-panel"
+        data-severity="{{errorSeverity}}"
+        ?data-expanded="{{errorExpanded}}"
+      >
+        <button
+          class="error-panel-header"
+          type="button"
+          aria-expanded="{{errorExpanded}}"
+          @click="{toggleError()}"
+        >
+          <span class="error-panel-icon" aria-hidden="true"></span>
+          <span class="error-panel-summary">
+            <span class="error-panel-title">{{errorTitle}}</span>
+            <if condition="errorCode">
+              <span class="error-code-chip">{{errorCode}}</span>
+            </if>
+          </span>
+          <if condition="errorLocation">
+            <span class="error-loc">{{errorLocation}}</span>
+          </if>
+          <span class="error-chevron" aria-hidden="true">
+            <svg viewBox="0 0 16 16" focusable="false">
+              <path d="M4.5 6.5 8 10l3.5-3.5"></path>
+            </svg>
+          </span>
+        </button>
+        <div class="error-panel-body-wrap">
+          <div class="error-panel-body">
+            <if condition="errorSnippet">
+              <pre class="error-snippet">{{errorSnippet}}</pre>
+            </if>
+            <if condition="errorHelp">
+              <div class="error-help">
+                <span class="error-help-label">help</span>
+                <span class="error-help-text">{{errorHelp}}</span>
+              </div>
+            </if>
+            <if condition="errorRaw">
+              <pre class="error-raw">{{errorRaw}}</pre>
+            </if>
+          </div>
+        </div>
+      </div>
+    </if>
+  </div>
+  <if condition="toastMessage">
+    <div
+      class="clipboard-toast"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {{toastMessage}}
+    </div>
+  </if>
+</div>

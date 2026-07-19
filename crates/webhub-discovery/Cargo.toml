@@ -1,0 +1,28 @@
+[package]
+name = "microsoft-webui-discovery"
+description = "External component discovery for WebUI framework"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+keywords = ["webui", "discovery", "components", "ssr", "tooling"]
+categories = ["web-programming", "development-tools"]
+
+[lib]
+name = "webui_discovery"
+
+[dependencies]
+anyhow = { workspace = true }
+expand-tilde = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+walkdir = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

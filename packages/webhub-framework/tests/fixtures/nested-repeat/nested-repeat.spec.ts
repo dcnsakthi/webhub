@@ -1,0 +1,156 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+import { expect, test } from '@playwright/test';
+
+test.describe('nested repeat fixture', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/nested-repeat/fixture.html');
+    await page.waitForSelector('test-nested-repeat');
+    await page.waitForFunction(() => {
+      const el = document.querySelector('test-nested-repeat');
+      return el && (el as any).$ready === true;
+    });
+  });
+
+  test('resolves outer scope values inside nested repeat items', async ({ page }) => {
+    await page.locator('test-nested-repeat .load').click();
+
+    await expect(page.locator('test-nested-repeat h2')).toHaveText(['Color', 'Size']);
+    await expect(page.locator('test-nested-repeat .value')).toHaveText(['Black', 'Blue', 'S', 'M']);
+    await expect(page.locator('test-nested-repeat .value').nth(1)).toBeDisabled();
+
+    const groups = await page.locator('test-nested-repeat .value').evaluateAll((elements) => {
+      return elements.map((element) => element.getAttribute('data-group'));
+    });
+
+    expect(groups).toEqual(['Color', 'Color', 'Size', 'Size']);
+  });
+
+  test('updating groups with new objects does not duplicate inner items', async ({ page }) => {
+    await page.locator('test-nested-repeat .load').click();
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(4);
+
+    // Re-set groups with new objects (same data) — triggers nested reconciliation
+    await page.evaluate(() => {
+      (document.querySelector('test-nested-repeat') as any).updateGroups();
+    });
+
+    // Must still have exactly 4 inner items, not 8
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(4);
+    await expect(page.locator('test-nested-repeat .value')).toHaveText(['Black', 'Blue', 'S', 'M']);
+  });
+
+  test('updating groups multiple times does not accumulate duplicates', async ({ page }) => {
+    await page.locator('test-nested-repeat .load').click();
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(4);
+
+    for (let i = 0; i < 5; i++) {
+      await page.evaluate(() => {
+        (document.querySelector('test-nested-repeat') as any).updateGroups();
+      });
+    }
+
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(4);
+    await expect(page.locator('test-nested-repeat .value')).toHaveText(['Black', 'Blue', 'S', 'M']);
+
+    const groups = await page.locator('test-nested-repeat .value').evaluateAll((elements) => {
+      return elements.map((element) => element.getAttribute('data-group'));
+    });
+    expect(groups).toEqual(['Color', 'Color', 'Size', 'Size']);
+  });
+
+  test('growing an inner list does not duplicate existing items', async ({ page }) => {
+    await page.locator('test-nested-repeat .load').click();
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(4);
+
+    await page.evaluate(() => {
+      (document.querySelector('test-nested-repeat') as any).growFirstGroup();
+    });
+
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(5);
+    await expect(page.locator('test-nested-repeat .value')).toHaveText([
+      'Black', 'Blue', 'Red', 'S', 'M',
+    ]);
+  });
+
+  test('shrinking an inner list removes items correctly', async ({ page }) => {
+    await page.locator('test-nested-repeat .load').click();
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(4);
+
+    await page.evaluate(() => {
+      (document.querySelector('test-nested-repeat') as any).shrinkFirstGroup();
+    });
+
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(3);
+    await expect(page.locator('test-nested-repeat .value')).toHaveText(['Blue', 'S', 'M']);
+  });
+});
+
+// ── SSR hydration regression (#175 / #176) ──────────────────────
+// Exercises $resolveSSR and $resolve with pathStart > 0 on paths
+// deeper than the block root (e.g. [0, 1]).  Before the fix, the
+// template cursor was not advanced through skipped path segments,
+// so inner repeats failed to find their parent element and markers.
+
+test.describe('nested repeat SSR hydration', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/nested-repeat/fixture.html');
+    await page.waitForSelector('test-nested-repeat');
+    await page.waitForFunction(() => {
+      const el = document.querySelector('test-nested-repeat');
+      return el && (el as any).$ready === true;
+    });
+  });
+
+  test('inner repeat items are hydrated without duplication', async ({ page }) => {
+    // SSR HTML contains 4 buttons; after hydration they must remain exactly 4.
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(4);
+    await expect(page.locator('test-nested-repeat .value')).toHaveText([
+      'Black', 'Blue', 'S', 'M',
+    ]);
+  });
+
+  test('inner repeat items preserve attributes from SSR', async ({ page }) => {
+    const groups = await page.locator('test-nested-repeat .value').evaluateAll(
+      (els) => els.map((el) => el.getAttribute('data-group')),
+    );
+    expect(groups).toEqual(['Color', 'Color', 'Size', 'Size']);
+
+    // The disabled attribute on "Blue" must survive hydration
+    await expect(page.locator('test-nested-repeat .value').nth(1)).toBeDisabled();
+    await expect(page.locator('test-nested-repeat .value').nth(0)).toBeEnabled();
+  });
+
+  test('reactive update after SSR hydration does not duplicate inner items', async ({ page }) => {
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(4);
+
+    // Trigger a reactive update with new object references
+    await page.evaluate(() => {
+      (document.querySelector('test-nested-repeat') as any).updateGroups();
+    });
+
+    // Must still be exactly 4 — no SSR ghosts left behind
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(4);
+    await expect(page.locator('test-nested-repeat .value')).toHaveText([
+      'Black', 'Blue', 'S', 'M',
+    ]);
+  });
+
+  test('growing inner list after SSR hydration works correctly', async ({ page }) => {
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(4);
+
+    await page.evaluate(() => {
+      (document.querySelector('test-nested-repeat') as any).growFirstGroup();
+    });
+
+    await expect(page.locator('test-nested-repeat .value')).toHaveCount(5);
+    await expect(page.locator('test-nested-repeat .value')).toHaveText([
+      'Black', 'Blue', 'Red', 'S', 'M',
+    ]);
+  });
+
+  test('outer scope text bindings hydrate correctly', async ({ page }) => {
+    await expect(page.locator('test-nested-repeat h2')).toHaveText(['Color', 'Size']);
+  });
+});

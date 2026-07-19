@@ -1,0 +1,30 @@
+:host {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-m);
+  background: var(--color-white);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-xl) var(--spacing-xxl);
+  box-shadow: var(--shadow-s);
+}
+
+.stat-icon {
+  font-size: var(--font-size-3xl);
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--color-neutral-950);
+}
+
+.stat-label {
+  font-size: var(--font-size-s);
+  color: var(--color-neutral-500);
+  margin-top: 2px;
+}

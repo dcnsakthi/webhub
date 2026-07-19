@@ -1,0 +1,33 @@
+:host {
+  display: inline-flex;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-round);
+  color: var(--color-white);
+  font-weight: 600;
+  font-size: var(--font-size-l);
+  user-select: none;
+}
+
+.initials {
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+:host([size="sm"]) .avatar {
+  width: 32px;
+  height: 32px;
+  font-size: var(--font-size-s);
+}
+
+:host([size="lg"]) .avatar {
+  width: 64px;
+  height: 64px;
+  font-size: var(--font-size-xxl);
+}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <base href="{{basePath}}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebUI Hello World</title>
+  <style>
+    :root {
+      /*{{{tokens.light}}}*/
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        /*{{{tokens.dark}}}*/
+      }
+    }
+
+    body {
+      font-family: var(--font-family-base);
+      max-width: 800px;
+      margin: 0 auto;
+      padding: var(--spacing-xl);
+      line-height: var(--line-height-base);
+    }
+
+    h1 {
+      color: var(--color-neutral-900);
+      border-bottom: 2px solid var(--color-neutral-200);
+      padding-bottom: var(--spacing-m);
+    }
+
+    .people-list {
+      background-color: var(--color-neutral-100);
+      padding: var(--spacing-l);
+      border-radius: var(--border-radius-m);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .person {
+      border-left: 3px solid var(--color-brand-primary);
+      padding-left: var(--spacing-m);
+      margin-bottom: var(--spacing-m);
+    }
+
+    .description {
+      background-color: var(--color-brand-light);
+      padding: var(--spacing-l);
+      border-radius: var(--border-radius-m);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .contact {
+      background-color: var(--color-success-light);
+      padding: var(--spacing-l);
+      border-radius: var(--border-radius-m);
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Hello, WebUI!</h1>
+
+  <div class="people-list">
+    <h2>People</h2>
+    <for each="person in people">
+      <div class="person">
+        <p>Name: {{person.name}}</p>
+      </div>
+    </for>
+  </div>
+
+  <div class="description">
+    {{{raw_description}}}
+  </div>
+
+  <if condition="contact">
+    <div class="contact">
+      <h2>Contact</h2>
+      <p>Hello, {{name}}</p>
+    </div>
+  </if>
+
+  <script src="./index.js"></script>
+</body>
+
+</html>

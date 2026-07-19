@@ -1,0 +1,290 @@
+{
+  "site": {
+    "title": "WebUI Framework",
+    "description": "SSR without JavaScript on the server. No virtual DOM. No JSX. Just HTML, streamed from any language."
+  },
+  "basePath": "/webui/",
+  "contentDir": ".",
+  "outDir": "./dist",
+  "publicDir": "./.webui-press/public",
+  "head": [
+    {
+      "tag": "link",
+      "attrs": {
+        "rel": "icon",
+        "href": "/webui/favicon.ico"
+      }
+    },
+    {
+      "tag": "script",
+      "attrs": {
+        "type": "text/javascript"
+      },
+      "content": "(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src=\"https://www.clarity.ms/tag/\"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, \"clarity\", \"script\", \"w8ppn3zr79\");"
+    }
+  ],
+  "components": [
+    "./.webui-press/components"
+  ],
+  "css": "./.webui-press/theme.css",
+  "nav": [
+    {
+      "text": "Guide",
+      "link": "/guide/"
+    },
+    {
+      "text": "Tutorials",
+      "link": "/tutorials/hello-world/"
+    },
+    {
+      "text": "Playground",
+      "link": "/playground/"
+    },
+    {
+      "text": "AI",
+      "link": "/ai"
+    },
+    {
+      "text": "GitHub",
+      "link": "https://github.com/microsoft/webui"
+    }
+  ],
+  "sidebar": [],
+  "sidebarGroups": {
+    "/guide/": [
+      {
+        "title": "Getting Started",
+        "items": [
+          {
+            "text": "What is WebUI?",
+            "link": "/guide/"
+          },
+          {
+            "text": "Why WebUI?",
+            "link": "/guide/why"
+          },
+          {
+            "text": "Installation",
+            "link": "/guide/installation"
+          },
+          {
+            "text": "Quick Start",
+            "link": "/tutorials/hello-world"
+          }
+        ]
+      },
+      {
+        "title": "Core Concepts",
+        "items": [
+          {
+            "text": "How It Works",
+            "link": "/guide/concepts/how-it-works"
+          },
+          {
+            "text": "Components",
+            "link": "/guide/concepts/components"
+          },
+          {
+            "text": "Template Syntax",
+            "link": "/guide/concepts/directives/",
+            "items": [
+              {
+                "text": "Signals {{}}",
+                "link": "/guide/concepts/directives/signals"
+              },
+              {
+                "text": "Conditionals <if>",
+                "link": "/guide/concepts/directives/if"
+              },
+              {
+                "text": "Loops <for>",
+                "link": "/guide/concepts/directives/for"
+              },
+              {
+                "text": "Attributes",
+                "link": "/guide/concepts/directives/attributes"
+              },
+              {
+                "text": "Routes <route>",
+                "link": "/guide/concepts/directives/route"
+              }
+            ]
+          },
+          {
+            "text": "Interactivity",
+            "link": "/guide/concepts/interactivity"
+          },
+          {
+            "text": "State Management",
+            "link": "/guide/concepts/state-management"
+          },
+          {
+            "text": "Routing",
+            "link": "/guide/concepts/routing"
+          },
+          {
+            "text": "Performance",
+            "link": "/guide/concepts/performance"
+          }
+        ]
+      },
+      {
+        "title": "Language Integrations",
+        "items": [
+          {
+            "text": "Overview",
+            "link": "/guide/integrations/"
+          },
+          {
+            "text": "Rust",
+            "link": "/guide/integrations/rust"
+          },
+          {
+            "text": "Node / Bun / Deno",
+            "link": "/guide/integrations/node"
+          },
+          {
+            "text": "Electron",
+            "link": "/guide/integrations/electron"
+          },
+          {
+            "text": "C / C# / FFI",
+            "link": "/guide/integrations/ffi"
+          },
+          {
+            "text": "WebAssembly",
+            "link": "/guide/integrations/wasm"
+          }
+        ]
+      },
+      {
+        "title": "Guides",
+        "items": [
+          {
+            "text": "CLI Reference",
+            "link": "/guide/cli/",
+            "items": [
+              {
+                "text": "webui build",
+                "link": "/guide/cli/#webui-build"
+              },
+              {
+                "text": "webui serve",
+                "link": "/guide/cli/#webui-serve"
+              },
+              {
+                "text": "webui inspect",
+                "link": "/guide/cli/#webui-inspect"
+              }
+            ]
+          },
+          {
+            "text": "React vs Web Components",
+            "link": "/guide/concepts/react-comparison"
+          },
+          {
+            "text": "Best Practices",
+            "link": "/guide/concepts/best-practices"
+          },
+          {
+            "text": "CSS Token Hoisting",
+            "link": "/guide/concepts/css-tokens"
+          },
+          {
+            "text": "Serverless Architecture",
+            "link": "/guide/serverless-architecture"
+          },
+          {
+            "text": "Plugins",
+            "link": "/guide/concepts/plugins/"
+          }
+        ]
+      }
+    ],
+    "/tutorials/": [
+      {
+        "title": "Examples",
+        "items": [
+          {
+            "text": "Hello World",
+            "link": "/tutorials/hello-world"
+          },
+          {
+            "text": "Todo App",
+            "link": "/tutorials/todo-app"
+          }
+        ]
+      }
+    ]
+  },
+  "customPages": {
+    "/playground/": {
+      "layout": "full",
+      "html": "<docs-playground></docs-playground>",
+      "stateFile": "./state/playground.json",
+      "scriptFile": "./components/docs-playground/docs-playground.ts"
+    }
+  },
+  "hero": {
+    "text": "SSR without JavaScript on the server.",
+    "tagline": "No virtual DOM. No JSX. Just HTML, streamed from any language.",
+    "manifesto": "HTML for structure. CSS for style. TypeScript for behavior. The way the web was meant to work.",
+    "actions": [
+      {
+        "text": "Get Started →",
+        "link": "/webui/guide/",
+        "brand": true
+      },
+      {
+        "text": "Why WebUI?",
+        "link": "/webui/guide/why/",
+        "brand": false
+      },
+      {
+        "text": "See benchmarks",
+        "link": "/webui/guide/concepts/performance/",
+        "brand": false
+      },
+      {
+        "text": "GitHub",
+        "link": "https://github.com/microsoft/webui",
+        "brand": false
+      }
+    ],
+    "features": [
+      {
+        "icon": "⚡",
+        "title": "Compiled, not interpreted",
+        "description": "Templates and Web Components compile at build time into a binary Protocol Buffer. The server's hot path is just filling holes and streaming bytes. No template parsing, no AST walking, no interpretation at runtime."
+      },
+      {
+        "icon": "🌐",
+        "title": "Render from any language",
+        "description": "SSR has historically been a Node.js privilege. WebUI changes that. Stream pages from Rust, Go, Python, C#, Bun, Deno, Node.js, or WASM running at the edge or in the browser. The protocol is just bytes; any runtime that can read bytes and write strings can serve a site."
+      },
+      {
+        "icon": "🔄",
+        "title": "Isomorphic anywhere",
+        "description": "Same Web Components can render on a fast native server, at the edge, or in a service worker. Cache the compiled UI on a CDN, stream dynamic state through the lightweight handler, then hydrate against the existing DOM. Isomorphic apps without making Node.js the rendering boundary."
+      },
+      {
+        "icon": "🧩",
+        "title": "webui-framework",
+        "description": "A tiny client runtime for Web Components, tuned for rendering speed and low memory. Built on Declarative Shadow DOM and native browser APIs. No virtual DOM, no proprietary component model, no JSX."
+      },
+      {
+        "icon": "🧭",
+        "title": "webui-router",
+        "description": "Routes declared in HTML and compiled at build time. The server matches every navigation and returns the route chain as JSON; the client diffs against the current chain and remounts only the level that changed. Tagged caching and invalidation graphs are validated by the compiler, not configured at runtime."
+      },
+      {
+        "icon": "📰",
+        "title": "webui-press",
+        "description": "A blazing-fast static site generator powered by the framework itself. Compiles markdown and components in parallel into a fully static site. Perfect for GitHub Pages, CDNs, and anywhere that just serves files. (You are reading a site built with it.)"
+      }
+    ]
+  },
+  "footer": {
+    "html": "Released under the <a href=\"https://opensource.org/licenses/MIT\">MIT License</a>. Built with <a href=\"https://github.com/microsoft/webui/blob/main/crates/webui-press/README.md\">WebUI Framework Static Site Generator</a>."
+  }
+}

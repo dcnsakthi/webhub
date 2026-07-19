@@ -1,0 +1,1197 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+//! `cargo xtask publish-stage` — stage all release artifacts into `publish/`.
+//!
+//! Copies native binaries into npm and NuGet package directories (existing behavior),
+//! then assembles a consolidated `publish/` folder with:
+//! - `publish/native/`  — CLI binaries per platform
+//! - `publish/npm/`     — `.tgz` tarballs from `pnpm pack`
+//! - `publish/nuget/`   — `.nupkg` and `.snupkg` files from `dotnet pack`
+//! - `publish/crates/`  — `.crate` files from `cargo package`
+//! - `publish/wasm/`    — WASM modules + JS glue
+
+use crate::util::{build_command, run_command_quiet};
+use crate::version;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::ExitCode;
+
+// ── Platform mapping ────────────────────────────────────────────────────
+
+/// Mapping from Rust target triple to platform identifiers and binary filenames.
+struct PlatformEntry {
+    triple: &'static str,
+    npm_package: &'static str,
+    nuget_rid: &'static str,
+    ffi_lib: &'static str,
+    node_addon: &'static str,
+    cli_binary: &'static str,
+    /// Suffix appended to CLI binary in `publish/native/` (e.g. `"darwin-arm64"`).
+    platform_suffix: &'static str,
+}
+
+const PLATFORMS: &[PlatformEntry] = &[
+    PlatformEntry {
+        triple: "x86_64-unknown-linux-gnu",
+        npm_package: "webui-linux-x64",
+        nuget_rid: "linux-x64",
+        ffi_lib: "libwebui_ffi.so",
+        node_addon: "libwebui_node.so",
+        cli_binary: "webui",
+        platform_suffix: "linux-x64",
+    },
+    PlatformEntry {
+        triple: "aarch64-unknown-linux-gnu",
+        npm_package: "webui-linux-arm64",
+        nuget_rid: "linux-arm64",
+        ffi_lib: "libwebui_ffi.so",
+        node_addon: "libwebui_node.so",
+        cli_binary: "webui",
+        platform_suffix: "linux-arm64",
+    },
+    PlatformEntry {
+        triple: "x86_64-pc-windows-msvc",
+        npm_package: "webui-win32-x64",
+        nuget_rid: "win-x64",
+        ffi_lib: "webui_ffi.dll",
+        node_addon: "webui_node.dll",
+        cli_binary: "webui.exe",
+        platform_suffix: "win32-x64",
+    },
+    PlatformEntry {
+        triple: "aarch64-pc-windows-msvc",
+        npm_package: "webui-win32-arm64",
+        nuget_rid: "win-arm64",
+        ffi_lib: "webui_ffi.dll",
+        node_addon: "webui_node.dll",
+        cli_binary: "webui.exe",
+        platform_suffix: "win32-arm64",
+    },
+    PlatformEntry {
+        triple: "x86_64-apple-darwin",
+        npm_package: "webui-darwin-x64",
+        nuget_rid: "osx-x64",
+        ffi_lib: "libwebui_ffi.dylib",
+        node_addon: "libwebui_node.dylib",
+        cli_binary: "webui",
+        platform_suffix: "darwin-x64",
+    },
+    PlatformEntry {
+        triple: "aarch64-apple-darwin",
+        npm_package: "webui-darwin-arm64",
+        nuget_rid: "osx-arm64",
+        ffi_lib: "libwebui_ffi.dylib",
+        node_addon: "libwebui_node.dylib",
+        cli_binary: "webui",
+        platform_suffix: "darwin-arm64",
+    },
+];
+
+/// Subdirectories created inside `publish/`.
+const PUBLISH_SUBDIRS: &[&str] = &["native", "npm", "nuget", "crates", "wasm"];
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum StageMode {
+    Full,
+    NativeOnly,
+    PackOnly,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct StageOptions {
+    target_triple: Option<String>,
+    profile: String,
+    mode: StageMode,
+}
+
+// ── Public entry point ──────────────────────────────────────────────────
+
+/// Stage release artifacts into `publish/` and package directories.
+///
+/// Usage: `cargo xtask publish-stage [--target <triple|all>] [--profile release] [--native-only|--pack-only]`
+///
+/// Pass `--target all` to stage every platform whose build artifacts exist.
+/// If `--target` is omitted, detects the current host platform.
+///
+/// Steps:
+///   1. Stage native binaries into npm/NuGet package directories (existing behavior).
+///   2. Copy CLI binaries into `publish/native/` with platform suffixes.
+///   3. Pack npm tarballs into `publish/npm/`.
+///   4. Pack NuGet packages into `publish/nuget/`.
+///   5. Pack publishable Rust crates into `publish/crates/`.
+///   6. Build and stage WASM artifacts into `publish/wasm/`.
+pub fn run_stage(args: &[String]) -> ExitCode {
+    let root = match std::env::current_dir() {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!(
+                "  {} Failed to read current directory: {e}",
+                console::style("✘").red().bold(),
+            );
+            return ExitCode::FAILURE;
+        }
+    };
+
+    let options = match parse_stage_options(args) {
+        Ok(options) => options,
+        Err(e) => {
+            eprintln!("  {} {}", console::style("✘").red().bold(), e,);
+            return ExitCode::FAILURE;
+        }
+    };
+
+    // Read workspace version
+    let ver = match version::read_version() {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!(
+                "  {} Failed to read version: {e}",
+                console::style("✘").red().bold(),
+            );
+            return ExitCode::FAILURE;
+        }
+    };
+
+    eprintln!(
+        "\n{} publish-stage v{}\n",
+        console::style("▸").cyan().bold(),
+        console::style(&ver).bold(),
+    );
+
+    // Create publish/ directory tree
+    if let Err(e) = prepare_publish_dirs(&root, options.mode) {
+        eprintln!(
+            "  {} Failed to create publish/ directories: {e}",
+            console::style("✘").red().bold(),
+        );
+        return ExitCode::FAILURE;
+    }
+
+    // Phase 1: Stage native binaries (existing behavior + publish/native/)
+    if options.mode != StageMode::PackOnly {
+        let stage_result = match options.target_triple.as_deref() {
+            Some("all") => stage_all_platforms(&root, &options.profile),
+            Some(triple) => stage_one_platform(&root, triple, &options.profile),
+            None => {
+                let host = detect_host_triple();
+                eprintln!(
+                    "  {} No --target specified, using host: {}",
+                    console::style("▸").cyan().bold(),
+                    console::style(&host).bold(),
+                );
+                stage_one_platform(&root, &host, &options.profile)
+            }
+        };
+
+        if stage_result != ExitCode::SUCCESS {
+            return stage_result;
+        }
+
+        if options.mode == StageMode::NativeOnly {
+            eprintln!(
+                "\n{} Native artifacts staged in {}\n",
+                console::style("✨").green(),
+                console::style("publish/native").bold(),
+            );
+            return ExitCode::SUCCESS;
+        }
+    }
+
+    // Phase 2: Pack npm tarballs
+    eprintln!(
+        "\n{} Packing npm tarballs",
+        console::style("▸").cyan().bold(),
+    );
+    if let Err(e) = pack_npm_tarballs(&root) {
+        eprintln!(
+            "  {} npm pack failed: {e}",
+            console::style("✘").red().bold(),
+        );
+        return ExitCode::FAILURE;
+    }
+
+    // Phase 3: Pack NuGet packages
+    eprintln!(
+        "\n{} Packing NuGet packages",
+        console::style("▸").cyan().bold(),
+    );
+    if let Err(e) = pack_nuget_packages(&root) {
+        eprintln!(
+            "  {} NuGet pack failed: {e}",
+            console::style("✘").red().bold(),
+        );
+        return ExitCode::FAILURE;
+    }
+
+    // Phase 4: Pack Rust crates
+    eprintln!(
+        "\n{} Packing Rust crates",
+        console::style("▸").cyan().bold(),
+    );
+    if let Err(e) = pack_rust_crates(&root) {
+        eprintln!(
+            "  {} Rust crate pack failed: {e}",
+            console::style("✘").red().bold(),
+        );
+        return ExitCode::FAILURE;
+    }
+
+    // Phase 5: Stage WASM artifacts
+    eprintln!(
+        "\n{} Staging WASM artifacts",
+        console::style("▸").cyan().bold(),
+    );
+    if let Err(e) = stage_wasm_artifacts(&root) {
+        eprintln!(
+            "  {} WASM staging failed: {e}",
+            console::style("✘").red().bold(),
+        );
+        return ExitCode::FAILURE;
+    }
+
+    // Summary
+    eprintln!(
+        "\n{} All artifacts staged in {}\n",
+        console::style("✨").green(),
+        console::style("publish/").bold(),
+    );
+
+    ExitCode::SUCCESS
+}
+
+/// Stage already-built native artifacts for specific targets after one clean.
+pub(crate) fn stage_native_targets<'a, I>(
+    root: &Path,
+    triples: I,
+    profile: &str,
+) -> Result<(), String>
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    prepare_publish_dirs(root, StageMode::NativeOnly)?;
+
+    for triple in triples {
+        if stage_one_platform(root, triple, profile) != ExitCode::SUCCESS {
+            return Err(format!("failed to stage native artifacts for {triple}"));
+        }
+    }
+
+    Ok(())
+}
+
+// ── Publish directory setup ─────────────────────────────────────────────
+
+/// Create the `publish/` directory tree, cleaning it first if it exists.
+fn prepare_publish_dirs(root: &Path, mode: StageMode) -> Result<(), String> {
+    let publish_dir = root.join("publish");
+
+    match mode {
+        StageMode::Full | StageMode::NativeOnly => {
+            if publish_dir.exists() {
+                fs::remove_dir_all(&publish_dir)
+                    .map_err(|e| format!("failed to clean publish/: {e}"))?;
+            }
+
+            for subdir in PUBLISH_SUBDIRS {
+                fs::create_dir_all(publish_dir.join(subdir))
+                    .map_err(|e| format!("failed to create publish/{subdir}: {e}"))?;
+            }
+        }
+        StageMode::PackOnly => {
+            fs::create_dir_all(publish_dir.join("native"))
+                .map_err(|e| format!("failed to create publish/native: {e}"))?;
+
+            for subdir in ["npm", "nuget", "crates", "wasm"] {
+                let path = publish_dir.join(subdir);
+                if path.exists() {
+                    fs::remove_dir_all(&path)
+                        .map_err(|e| format!("failed to clean publish/{subdir}: {e}"))?;
+                }
+                fs::create_dir_all(&path)
+                    .map_err(|e| format!("failed to create publish/{subdir}: {e}"))?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_stage_options(args: &[String]) -> Result<StageOptions, String> {
+    let mut target_triple = None;
+    let mut profile = String::from("release");
+    let mut mode = StageMode::Full;
+    let mut i = 0;
+
+    while i < args.len() {
+        match args[i].as_str() {
+            "--target" => {
+                i += 1;
+                if i >= args.len() {
+                    return Err("missing value for --target".to_string());
+                }
+                target_triple = Some(args[i].clone());
+            }
+            "--profile" => {
+                i += 1;
+                if i >= args.len() {
+                    return Err("missing value for --profile".to_string());
+                }
+                profile = args[i].clone();
+            }
+            "--native-only" => {
+                mode = set_stage_mode(mode, StageMode::NativeOnly)?;
+            }
+            "--pack-only" => {
+                mode = set_stage_mode(mode, StageMode::PackOnly)?;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+
+    Ok(StageOptions {
+        target_triple,
+        profile,
+        mode,
+    })
+}
+
+fn set_stage_mode(current: StageMode, requested: StageMode) -> Result<StageMode, String> {
+    if current != StageMode::Full && current != requested {
+        return Err("cannot combine --native-only and --pack-only".to_string());
+    }
+
+    Ok(requested)
+}
+
+// ── Phase 1: Native binary staging ──────────────────────────────────────
+
+/// Stage all platforms whose build artifacts exist under target/.
+fn stage_all_platforms(root: &Path, profile: &str) -> ExitCode {
+    eprintln!(
+        "{} Staging all available platforms ({})",
+        console::style("▸").cyan().bold(),
+        console::style(profile).dim(),
+    );
+
+    let host = detect_host_triple();
+    let mut staged = 0u32;
+    let mut skipped = 0u32;
+    let mut failed = 0u32;
+
+    for platform in PLATFORMS {
+        let build_dir = if platform.triple == host {
+            resolve_build_dir(root, platform.triple, profile)
+        } else {
+            root.join("target").join(platform.triple).join(profile)
+        };
+
+        let has_ffi = build_dir.join(platform.ffi_lib).exists();
+        let has_cli = build_dir.join(platform.cli_binary).exists();
+        let has_addon = build_dir.join(platform.node_addon).exists();
+
+        if !has_ffi && !has_cli && !has_addon {
+            skipped += 1;
+            continue;
+        }
+
+        eprintln!(
+            "\n  {} {}",
+            console::style("▸").cyan(),
+            console::style(platform.triple).bold(),
+        );
+
+        if stage_platform(root, platform, &build_dir) {
+            staged += 1;
+        } else {
+            failed += 1;
+        }
+    }
+
+    eprintln!();
+    if staged > 0 {
+        eprintln!(
+            "  {} Staged {} platform(s)",
+            console::style("✔").green(),
+            console::style(staged).bold(),
+        );
+    }
+    if skipped > 0 {
+        eprintln!(
+            "  {} Skipped {} platform(s) (no build artifacts found)",
+            console::style("·").dim(),
+            skipped,
+        );
+    }
+    if failed > 0 {
+        eprintln!(
+            "  {} Failed {} platform(s)",
+            console::style("✘").red().bold(),
+            failed,
+        );
+        return ExitCode::FAILURE;
+    }
+    if staged == 0 {
+        eprintln!(
+            "  {} No build artifacts found. Build first:\n    {}",
+            console::style("⚠").yellow(),
+            console::style("cargo build --release -p microsoft-webui-ffi -p microsoft-webui-node -p microsoft-webui-cli").dim(),
+        );
+        return ExitCode::FAILURE;
+    }
+
+    ExitCode::SUCCESS
+}
+
+/// Stage a single platform by triple name.
+fn stage_one_platform(root: &Path, triple: &str, profile: &str) -> ExitCode {
+    let Some(platform) = PLATFORMS.iter().find(|p| p.triple == triple) else {
+        eprintln!(
+            "  {} Unknown target triple: {}",
+            console::style("✘").red().bold(),
+            triple,
+        );
+        eprintln!("  Supported targets (or use 'all'):");
+        for p in PLATFORMS {
+            eprintln!(
+                "    {} → npm: {}, nuget: {}",
+                p.triple, p.npm_package, p.nuget_rid
+            );
+        }
+        return ExitCode::FAILURE;
+    };
+
+    let build_dir = resolve_build_dir(root, triple, profile);
+
+    eprintln!(
+        "{} Staging native binaries for {} ({})",
+        console::style("▸").cyan().bold(),
+        console::style(triple).bold(),
+        console::style(profile).dim(),
+    );
+
+    if stage_platform(root, platform, &build_dir) {
+        eprintln!(
+            "\n  {} All binaries staged for {}",
+            console::style("✔").green(),
+            console::style(platform.triple).bold(),
+        );
+        ExitCode::SUCCESS
+    } else {
+        eprintln!(
+            "\n  {} Some binaries could not be staged (see errors above)",
+            console::style("⚠").yellow(),
+        );
+        ExitCode::FAILURE
+    }
+}
+
+/// Copy all artifacts for a single platform. Returns true if all found files staged.
+fn stage_platform(root: &Path, platform: &PlatformEntry, build_dir: &Path) -> bool {
+    let mut ok = true;
+
+    // NuGet: FFI library → dotnet/runtimes/{rid}/native/
+    ok &= stage_file(&CopySpec {
+        src: &build_dir.join(platform.ffi_lib),
+        dest_dir: &root
+            .join("dotnet/runtimes")
+            .join(platform.nuget_rid)
+            .join("native"),
+        dest_name: platform.ffi_lib,
+        label: "nuget",
+    });
+
+    // npm: CLI binary → packages/webui-{platform}/bin/
+    ok &= stage_file(&CopySpec {
+        src: &build_dir.join(platform.cli_binary),
+        dest_dir: &root.join("packages").join(platform.npm_package).join("bin"),
+        dest_name: platform.cli_binary,
+        label: "npm cli",
+    });
+
+    // npm: Node addon (renamed to webui.node)
+    ok &= stage_file(&CopySpec {
+        src: &build_dir.join(platform.node_addon),
+        dest_dir: &root.join("packages").join(platform.npm_package),
+        dest_name: "webui.node",
+        label: "npm addon",
+    });
+
+    // publish/native/: CLI binary with platform suffix for direct download
+    let native_name = native_binary_name(platform);
+    ok &= stage_file(&CopySpec {
+        src: &build_dir.join(platform.cli_binary),
+        dest_dir: &root.join("publish").join("native"),
+        dest_name: &native_name,
+        label: "native",
+    });
+
+    ok
+}
+
+/// Build a platform-suffixed CLI binary name (e.g. `webui-darwin-arm64`, `webui-win32-x64.exe`).
+fn native_binary_name(platform: &PlatformEntry) -> String {
+    if platform.cli_binary.ends_with(".exe") {
+        format!("webui-{}.exe", platform.platform_suffix)
+    } else {
+        format!("webui-{}", platform.platform_suffix)
+    }
+}
+
+// ── Phase 2: npm packaging ──────────────────────────────────────────────
+
+/// Run `pnpm pack` in each `packages/*` directory and move tarballs to `publish/npm/`.
+fn pack_npm_tarballs(root: &Path) -> Result<(), String> {
+    let packages_dir = root.join("packages");
+    let npm_out = root.join("publish").join("npm");
+
+    // Build packages that have build scripts first
+    for pkg_name in &["webui", "webui-framework", "webui-router"] {
+        let pkg_dir = packages_dir.join(pkg_name);
+        if !pkg_dir.join("package.json").exists() {
+            continue;
+        }
+        eprintln!(
+            "  {} Building {}",
+            console::style("·").dim(),
+            console::style(pkg_name).bold(),
+        );
+        run_command_quiet(
+            "pnpm",
+            &["--filter", &format!("@microsoft/{pkg_name}"), "build"],
+            None,
+        )
+        .map_err(|e| format!("pnpm build @microsoft/{pkg_name} failed: {e}"))?;
+    }
+
+    // Pack each package
+    let entries =
+        fs::read_dir(&packages_dir).map_err(|e| format!("failed to read packages/: {e}"))?;
+
+    let mut count = 0u32;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        if !path.join("package.json").exists() {
+            continue;
+        }
+
+        let pkg_name = entry.file_name().to_string_lossy().to_string();
+
+        // Skip private packages — they must not be published
+        if is_private_package(&path) {
+            eprintln!(
+                "  {} [npm] @microsoft/{} (private, skipped)",
+                console::style("·").dim(),
+                console::style(&pkg_name).bold(),
+            );
+            continue;
+        }
+
+        // Run pnpm pack in the package directory
+        let mut cmd = build_command(
+            "pnpm",
+            &["pack", "--pack-destination", &npm_out.to_string_lossy()],
+        );
+        cmd.current_dir(&path);
+        cmd.stdout(std::process::Stdio::piped());
+        cmd.stderr(std::process::Stdio::piped());
+
+        let output = cmd
+            .output()
+            .map_err(|e| format!("pnpm pack failed for {pkg_name}: {e}"))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            return Err(format!(
+                "pnpm pack failed for {pkg_name}:\n{stdout}{stderr}"
+            ));
+        }
+
+        eprintln!(
+            "  {} [npm] @microsoft/{}",
+            console::style("✔").green(),
+            console::style(&pkg_name).bold(),
+        );
+        count += 1;
+    }
+
+    eprintln!(
+        "  {} Packed {} npm package(s)",
+        console::style("✔").green(),
+        console::style(count).bold(),
+    );
+    Ok(())
+}
+
+/// Returns `true` if the `package.json` in `pkg_dir` has `"private": true`.
+fn is_private_package(pkg_dir: &Path) -> bool {
+    let pkg_json_path = pkg_dir.join("package.json");
+    let Ok(contents) = fs::read_to_string(&pkg_json_path) else {
+        return false;
+    };
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(&contents) else {
+        return false;
+    };
+    json.get("private").and_then(serde_json::Value::as_bool) == Some(true)
+}
+
+// ── Phase 3: NuGet packaging ────────────────────────────────────────────
+
+/// Run `dotnet pack` and write `.nupkg`/`.snupkg` files to `publish/nuget/`.
+fn pack_nuget_packages(root: &Path) -> Result<(), String> {
+    let dotnet_dir = root.join("dotnet");
+    let nuget_out = root.join("publish").join("nuget");
+
+    if !dotnet_dir.exists() {
+        eprintln!(
+            "  {} dotnet/ directory not found, skipping NuGet packaging",
+            console::style("·").dim(),
+        );
+        return Ok(());
+    }
+
+    let solution = dotnet_dir.join("Microsoft.WebUI.sln");
+    if !solution.exists() {
+        return Err("dotnet/Microsoft.WebUI.sln not found".to_string());
+    }
+
+    let solution_arg = solution.to_string_lossy();
+    let nuget_out_arg = nuget_out.to_string_lossy();
+
+    // Pack all packable projects (Directory.Build.props controls versioning)
+    run_command_quiet(
+        "dotnet",
+        &[
+            "pack",
+            solution_arg.as_ref(),
+            "--configuration",
+            "Release",
+            "--output",
+            nuget_out_arg.as_ref(),
+        ],
+        None,
+    )
+    .map_err(|e| format!("dotnet pack failed: {e}"))?;
+
+    // Count produced packages
+    let package_count = count_files_with_extension(&nuget_out, "nupkg");
+    let symbol_count = count_files_with_extension(&nuget_out, "snupkg");
+    eprintln!(
+        "  {} Packed {} NuGet package(s) and {} symbol package(s)",
+        console::style("✔").green(),
+        console::style(package_count).bold(),
+        console::style(symbol_count).bold(),
+    );
+    Ok(())
+}
+
+// ── Phase 4: Rust crate packaging ───────────────────────────────────────
+
+/// Discover publishable crates by scanning `crates/*/Cargo.toml`.
+///
+/// A crate is publishable if it has a `[package]` section with a `name` field
+/// and does not contain `publish = false`.
+fn discover_publishable_crates(root: &Path) -> Result<Vec<String>, String> {
+    let crates_dir = root.join("crates");
+    if !crates_dir.exists() {
+        return Err("crates/ directory not found".to_string());
+    }
+
+    let mut entries: Vec<_> = fs::read_dir(&crates_dir)
+        .map_err(|e| format!("failed to read crates/: {e}"))?
+        .flatten()
+        .filter(|e| e.path().join("Cargo.toml").is_file())
+        .collect();
+    entries.sort_by_key(|e| e.file_name());
+
+    let mut crates = Vec::new();
+    for entry in entries {
+        let toml_path = entry.path().join("Cargo.toml");
+        let content = fs::read_to_string(&toml_path)
+            .map_err(|e| format!("failed to read {}: {e}", toml_path.display()))?;
+
+        // Skip crates with publish = false
+        if content.lines().any(|l| {
+            let t = l.trim();
+            t == "publish = false"
+        }) {
+            continue;
+        }
+
+        // Extract name from [package] section
+        let mut in_package = false;
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if trimmed == "[package]" {
+                in_package = true;
+            } else if trimmed.starts_with('[') {
+                in_package = false;
+            }
+            if in_package && trimmed.starts_with("name") && trimmed.contains('=') {
+                if let Some(start) = trimmed.find('"') {
+                    if let Some(end) = trimmed[start + 1..].find('"') {
+                        crates.push(trimmed[start + 1..start + 1 + end].to_string());
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if crates.is_empty() {
+        return Err("no publishable crates found in crates/".to_string());
+    }
+
+    Ok(crates)
+}
+
+/// Package all workspace crates together and copy `.crate` files to `publish/crates/`.
+///
+/// Discovers publishable crates dynamically and uses a single `cargo package`
+/// invocation so that inter-crate path dependencies resolve against each other
+/// without requiring crates.io.
+fn pack_rust_crates(root: &Path) -> Result<(), String> {
+    let crates_out = root.join("publish").join("crates");
+
+    let publishable = discover_publishable_crates(root)?;
+
+    // Build args: cargo package -p A -p B -p C ... --no-verify --allow-dirty
+    let mut args: Vec<&str> = vec!["package"];
+    for crate_name in &publishable {
+        args.push("-p");
+        args.push(crate_name);
+    }
+    args.push("--no-verify");
+    args.push("--allow-dirty");
+
+    run_command_quiet("cargo", &args, None).map_err(|e| format!("cargo package failed: {e}"))?;
+
+    for crate_name in &publishable {
+        eprintln!(
+            "  {} [crate] {}",
+            console::style("✔").green(),
+            console::style(crate_name).bold(),
+        );
+    }
+
+    // Copy .crate files from target/package/ to publish/crates/
+    let package_dir = root.join("target").join("package");
+    if package_dir.exists() {
+        copy_files_with_extension(&package_dir, &crates_out, "crate")?;
+    }
+
+    let count = count_files_with_extension(&crates_out, "crate");
+    eprintln!(
+        "  {} Packed {} Rust crate(s)",
+        console::style("✔").green(),
+        console::style(count).bold(),
+    );
+    Ok(())
+}
+
+// ── Phase 5: WASM artifacts ─────────────────────────────────────────────
+
+/// Build WASM variants and copy artifacts to `publish/wasm/`.
+fn stage_wasm_artifacts(root: &Path) -> Result<(), String> {
+    let wasm_out = root.join("publish").join("wasm");
+
+    // Build WASM using the existing build_wasm module
+    crate::build_wasm::run()?;
+
+    let wasm_source = root.join(crate::build_wasm::WASM_OUTPUT_DIR);
+    let copied = copy_directory_contents(&wasm_source, &wasm_out)?;
+    eprintln!(
+        "  {} [wasm] staged {} file(s)",
+        console::style("✔").green(),
+        console::style(copied).bold(),
+    );
+
+    Ok(())
+}
+
+// ── Shared helpers ──────────────────────────────────────────────────────
+
+struct CopySpec<'a> {
+    src: &'a Path,
+    dest_dir: &'a Path,
+    dest_name: &'a str,
+    label: &'a str,
+}
+
+fn stage_file(spec: &CopySpec<'_>) -> bool {
+    if !spec.src.exists() {
+        eprintln!(
+            "  {} [{}] not found: {}",
+            console::style("⚠").yellow(),
+            spec.label,
+            console::style(spec.src.display()).dim(),
+        );
+        return false;
+    }
+
+    if let Err(e) = fs::create_dir_all(spec.dest_dir) {
+        eprintln!(
+            "  {} [{}] failed to create {}: {}",
+            console::style("✘").red().bold(),
+            spec.label,
+            spec.dest_dir.display(),
+            e,
+        );
+        return false;
+    }
+
+    let dest = spec.dest_dir.join(spec.dest_name);
+    if let Err(e) = fs::copy(spec.src, &dest) {
+        eprintln!(
+            "  {} [{}] copy failed: {} → {}: {}",
+            console::style("✘").red().bold(),
+            spec.label,
+            spec.src.display(),
+            dest.display(),
+            e,
+        );
+        return false;
+    }
+
+    let rel = dest
+        .strip_prefix(std::env::current_dir().as_deref().unwrap_or(Path::new("")))
+        .unwrap_or(&dest);
+    eprintln!(
+        "  {} [{}] {}",
+        console::style("✔").green(),
+        spec.label,
+        console::style(rel.display()).bold(),
+    );
+    true
+}
+
+fn resolve_build_dir(root: &Path, triple: &str, profile: &str) -> PathBuf {
+    let cross = root.join("target").join(triple).join(profile);
+    if cross.exists() {
+        return cross;
+    }
+    root.join("target").join(profile)
+}
+
+fn detect_host_triple() -> String {
+    let arch = if cfg!(target_arch = "x86_64") {
+        "x86_64"
+    } else if cfg!(target_arch = "aarch64") {
+        "aarch64"
+    } else {
+        "unknown"
+    };
+
+    let os = if cfg!(target_os = "linux") {
+        "unknown-linux-gnu"
+    } else if cfg!(target_os = "macos") {
+        "apple-darwin"
+    } else if cfg!(target_os = "windows") {
+        "pc-windows-msvc"
+    } else {
+        "unknown"
+    };
+
+    format!("{arch}-{os}")
+}
+
+/// Count files in a directory matching a given extension.
+fn count_files_with_extension(dir: &Path, ext: &str) -> u32 {
+    let mut count = 0;
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            if entry.path().extension().is_some_and(|e| e == ext) {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
+/// Copy all files with a given extension from `src_dir` to `dest_dir`.
+fn copy_files_with_extension(src_dir: &Path, dest_dir: &Path, ext: &str) -> Result<(), String> {
+    let entries =
+        fs::read_dir(src_dir).map_err(|e| format!("failed to read {}: {e}", src_dir.display()))?;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().is_some_and(|e| e == ext) {
+            if let Some(name) = path.file_name() {
+                let dest = dest_dir.join(name);
+                fs::copy(&path, &dest).map_err(|e| {
+                    format!(
+                        "failed to copy {} → {}: {e}",
+                        path.display(),
+                        dest.display()
+                    )
+                })?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Copy all files under `src_dir` into `dest_dir`, preserving subdirectories.
+fn copy_directory_contents(src_dir: &Path, dest_dir: &Path) -> Result<u32, String> {
+    if !src_dir.exists() {
+        return Err(format!("WASM output not found at {}", src_dir.display()));
+    }
+
+    let mut copied = 0;
+    let mut stack = Vec::with_capacity(4);
+    stack.push((src_dir.to_path_buf(), dest_dir.to_path_buf()));
+
+    while let Some((current_src, current_dest)) = stack.pop() {
+        fs::create_dir_all(&current_dest)
+            .map_err(|e| format!("failed to create {}: {e}", current_dest.display()))?;
+        let entries = fs::read_dir(&current_src)
+            .map_err(|e| format!("failed to read {}: {e}", current_src.display()))?;
+
+        for entry in entries {
+            let entry = entry
+                .map_err(|e| format!("failed to read {} entry: {e}", current_src.display()))?;
+            let path = entry.path();
+            let dest = current_dest.join(entry.file_name());
+            if path.is_dir() {
+                stack.push((path, dest));
+            } else if path.is_file() {
+                fs::copy(&path, &dest).map_err(|e| {
+                    format!(
+                        "failed to copy {} → {}: {e}",
+                        path.display(),
+                        dest.display()
+                    )
+                })?;
+                copied += 1;
+            }
+        }
+    }
+
+    Ok(copied)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(args: &[&str]) -> Result<StageOptions, String> {
+        let args = args.iter().map(|arg| arg.to_string()).collect::<Vec<_>>();
+        parse_stage_options(&args)
+    }
+
+    #[test]
+    fn parse_stage_options_defaults_to_full_mode() {
+        let options = parse(&[]).expect("default options should parse");
+
+        assert_eq!(options.target_triple, None);
+        assert_eq!(options.profile, "release");
+        assert_eq!(options.mode, StageMode::Full);
+    }
+
+    #[test]
+    fn parse_stage_options_supports_pack_only_mode() {
+        let options = parse(&["--target", "all", "--profile", "debug", "--pack-only"])
+            .expect("pack-only options should parse");
+
+        assert_eq!(options.target_triple.as_deref(), Some("all"));
+        assert_eq!(options.profile, "debug");
+        assert_eq!(options.mode, StageMode::PackOnly);
+    }
+
+    #[test]
+    fn parse_stage_options_rejects_conflicting_modes() {
+        let error =
+            parse(&["--native-only", "--pack-only"]).expect_err("conflicting modes should fail");
+
+        assert!(error.contains("cannot combine"));
+    }
+
+    #[test]
+    fn test_native_binary_name_unix() {
+        let p = PlatformEntry {
+            triple: "aarch64-apple-darwin",
+            npm_package: "webui-darwin-arm64",
+            nuget_rid: "osx-arm64",
+            ffi_lib: "libwebui_ffi.dylib",
+            node_addon: "libwebui_node.dylib",
+            cli_binary: "webui",
+            platform_suffix: "darwin-arm64",
+        };
+        assert_eq!(native_binary_name(&p), "webui-darwin-arm64");
+    }
+
+    #[test]
+    fn test_native_binary_name_windows() {
+        let p = PlatformEntry {
+            triple: "x86_64-pc-windows-msvc",
+            npm_package: "webui-win32-x64",
+            nuget_rid: "win-x64",
+            ffi_lib: "webui_ffi.dll",
+            node_addon: "webui_node.dll",
+            cli_binary: "webui.exe",
+            platform_suffix: "win32-x64",
+        };
+        assert_eq!(native_binary_name(&p), "webui-win32-x64.exe");
+    }
+
+    #[test]
+    fn test_create_publish_dirs() {
+        let dir = tempfile::TempDir::new().unwrap();
+        prepare_publish_dirs(dir.path(), StageMode::Full).unwrap();
+
+        for subdir in PUBLISH_SUBDIRS {
+            assert!(
+                dir.path().join("publish").join(subdir).is_dir(),
+                "publish/{subdir} should exist"
+            );
+        }
+    }
+
+    #[test]
+    fn test_create_publish_dirs_cleans_existing() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let publish = dir.path().join("publish");
+        fs::create_dir_all(publish.join("stale")).unwrap();
+        fs::write(publish.join("stale").join("old.txt"), "old").unwrap();
+
+        prepare_publish_dirs(dir.path(), StageMode::Full).unwrap();
+
+        assert!(!publish.join("stale").exists(), "stale/ should be removed");
+        for subdir in PUBLISH_SUBDIRS {
+            assert!(publish.join(subdir).is_dir());
+        }
+    }
+
+    #[test]
+    fn test_pack_only_preserves_native_outputs() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let publish = dir.path().join("publish");
+        let native = publish.join("native");
+        let npm = publish.join("npm");
+
+        fs::create_dir_all(&native).unwrap();
+        fs::create_dir_all(&npm).unwrap();
+        fs::write(native.join("webui-win32-x64.exe"), "bin").unwrap();
+        fs::write(npm.join("stale.tgz"), "stale").unwrap();
+
+        prepare_publish_dirs(dir.path(), StageMode::PackOnly).unwrap();
+
+        assert!(native.join("webui-win32-x64.exe").exists());
+        assert!(!npm.join("stale.tgz").exists());
+        assert!(publish.join("nuget").is_dir());
+        assert!(publish.join("crates").is_dir());
+        assert!(publish.join("wasm").is_dir());
+    }
+
+    #[test]
+    fn test_count_files_with_extension() {
+        let dir = tempfile::TempDir::new().unwrap();
+        fs::write(dir.path().join("a.crate"), "").unwrap();
+        fs::write(dir.path().join("b.crate"), "").unwrap();
+        fs::write(dir.path().join("a.snupkg"), "").unwrap();
+        fs::write(dir.path().join("c.txt"), "").unwrap();
+        assert_eq!(count_files_with_extension(dir.path(), "crate"), 2);
+        assert_eq!(count_files_with_extension(dir.path(), "snupkg"), 1);
+        assert_eq!(count_files_with_extension(dir.path(), "txt"), 1);
+        assert_eq!(count_files_with_extension(dir.path(), "nupkg"), 0);
+    }
+
+    #[test]
+    fn test_copy_files_with_extension() {
+        let src = tempfile::TempDir::new().unwrap();
+        let dest = tempfile::TempDir::new().unwrap();
+        fs::write(src.path().join("pkg.crate"), "data").unwrap();
+        fs::write(src.path().join("other.txt"), "nope").unwrap();
+
+        copy_files_with_extension(src.path(), dest.path(), "crate").unwrap();
+
+        assert!(dest.path().join("pkg.crate").exists());
+        assert!(!dest.path().join("other.txt").exists());
+    }
+
+    #[test]
+    fn test_copy_directory_contents_preserves_subdirectories() {
+        let src = tempfile::TempDir::new().unwrap();
+        let dest = tempfile::TempDir::new().unwrap();
+        fs::create_dir_all(src.path().join("handler")).unwrap();
+        fs::write(
+            src.path().join("handler").join("webui_wasm_handler.js"),
+            "js",
+        )
+        .unwrap();
+        fs::write(
+            src.path()
+                .join("handler")
+                .join("webui_wasm_handler_bg.wasm"),
+            "wasm",
+        )
+        .unwrap();
+
+        let copied = copy_directory_contents(src.path(), dest.path()).unwrap();
+
+        assert_eq!(copied, 2);
+        assert!(dest
+            .path()
+            .join("handler")
+            .join("webui_wasm_handler.js")
+            .exists());
+        assert!(dest
+            .path()
+            .join("handler")
+            .join("webui_wasm_handler_bg.wasm")
+            .exists());
+    }
+
+    #[test]
+    fn test_detect_host_triple_format() {
+        let triple = detect_host_triple();
+        assert!(
+            triple.contains('-'),
+            "host triple should contain a dash: {triple}"
+        );
+    }
+
+    #[test]
+    fn test_is_private_package_true() {
+        let dir = tempfile::TempDir::new().unwrap();
+        fs::write(
+            dir.path().join("package.json"),
+            r#"{"name": "@microsoft/webui-test-support", "private": true}"#,
+        )
+        .unwrap();
+        assert!(is_private_package(dir.path()));
+    }
+
+    #[test]
+    fn test_is_private_package_false_when_absent() {
+        let dir = tempfile::TempDir::new().unwrap();
+        fs::write(
+            dir.path().join("package.json"),
+            r#"{"name": "@microsoft/webui"}"#,
+        )
+        .unwrap();
+        assert!(!is_private_package(dir.path()));
+    }
+
+    #[test]
+    fn test_is_private_package_false_when_explicit_false() {
+        let dir = tempfile::TempDir::new().unwrap();
+        fs::write(
+            dir.path().join("package.json"),
+            r#"{"name": "@microsoft/webui", "private": false}"#,
+        )
+        .unwrap();
+        assert!(!is_private_package(dir.path()));
+    }
+
+    #[test]
+    fn test_is_private_package_no_package_json() {
+        let dir = tempfile::TempDir::new().unwrap();
+        assert!(!is_private_package(dir.path()));
+    }
+}

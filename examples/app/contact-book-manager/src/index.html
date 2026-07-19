@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <base href="{{basePath}}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact Book</title>
+  <style>
+    :root {
+      /*{{{tokens.light}}}*/
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        /*{{{tokens.dark}}}*/
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family-base);
+      background: var(--color-neutral-50);
+      color: var(--color-neutral-800);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+  </style>
+</head>
+
+<body>
+  <route path="/" component="cb-app">
+    <route path="" component="cb-page-dashboard" exact />
+    <route path="contacts" component="cb-page-contacts" exact keep-alive />
+    <route path="contacts/add" component="cb-contact-form" exact />
+    <route path="contacts/:id" component="cb-contact-detail" exact />
+    <route path="contacts/:id/edit" component="cb-contact-form" exact />
+    <route path="favorites" component="cb-page-favorites" exact keep-alive />
+    <route path="groups/:group" component="cb-page-group" exact keep-alive />
+  </route>
+
+  <script type="module" src="./index.js"></script>
+</body>
+
+</html>

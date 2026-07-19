@@ -1,0 +1,18 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "types": ["node", "@playwright/test"]
+  },
+  "include": [
+    "playwright.config.ts",
+    "scripts/**/*.ts",
+    "src/app.ts",
+    "src/payload.ts",
+    "tests/**/*.ts",
+    "public/wasm/handler/*.d.ts"
+  ]
+}

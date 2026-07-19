@@ -1,0 +1,41 @@
+name: Deploy GitHub Pages
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'docs/**'
+      - 'packages/webui-press/**'
+      - 'crates/webui-parser/**'
+      - 'crates/webui-handler/**'
+      - 'crates/webui-protocol/**'
+      - 'crates/webui-node/**'
+      - 'crates/webui-press/**'
+      - 'crates/webui-wasm/**'
+      - 'packages/webui/**'
+      - '.github/workflows/docs.yml'
+      - '.github/actions/build/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+
+      - name: Build WASM playground
+        uses: ./.github/actions/setup-wasm
+
+      - name: Build docs
+        run: pnpm --filter @webui/docs... build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/dist
