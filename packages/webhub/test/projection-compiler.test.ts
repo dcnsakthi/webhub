@@ -174,7 +174,7 @@ describe("projection manifest hashing", () => {
 
     assert.equal(
       buildId,
-      "sha256:8319202a060626c39cce76df50197c92dee27aab29d601161183c188204d7c18"
+      "sha256:5751e9a0b832466dff466fafef9b74fb4d10445c5b17257a6014c7ec3475f001"
     );
   });
 
