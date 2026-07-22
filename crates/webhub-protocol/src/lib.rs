@@ -33,20 +33,8 @@ pub use plugin::FastElementData;
 pub use plugin::webhubElementData;
 pub use proto::*;
 
-// Type aliases preserving the `webhub` naming convention.
-// prost generates `webhub*` from the proto `webhub*` messages.
-pub type webhubProtocol = webhubProtocol;
-pub type webhubFragment = webhubFragment;
-pub type webhubFragmentRaw = webhubFragmentRaw;
-pub type webhubFragmentComponent = webhubFragmentComponent;
-pub type webhubFragmentFor = webhubFragmentFor;
-pub type webhubFragmentSignal = webhubFragmentSignal;
-pub type webhubFragmentIf = webhubFragmentIf;
-pub type webhubFragmentAttribute = webhubFragmentAttribute;
-pub type webhubFragmentPlugin = webhubFragmentPlugin;
-pub type webhubFragmentRoute = webhubFragmentRoute;
-pub type webhubFragmentOutlet = webhubFragmentOutlet;
-pub type ComponentData = proto::ComponentData;
+// All proto types (webhubProtocol, webhubFragment, webhubFragmentRaw, etc.)
+// are re-exported at the crate root via `pub use proto::*` above.
 
 /// A mapping of unique fragment identifiers to their corresponding fragment lists.
 pub type webhubFragmentRecords = HashMap<String, FragmentList>;
